@@ -34,6 +34,7 @@
 
 package com.comino.realsense.boofcv;
 
+import boofcv.abst.distort.FDistort;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
@@ -56,7 +57,8 @@ public class StreamRealSenseRgbDepth {
 	// image with depth information
 	private GrayU16 depth = new GrayU16(1,1);
 	// image with color information
-	private Planar<GrayU8> rgb = new Planar<GrayU8>(GrayU8.class,1,1,3);
+	private Planar<GrayU8> rgb	 = new Planar<GrayU8>(GrayU8.class,1,1,3);
+	private Planar<GrayU8> rgb_s = new Planar<GrayU8>(GrayU8.class,1,1,3);
 
 	// thread which synchronized video streams
 	private CombineThread thread;
@@ -64,7 +66,10 @@ public class StreamRealSenseRgbDepth {
 	private PointerByReference error= new PointerByReference();
 	private PointerByReference ctx;
 
-	PointerByReference dev;
+	private PointerByReference dev;
+
+
+	private RealSenseInfo info;
 
 
 	public void start(int devno , RealSenseInfo info , Listener listener )
@@ -75,6 +80,7 @@ public class StreamRealSenseRgbDepth {
 			throw new IllegalArgumentException("No device connected");
 		}
 
+		this.info = info;
 		this.listener = listener;
 
 		dev = LibRealSenseWrapper.INSTANCE.rs_get_device(ctx, devno, error);
@@ -98,7 +104,8 @@ public class StreamRealSenseRgbDepth {
 
 
 		depth.reshape(info.width,info.height);
-		rgb.reshape(info.width,info.height);
+		rgb_s.reshape(info.width,info.height);
+		rgb.reshape(640,480);
 
 		LibRealSenseWrapper.INSTANCE.rs_start_device(dev, error);
 
@@ -132,10 +139,14 @@ public class StreamRealSenseRgbDepth {
 		public volatile Pointer depthData;
 		public volatile Pointer rgbData;
 
+		public volatile FDistort fdist;
+
 		@Override
 		public void run() {
 			running = true;
 			long timeDepth = 0,timeRgb = 0;
+
+			fdist = new FDistort(rgb, rgb_s).scaleExt();
 
 			while( !requestStop ) {
 
@@ -148,15 +159,19 @@ public class StreamRealSenseRgbDepth {
 							rs_stream.RS_STREAM_DEPTH, error);
 					bufferDepthToU16(depthData,depth);
 				}
-				synchronized ( this ) {
-					timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-							rs_stream.RS_STREAM_COLOR, error);
-					rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-							rs_stream.RS_STREAM_COLOR, error);
-					bufferRgbToMsU8(rgbData,rgb);
+
+				if(info.mode == RealSenseInfo.MODE_RGB) {
+					synchronized ( this ) {
+						timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+								rs_stream.RS_STREAM_COLOR, error);
+						rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+								rs_stream.RS_STREAM_COLOR, error);
+						bufferRgbToMsU8(rgbData,rgb);
+						fdist.apply();
+					}
 				}
 
-				listener.process(rgb, depth, timeRgb, timeDepth);
+				listener.process(rgb_s, depth, timeRgb, timeDepth);
 			}
 
 			running = false;

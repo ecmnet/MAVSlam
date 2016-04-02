@@ -18,14 +18,18 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Scene;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class StreamRealSenseTest extends Application  {
 
 	private BufferedImage output;
-	private final ImageView imv = new ImageView();
-	private WritableImage wi;
+	private final ImageView ivrgb = new ImageView();
+	private WritableImage wirgb;
+
+	private final ImageView ivdepth = new ImageView();
+	private WritableImage widepth;
 
 	private StreamRealSenseRgbDepth realsense;
 
@@ -34,20 +38,24 @@ public class StreamRealSenseTest extends Application  {
 
 	@Override
 	public void start(Stage primaryStage) {
-		primaryStage.setTitle("Hello World!");
+		primaryStage.setTitle("BoofCV RealSense Demo");
 
-		StackPane root = new StackPane();
+		FlowPane root = new FlowPane();
 
-		root.getChildren().add(imv);
+		root.getChildren().add(ivrgb);
+		root.getChildren().add(ivdepth);
 
-		primaryStage.setScene(new Scene(root, 800,600));
+		primaryStage.setScene(new Scene(root, 960,360));
 		primaryStage.show();
 
 		RealSenseInfo info = new RealSenseInfo(480,360);
 
 		output = new BufferedImage(info.width, info.height, BufferedImage.TYPE_USHORT_565_RGB);
-		wi = new WritableImage(info.width, info.height);
-		imv.setImage(wi);
+		wirgb = new WritableImage(info.width, info.height);
+		ivrgb.setImage(wirgb);
+
+		widepth = new WritableImage(info.width, info.height);
+		ivdepth.setImage(widepth);
 
 		realsense = new StreamRealSenseRgbDepth();
 		realsense.start(0, info, new Listener() {
@@ -56,7 +64,7 @@ public class StreamRealSenseTest extends Application  {
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
-				ConvertBufferedImage.convertTo(depth, output, false);
+				ConvertBufferedImage.convertTo_U8(rgb, output, false);
 
 				if((System.currentTimeMillis() - tms) > 1000) {
 					tms = System.currentTimeMillis();
@@ -69,7 +77,12 @@ public class StreamRealSenseTest extends Application  {
 				c.drawString(fps, 10, 20);
 				c.dispose();
 
-				SwingFXUtils.toFXImage(output, wi);
+				SwingFXUtils.toFXImage(output, wirgb);
+
+				ConvertBufferedImage.convertTo(depth, output, false);
+				SwingFXUtils.toFXImage(output, widepth);
+
+
 			}
 
 		});
