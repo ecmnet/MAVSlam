@@ -78,7 +78,7 @@ public class StreamRealSenseRGBDepth {
 
 	private RealSenseIntrinsicParameters intrinsics;
 
-	public void start(int devno , RealSenseInfo info , Listener listener )
+	public StreamRealSenseRGBDepth(int devno , RealSenseInfo info)
 	{
 		ctx = LibRealSenseWrapper.INSTANCE.rs_create_context(4, error);
 
@@ -87,7 +87,6 @@ public class StreamRealSenseRGBDepth {
 		}
 
 		this.info = info;
-		this.listener = listener;
 
 		dev = LibRealSenseWrapper.INSTANCE.rs_get_device(ctx, devno, error);
 		Pointer ch = LibRealSenseWrapper.INSTANCE.rs_get_device_firmware_version(dev, error);
@@ -105,7 +104,6 @@ public class StreamRealSenseRGBDepth {
 
 		scale = LibRealSenseWrapper.INSTANCE.rs_get_device_depth_scale(dev, error);
 
-		//		// Get Intrinsics
 		rs_intrinsics rs_int= new rs_intrinsics();
 		LibRealSenseWrapper.INSTANCE.rs_get_stream_intrinsics(dev, rs_stream.RS_STREAM_RECTIFIED_COLOR, rs_int, error);
 		intrinsics = new RealSenseIntrinsicParameters(rs_int);
@@ -115,6 +113,11 @@ public class StreamRealSenseRGBDepth {
 		depth.reshape(info.width,info.height);
 		rgb.reshape(info.width,info.height);
 
+	}
+
+
+	public void start(Listener listener ) {
+		this.listener = listener;
 		LibRealSenseWrapper.INSTANCE.rs_start_device(dev, error);
 
 		thread = new CombineThread();

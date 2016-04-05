@@ -20,6 +20,7 @@ import boofcv.factory.feature.tracker.FactoryPointTrackerTwoPass;
 import boofcv.factory.sfm.FactoryVisualOdometry;
 import boofcv.io.UtilIO;
 import boofcv.io.image.ConvertBufferedImage;
+import boofcv.struct.calib.IntrinsicParameters;
 import boofcv.struct.calib.VisualDepthParameters;
 import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU16;
@@ -59,14 +60,14 @@ public class StreamRealSenseTest extends Application  {
 		primaryStage.setScene(new Scene(root, info.width,info.height));
 		primaryStage.show();
 
-		realsense = new StreamRealSenseRGBDepth();
+		realsense = new StreamRealSenseRGBDepth(0,info);
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(600, 2, 1f),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(600, 2, 0.875f),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -76,8 +77,7 @@ public class StreamRealSenseTest extends Application  {
 				FactoryVisualOdometry.depthDepthPnP(1.5, 120, 2, 200, 50, true,
 						sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
-		VisualDepthParameters param = UtilIO.loadXML(getClass().getResource("visualdepth.xml"));
-		visualOdometry.setCalibration(param.getVisualParam(),new DoNothingPixelTransform_F32());
+		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
 
 
 		output = new BufferedImage(info.width, info.height, BufferedImage.TYPE_USHORT_555_RGB);
@@ -85,7 +85,7 @@ public class StreamRealSenseTest extends Application  {
 		ivrgb.setImage(wirgb);
 
 
-		realsense.start(0, info, new Listener() {
+		realsense.start(new Listener() {
 
 			int fps;
 

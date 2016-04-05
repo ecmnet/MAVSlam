@@ -20,6 +20,10 @@ public class RealSenseIntrinsicParameters extends IntrinsicParameters {
        this.fx = intrinsics.fx;
        this.fy = intrinsics.fy;
 
+       this.radial = new double[2];
+       this.t1 = 0;
+       this.t2 = 0;
+
 	}
 
 	public String toString() {
