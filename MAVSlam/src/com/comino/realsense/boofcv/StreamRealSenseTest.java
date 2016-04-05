@@ -29,6 +29,7 @@ import boofcv.struct.image.Planar;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Scene;
 import javafx.scene.image.ImageView;
@@ -104,6 +105,8 @@ public class StreamRealSenseTest extends Application  {
 					visualOdometry.reset();
 				}
 
+
+
 				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
 				Vector3D_F64 T = leftToWorld.getT();
 
@@ -125,14 +128,16 @@ public class StreamRealSenseTest extends Application  {
 				c.setColor(Color.CYAN);
 				c.drawString("Fps:"+fps, 10, 20);
 				c.drawString(String.format("Loc %8.2f %8.2f %8.2f", T.x, T.y, T.z,count), 10, info.height-10);
-				if((count / total)>0.5f) {
+
+				if((count / total)>0.6f) {
 					c.setColor(Color.RED);
 					c.drawString("WARNING!", info.width-70, 20);
 				}
 				c.dispose();
 
-				SwingFXUtils.toFXImage(output, wirgb);
-
+				Platform.runLater(() -> {
+					SwingFXUtils.toFXImage(output, wirgb);
+				});
 			}
 
 		});

@@ -83,6 +83,7 @@ public class StreamRealSenseRGBDepth {
 		ctx = LibRealSenseWrapper.INSTANCE.rs_create_context(4, error);
 
 		if(LibRealSenseWrapper.INSTANCE.rs_get_device_count(ctx, error)<1) {
+			LibRealSenseWrapper.INSTANCE.rs_delete_context(ctx, error);
 			throw new IllegalArgumentException("No device connected");
 		}
 
