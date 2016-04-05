@@ -10,14 +10,9 @@ public class RealSenseIntrinsicParameters extends IntrinsicParameters {
 
 	public RealSenseIntrinsicParameters(rs_intrinsics intrinsics) {
 
-		System.out.println(intrinsics);
 
-	    for(int i=0; i<intrinsics.coeffs.length;i++) {
-	    	System.out.println(intrinsics.coeffs[i]);
-	    }
-
-       this.cx = intrinsics.width / 2;
-       this.cy = intrinsics.height / 2;
+       this.cx = intrinsics.ppx;
+       this.cy = intrinsics.ppy;
 
        this.width  = intrinsics.width;
        this.height = intrinsics.height;
@@ -25,7 +20,10 @@ public class RealSenseIntrinsicParameters extends IntrinsicParameters {
        this.fx = intrinsics.fx;
        this.fy = intrinsics.fy;
 
+	}
 
+	public String toString() {
+		return "cx="+cx+" cy="+cy+" fx="+fx+" fy="+fy;
 	}
 
 }

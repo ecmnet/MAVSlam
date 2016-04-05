@@ -99,22 +99,19 @@ public class StreamRealSenseRGBDepth {
 				info.width,info.height,rs_format.RS_FORMAT_RGB8, info.framerate, error);
 
 
-
 		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_DEPTH,
 				info.width,info.height,rs_format.RS_FORMAT_Z16, info.framerate, error);
 
 
 		scale = LibRealSenseWrapper.INSTANCE.rs_get_device_depth_scale(dev, error);
 
-		//LibRealSenseWrapper.INSTANCE.rs_get_device_extrinsics(dev, from_stream, to_stream, extrin, error);
-
 		//		// Get Intrinsics
-				rs_intrinsics rs_int= new rs_intrinsics();
-				LibRealSenseWrapper.INSTANCE.rs_get_stream_intrinsics(dev, rs_stream.RS_STREAM_RECTIFIED_COLOR, rs_int, error);
-				intrinsics = new RealSenseIntrinsicParameters(rs_int);
+		rs_intrinsics rs_int= new rs_intrinsics();
+		LibRealSenseWrapper.INSTANCE.rs_get_stream_intrinsics(dev, rs_stream.RS_STREAM_RECTIFIED_COLOR, rs_int, error);
+		intrinsics = new RealSenseIntrinsicParameters(rs_int);
 
 
-		System.out.println("Depth scale: "+scale);
+		System.out.println("Depth scale: "+scale+" Intrinsics: "+intrinsics.toString());
 
 
 		depth.reshape(info.width,info.height);
@@ -128,19 +125,13 @@ public class StreamRealSenseRGBDepth {
 		// make sure the thread is running before moving on
 		while(!thread.running)
 			Thread.yield();
-
-
 	}
 
-	/**
-	 * Stops all the threads from running and closes the video channels and video device
-	 */
 	public void stop() {
 		thread.requestStop = true;
 		long start = System.currentTimeMillis()+timeout;
 		while( start > System.currentTimeMillis() && thread.running )
 			Thread.yield();
-
 		LibRealSenseWrapper.INSTANCE.rs_stop_device(dev, error);
 	}
 
@@ -164,8 +155,6 @@ public class StreamRealSenseRGBDepth {
 			running = true;
 			long timeDepth = 0,timeRgb = 0;
 
-		//	fdist = new FDistort(rgb, rgb_s).
-
 			while( !requestStop ) {
 
 				LibRealSenseWrapper.INSTANCE.rs_wait_for_frames(dev, error);
@@ -176,7 +165,7 @@ public class StreamRealSenseRGBDepth {
 					depthData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
 							rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
 					if(depthData!=null)
-					  bufferDepthToU16(depthData,depth);
+						bufferDepthToU16(depthData,depth);
 				}
 
 				synchronized ( this ) {
@@ -185,9 +174,7 @@ public class StreamRealSenseRGBDepth {
 					rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
 							rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
 					if(rgbData!=null)
-					  bufferRgbToMsU8(rgbData,rgb);
-
-
+						bufferRgbToMsU8(rgbData,rgb);
 				}
 
 				listener.process(rgb, depth, timeRgb, timeDepth);
@@ -206,19 +193,10 @@ public class StreamRealSenseRGBDepth {
 				output.set(x, y, inp[indexOut++]);
 			}
 		}
-//			output.setData(input.getShortArray(0, output.width * output.height));
 	}
 
 
 	public void bufferDepthToU16(Pointer input , GrayU16 output ) {
-//		short[] inp = input.getShortArray(0, output.width * output.height);
-//		int indexIn = 0;
-//		for( int y = 0; y < output.height; y++ ) {
-//			for( int x = 0; x < output.width; x++) {
-//				output.set(x, y, (inp[indexIn++]) & 0xFFFF );
-//			}
-//		}
-
 		short[] inp = input.getShortArray(0, output.width * output.height);
 		output.setData(inp);
 	}
@@ -242,19 +220,7 @@ public class StreamRealSenseRGBDepth {
 
 	}
 
-	/**
-	 * Listener for kinect data
-	 */
 	public interface Listener {
-		/**
-		 * Function for processing synchronized kinect data. The two most recent depth and rgb images are passed along
-		 * with their time stamps.  The user can spend as much time inside this function without screwing up the
-		 * video feeds.  Just make sure you exit it before calling stop.
-		 * @param rgb Color image
-		 * @param depth Depth image
-		 * @param timeRgb Time-stamp for rgb image
-		 * @param timeDepth Time-stamp for depth image
-		 */
 		public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth);
 	}
 }
