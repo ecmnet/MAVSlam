@@ -11,6 +11,7 @@ import com.comino.realsense.boofcv.StreamRealSenseRGBDepth.Listener;
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrack;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
+import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.abst.sfm.d3.DepthVisualOdometry;
 import boofcv.alg.distort.DoNothingPixelTransform_F32;
 import boofcv.alg.sfm.DepthSparse3D;
@@ -87,7 +88,6 @@ public class StreamRealSenseTest extends Application  {
 		realsense.start(0, info, new Listener() {
 
 			int fps;
-			List<PointTrack> points = new ArrayList<PointTrack>();
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -107,14 +107,13 @@ public class StreamRealSenseTest extends Application  {
 				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
 				Vector3D_F64 T = leftToWorld.getT();
 
-				tracker.getAllTracks(points);
+				AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
 				ConvertBufferedImage.convertTo(rgb, output, false);
 				Graphics c = output.getGraphics();
 				c.setColor(Color.RED);
-				int N = points.size();
-				for( int i = 0; i < N; i++ ) {
-					if(depth.get((int)points.get(i).x, (int)points.get(i).y)>0)
-					   c.drawRect((int)points.get(i).x, (int)points.get(i).y, 1, 1);
+				for( int i = 0; i < points.getAllTracks().size(); i++ ) {
+					if(points.isInlier(i))
+					   c.drawRect((int)points.getAllTracks().get(i).x, (int)points.getAllTracks().get(i).y, 1, 1);
 				}
 				c.setColor(Color.CYAN);
 				c.drawString("Fps:"+fps, 10, 20);

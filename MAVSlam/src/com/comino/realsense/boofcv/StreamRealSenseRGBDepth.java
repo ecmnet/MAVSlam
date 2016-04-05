@@ -110,13 +110,10 @@ public class StreamRealSenseRGBDepth {
 		LibRealSenseWrapper.INSTANCE.rs_get_stream_intrinsics(dev, rs_stream.RS_STREAM_RECTIFIED_COLOR, rs_int, error);
 		intrinsics = new RealSenseIntrinsicParameters(rs_int);
 
-
 		System.out.println("Depth scale: "+scale+" Intrinsics: "+intrinsics.toString());
-
 
 		depth.reshape(info.width,info.height);
 		rgb.reshape(info.width,info.height);
-
 
 		LibRealSenseWrapper.INSTANCE.rs_start_device(dev, error);
 
@@ -154,30 +151,36 @@ public class StreamRealSenseRGBDepth {
 		public void run() {
 			running = true;
 			long timeDepth = 0,timeRgb = 0;
+			long time = 0,timeOld = 1;
 
 			while( !requestStop ) {
 
 				LibRealSenseWrapper.INSTANCE.rs_wait_for_frames(dev, error);
 
-				synchronized (this ) {
-					timeDepth = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-							rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
-					depthData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-							rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
-					if(depthData!=null)
-						bufferDepthToU16(depthData,depth);
-				}
+				time = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+						rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
 
-				synchronized ( this ) {
-					timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-							rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
-					rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-							rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
-					if(rgbData!=null)
-						bufferRgbToMsU8(rgbData,rgb);
-				}
+				if(time!=timeOld) {
+					synchronized (this ) {
+						timeDepth = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+								rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
+						depthData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+								rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
+						if(depthData!=null)
+							bufferDepthToU16(depthData,depth);
+					}
 
-				listener.process(rgb, depth, timeRgb, timeDepth);
+					synchronized ( this ) {
+						timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+								rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
+						rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+								rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
+						if(rgbData!=null)
+							bufferRgbToMsU8(rgbData,rgb);
+					}
+					timeOld = time;
+					listener.process(rgb, depth, timeRgb, timeDepth);
+				}
 			}
 
 			running = false;
