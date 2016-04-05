@@ -7,8 +7,8 @@ public class RealSenseInfo {
 
 	public int mode   = MODE_RGB;
 
-	public int width  = 480;
-	public int height = 360;
+	public int width  = 320;
+	public int height = 240;
 
 	public int framerate = 60;
 
