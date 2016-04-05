@@ -105,7 +105,7 @@ public class StreamRealSenseRGBDepth {
 		scale = LibRealSenseWrapper.INSTANCE.rs_get_device_depth_scale(dev, error);
 
 		rs_intrinsics rs_int= new rs_intrinsics();
-		LibRealSenseWrapper.INSTANCE.rs_get_stream_intrinsics(dev, rs_stream.RS_STREAM_RECTIFIED_COLOR, rs_int, error);
+		LibRealSenseWrapper.INSTANCE.rs_get_stream_intrinsics(dev, rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, rs_int, error);
 		intrinsics = new RealSenseIntrinsicParameters(rs_int);
 
 		System.out.println("Depth scale: "+scale+" Intrinsics: "+intrinsics.toString());

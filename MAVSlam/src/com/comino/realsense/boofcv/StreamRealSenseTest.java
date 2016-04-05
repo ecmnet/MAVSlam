@@ -110,14 +110,25 @@ public class StreamRealSenseTest extends Application  {
 				AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
 				ConvertBufferedImage.convertTo(rgb, output, false);
 				Graphics c = output.getGraphics();
-				c.setColor(Color.RED);
+
+				int count = 0; float total = 0;
 				for( int i = 0; i < points.getAllTracks().size(); i++ ) {
-					if(points.isInlier(i))
-					   c.drawRect((int)points.getAllTracks().get(i).x, (int)points.getAllTracks().get(i).y, 1, 1);
+					c.setColor(Color.BLUE);
+					if(points.isInlier(i)) {
+						total++;
+						if(depth.get((int)points.getAllTracks().get(i).x, (int)points.getAllTracks().get(i).y)<500) {
+							c.setColor(Color.RED); count++;
+						}
+						c.drawRect((int)points.getAllTracks().get(i).x, (int)points.getAllTracks().get(i).y, 1, 1);
+					}
 				}
 				c.setColor(Color.CYAN);
 				c.drawString("Fps:"+fps, 10, 20);
-				c.drawString(String.format("Loc %8.2f %8.2f %8.2f", T.x, T.y, T.z), 10, info.height-10);
+				c.drawString(String.format("Loc %8.2f %8.2f %8.2f", T.x, T.y, T.z,count), 10, info.height-10);
+				if((count / total)>0.5f) {
+					c.setColor(Color.RED);
+					c.drawString("WARNING!", info.width-70, 20);
+				}
 				c.dispose();
 
 				SwingFXUtils.toFXImage(output, wirgb);
