@@ -100,7 +100,7 @@ public class StreamRealSenseTest extends Application  {
 
 		realsense.start(new Listener() {
 
-			int fps; float mouse_depth;
+			int fps; float mouse_depth; float md; int mc;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -109,6 +109,9 @@ public class StreamRealSenseTest extends Application  {
 				if((System.currentTimeMillis() - tms) > 1000) {
 					tms = System.currentTimeMillis();
 					fps = (int)(1f/((timeRgb - oldTimeDepth)/1000f)+0.5f);
+					if(mc>0)
+					   mouse_depth = md / mc;
+					mc = 0; md = 0;
 				}
 				oldTimeDepth = timeRgb;
 
@@ -117,13 +120,16 @@ public class StreamRealSenseTest extends Application  {
 					visualOdometry.reset();
 				}
 
-				if(depth!=null)
-					mouse_depth = depth.get(mouse_x, mouse_y) / 1000f;
+				if(depth!=null) {
+					mc++;
+					md = md + depth.get(mouse_x, mouse_y) / 1000f;
+				}
 
 
 
 				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
 				Vector3D_F64 T = leftToWorld.getT();
+
 
 				AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
 				ConvertBufferedImage.convertTo(rgb, output, false);
@@ -133,9 +139,10 @@ public class StreamRealSenseTest extends Application  {
 				int count = 0; float total = 0;
 				for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 					c.setColor(Color.BLUE);
-					if(points.isInlier(i)) {
+					int d = depth.get((int)points.getAllTracks().get(i).x, (int)points.getAllTracks().get(i).y);
+					if(d> 0 && points.isInlier(i)) {
 						total++;
-						if(depth.get((int)points.getAllTracks().get(i).x, (int)points.getAllTracks().get(i).y)<500) {
+						if(d<500) {
 							c.setColor(Color.RED); count++;
 						}
 						c.drawRect((int)points.getAllTracks().get(i).x, (int)points.getAllTracks().get(i).y, 1, 1);
