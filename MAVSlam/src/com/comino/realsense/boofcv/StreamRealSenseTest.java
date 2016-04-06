@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.comino.realsense.boofcv.StreamRealSenseRGBDepth.Listener;
+import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrack;
@@ -70,6 +71,9 @@ public class StreamRealSenseTest extends Application  {
 		RealSenseInfo info = new RealSenseInfo(320,240);
 //		RealSenseInfo info = new RealSenseInfo(640,480);
 
+		mouse_x = info.width/2;
+		mouse_y = info.height/2;
+
 		primaryStage.setScene(new Scene(root, info.width,info.height));
 		primaryStage.show();
 
@@ -80,7 +84,7 @@ public class StreamRealSenseTest extends Application  {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(600, 3, 1),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(600, 2, 2),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -100,7 +104,7 @@ public class StreamRealSenseTest extends Application  {
 
 		realsense.start(new Listener() {
 
-			int fps; float mouse_depth; float md; int mc;
+			int fps; float mouse_depth; float md; int mc; boolean found;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -120,10 +124,7 @@ public class StreamRealSenseTest extends Application  {
 					visualOdometry.reset();
 				}
 
-				if(depth!=null) {
-					mc++;
-					md = md + depth.get(mouse_x, mouse_y) / 1000f;
-				}
+
 
 
 
@@ -136,22 +137,44 @@ public class StreamRealSenseTest extends Application  {
 
 				Graphics c = output.getGraphics();
 
-				int count = 0; float total = 0;
+				int count = 0; float total = 0; found = false; int dx=0, dy=0; int dist=999;
+				int x, y;
+
 				for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 					c.setColor(Color.BLUE);
-					int d = depth.get((int)points.getAllTracks().get(i).x, (int)points.getAllTracks().get(i).y);
+
+					x = (int)points.getAllTracks().get(i).x;
+					y = (int)points.getAllTracks().get(i).y;
+
+					int d = depth.get(x,y);
 					if(d> 0 && points.isInlier(i)) {
+
+
+						int di = (int)Math.sqrt((x-mouse_x)*(x-mouse_x) + (y-mouse_y)*(y-mouse_y));
+						if(di < dist) {
+							dx = x;
+							dy = y;
+							dist = di;
+						}
 						total++;
 						if(d<500) {
 							c.setColor(Color.RED); count++;
 						}
-						c.drawRect((int)points.getAllTracks().get(i).x, (int)points.getAllTracks().get(i).y, 1, 1);
+						c.drawRect(x,y, 1, 1);
 					}
 				}
+
+				if(depth!=null) {
+					mc++;
+					md = md + depth.get(dx,dy) / 1000f;
+					c.setColor(Color.GREEN);
+					c.drawOval(dx-3,dy-3, 6, 6);
+				}
+
 				c.setColor(Color.CYAN);
 				c.drawString("Fps:"+fps, 10, 20);
-				c.drawString(String.format("Loc: %4.2f %4.2f %4.2f   Depth: %3.2f", T.x, T.y, T.z,mouse_depth), 10, info.height-10);
-
+				c.drawString(String.format("Loc: %4.2f %4.2f %4.2f", T.x, T.y, T.z), 10, info.height-10);
+				c.drawString(String.format("Depth: %3.2f", mouse_depth), info.width-85, info.height-10);
 				if((count / total)>0.6f) {
 					c.setColor(Color.RED);
 					c.drawString("WARNING!", info.width-70, 20);
