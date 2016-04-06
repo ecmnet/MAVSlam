@@ -34,6 +34,7 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Scene;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.Stage;
 
@@ -48,6 +49,9 @@ public class StreamRealSenseTest extends Application  {
 	private long oldTimeDepth=0;
 	private long tms = 0;
 
+	private int mouse_x;
+	private int mouse_y;
+
 	@Override
 	public void start(Stage primaryStage) {
 		primaryStage.setTitle("BoofCV RealSense Demo");
@@ -56,7 +60,15 @@ public class StreamRealSenseTest extends Application  {
 
 		root.getChildren().add(ivrgb);
 
+		ivrgb.setOnMouseMoved(event -> {
+			MouseEvent ev = event;
+			mouse_x = (int)ev.getX();
+			mouse_y = (int)ev.getY();
+		});
+
+
 		RealSenseInfo info = new RealSenseInfo(320,240);
+//		RealSenseInfo info = new RealSenseInfo(640,480);
 
 		primaryStage.setScene(new Scene(root, info.width,info.height));
 		primaryStage.show();
@@ -68,7 +80,7 @@ public class StreamRealSenseTest extends Application  {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(600, 2, 0.875f),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(600, 3, 1),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -88,7 +100,7 @@ public class StreamRealSenseTest extends Application  {
 
 		realsense.start(new Listener() {
 
-			int fps;
+			int fps; float mouse_depth;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -105,6 +117,9 @@ public class StreamRealSenseTest extends Application  {
 					visualOdometry.reset();
 				}
 
+				if(depth!=null)
+					mouse_depth = depth.get(mouse_x, mouse_y) / 1000f;
+
 
 
 				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
@@ -112,6 +127,7 @@ public class StreamRealSenseTest extends Application  {
 
 				AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
 				ConvertBufferedImage.convertTo(rgb, output, false);
+
 				Graphics c = output.getGraphics();
 
 				int count = 0; float total = 0;
@@ -127,7 +143,7 @@ public class StreamRealSenseTest extends Application  {
 				}
 				c.setColor(Color.CYAN);
 				c.drawString("Fps:"+fps, 10, 20);
-				c.drawString(String.format("Loc %8.2f %8.2f %8.2f", T.x, T.y, T.z,count), 10, info.height-10);
+				c.drawString(String.format("Loc: %4.2f %4.2f %4.2f   Depth: %3.2f", T.x, T.y, T.z,mouse_depth), 10, info.height-10);
 
 				if((count / total)>0.6f) {
 					c.setColor(Color.RED);
