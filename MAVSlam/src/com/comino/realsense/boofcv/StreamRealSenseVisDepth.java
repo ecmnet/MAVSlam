@@ -50,7 +50,7 @@ import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_stream;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
 
-public class StreamRealSenseRGBDepth {
+public class StreamRealSenseVisDepth {
 
 	// time out used in some places
 	private long timeout=10000;
@@ -78,7 +78,7 @@ public class StreamRealSenseRGBDepth {
 
 	private RealSenseIntrinsicParameters intrinsics;
 
-	public StreamRealSenseRGBDepth(int devno , RealSenseInfo info)
+	public StreamRealSenseVisDepth(int devno , RealSenseInfo info)
 	{
 		ctx = LibRealSenseWrapper.INSTANCE.rs_create_context(4, error);
 
@@ -98,6 +98,10 @@ public class StreamRealSenseRGBDepth {
 		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_COLOR,
 				info.width,info.height,rs_format.RS_FORMAT_RGB8, info.framerate, error);
 
+		if(info.mode==RealSenseInfo.MODE_INFRARED) {
+		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_INFRARED,
+				info.width,info.height,rs_format.RS_FORMAT_ANY, info.framerate, error);
+		}
 
 		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_DEPTH,
 				info.width,info.height,rs_format.RS_FORMAT_Z16, info.framerate, error);
@@ -106,7 +110,7 @@ public class StreamRealSenseRGBDepth {
 		scale = LibRealSenseWrapper.INSTANCE.rs_get_device_depth_scale(dev, error);
 
 		rs_intrinsics rs_int= new rs_intrinsics();
-		LibRealSenseWrapper.INSTANCE.rs_get_stream_intrinsics(dev, rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, rs_int, error);
+		LibRealSenseWrapper.INSTANCE.rs_get_stream_intrinsics(dev, rs_stream.RS_STREAM_RECTIFIED_COLOR, rs_int, error);
 		intrinsics = new RealSenseIntrinsicParameters(rs_int);
 
 		System.out.println("Depth scale: "+scale+" Intrinsics: "+intrinsics.toString());
@@ -174,14 +178,30 @@ public class StreamRealSenseRGBDepth {
 							bufferDepthToU16(depthData,depth);
 					}
 
-					synchronized ( this ) {
-						timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-								rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
-						rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-								rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
-						if(rgbData!=null)
-							bufferRgbToMsU8(rgbData,rgb);
+					switch(info.mode) {
+					case RealSenseInfo.MODE_RGB:
+						synchronized ( this ) {
+							timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+									rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
+							rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+									rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
+							if(rgbData!=null)
+								bufferRgbToMsU8(rgbData,rgb);
+						}
+						break;
+					case RealSenseInfo.MODE_INFRARED:
+						synchronized ( this ) {
+							timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+									rs_stream.RS_STREAM_INFRARED, error);
+							rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+									rs_stream.RS_STREAM_INFRARED, error);
+							if(rgbData!=null)
+								bufferGrayToMsU8(rgbData,rgb);
+						}
+						break;
 					}
+
+
 					timeOld = time;
 					listener.process(rgb, depth, timeRgb, timeDepth);
 				}
@@ -224,6 +244,21 @@ public class StreamRealSenseRGBDepth {
 				band2.data[indexOut] = input[indexIn++];
 			}
 		}
+
+	}
+
+	public void bufferGrayToMsU8( Pointer inp , Planar<GrayU8> output ) {
+
+		byte[] input = inp.getByteArray(0, output.width * output.height);
+		GrayU8 band0 = output.getBand(0);
+		GrayU8 band1 = output.getBand(1);
+		GrayU8 band2 = output.getBand(2);
+
+		band0.setData(input);
+		band1.setData(input);
+		band2.setData(input);
+
+
 
 	}
 

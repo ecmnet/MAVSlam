@@ -5,12 +5,11 @@ public class RealSenseInfo {
 	public static final int MODE_RGB 	  = 0;
 	public static final int MODE_INFRARED = 1;
 
-	public int mode   = MODE_RGB;
-
 	public int width  = 320;
 	public int height = 240;
 
 	public int framerate = 60;
+	public int mode      = 0;
 
 
 	public RealSenseInfo() {
@@ -22,10 +21,10 @@ public class RealSenseInfo {
 		this.height = height;
 	}
 
-	public RealSenseInfo(int width, int height, int framerate) {
+	public RealSenseInfo(int width, int height, int mode) {
 		this.width = width;
 		this.height = height;
-		this.framerate = framerate;
+		this.mode = mode;
 	}
 
 	public RealSenseInfo(int width, int height, int framerate, int mode) {

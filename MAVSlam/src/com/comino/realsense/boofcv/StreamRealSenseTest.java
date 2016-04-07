@@ -6,7 +6,7 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.comino.realsense.boofcv.StreamRealSenseRGBDepth.Listener;
+import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
@@ -45,7 +45,7 @@ public class StreamRealSenseTest extends Application  {
 	private final ImageView ivrgb = new ImageView();
 	private WritableImage wirgb;
 
-	private StreamRealSenseRGBDepth realsense;
+	private StreamRealSenseVisDepth realsense;
 
 	private long oldTimeDepth=0;
 	private long tms = 0;
@@ -68,7 +68,7 @@ public class StreamRealSenseTest extends Application  {
 		});
 
 
-		RealSenseInfo info = new RealSenseInfo(320,240);
+		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 //		RealSenseInfo info = new RealSenseInfo(640,480);
 
 		mouse_x = info.width/2;
@@ -77,7 +77,7 @@ public class StreamRealSenseTest extends Application  {
 		primaryStage.setScene(new Scene(root, info.width,info.height));
 		primaryStage.show();
 
-		realsense = new StreamRealSenseRGBDepth(0,info);
+		realsense = new StreamRealSenseVisDepth(0,info);
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
@@ -110,7 +110,7 @@ public class StreamRealSenseTest extends Application  {
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
 
-				if((System.currentTimeMillis() - tms) > 1000) {
+				if((System.currentTimeMillis() - tms) > 250) {
 					tms = System.currentTimeMillis();
 					fps = (int)(1f/((timeRgb - oldTimeDepth)/1000f)+0.5f);
 					if(mc>0)
@@ -123,9 +123,6 @@ public class StreamRealSenseTest extends Application  {
 					System.out.println("VO Failed!");
 					visualOdometry.reset();
 				}
-
-
-
 
 
 				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
