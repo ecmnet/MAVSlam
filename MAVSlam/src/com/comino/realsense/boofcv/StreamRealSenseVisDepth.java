@@ -34,21 +34,19 @@
 
 package com.comino.realsense.boofcv;
 
-import boofcv.abst.distort.FDistort;
-import boofcv.core.image.ConvertImage;
+import com.comino.librealsense.wrapper.LibRealSenseWrapper;
+import com.comino.librealsense.wrapper.LibRealSenseIntrinsics;
+import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_format;
+import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_intrinsics;
+import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_option;
+import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_stream;
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.PointerByReference;
+
 import boofcv.struct.calib.IntrinsicParameters;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
-
-import com.comino.librealsense.wrapper.LibRealSenseWrapper;
-import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_format;
-import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_intrinsics;
-import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_option;
-import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_preset;
-import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_stream;
-import com.sun.jna.Pointer;
-import com.sun.jna.ptr.PointerByReference;
 
 public class StreamRealSenseVisDepth {
 
@@ -76,7 +74,7 @@ public class StreamRealSenseVisDepth {
 	private RealSenseInfo info;
 	private float scale;
 
-	private RealSenseIntrinsicParameters intrinsics;
+	private LibRealSenseIntrinsics intrinsics;
 
 	public StreamRealSenseVisDepth(int devno , RealSenseInfo info)
 	{
@@ -94,6 +92,7 @@ public class StreamRealSenseVisDepth {
 		System.out.println("Firmware version: "+ch.getString(0));
 
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED, 1, error);
+    	LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_EXPOSURE, 1, error);
 
 		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_COLOR,
 				info.width,info.height,rs_format.RS_FORMAT_RGB8, info.framerate, error);
@@ -111,7 +110,7 @@ public class StreamRealSenseVisDepth {
 
 		rs_intrinsics rs_int= new rs_intrinsics();
 		LibRealSenseWrapper.INSTANCE.rs_get_stream_intrinsics(dev, rs_stream.RS_STREAM_RECTIFIED_COLOR, rs_int, error);
-		intrinsics = new RealSenseIntrinsicParameters(rs_int);
+		intrinsics = new LibRealSenseIntrinsics(rs_int);
 
 		System.out.println("Depth scale: "+scale+" Intrinsics: "+intrinsics.toString());
 

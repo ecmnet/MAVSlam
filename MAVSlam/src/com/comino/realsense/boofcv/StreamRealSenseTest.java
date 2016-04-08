@@ -3,14 +3,10 @@ package com.comino.realsense.boofcv;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
-import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
-import boofcv.abst.feature.tracker.PointTrack;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.abst.sfm.d3.DepthVisualOdometry;
@@ -19,10 +15,7 @@ import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
 import boofcv.factory.feature.tracker.FactoryPointTrackerTwoPass;
 import boofcv.factory.sfm.FactoryVisualOdometry;
-import boofcv.io.UtilIO;
 import boofcv.io.image.ConvertBufferedImage;
-import boofcv.struct.calib.IntrinsicParameters;
-import boofcv.struct.calib.VisualDepthParameters;
 import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
@@ -69,7 +62,7 @@ public class StreamRealSenseTest extends Application  {
 
 
 		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-//		RealSenseInfo info = new RealSenseInfo(640,480);
+//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 
 		mouse_x = info.width/2;
 		mouse_y = info.height/2;
@@ -84,7 +77,7 @@ public class StreamRealSenseTest extends Application  {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(600, 2, 2),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(900, 2, 1),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -104,7 +97,7 @@ public class StreamRealSenseTest extends Application  {
 
 		realsense.start(new Listener() {
 
-			int fps; float mouse_depth; float md; int mc; boolean found;
+			int fps; float mouse_depth; float md; int mc; int mf=0; int fpm;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -112,11 +105,14 @@ public class StreamRealSenseTest extends Application  {
 
 				if((System.currentTimeMillis() - tms) > 250) {
 					tms = System.currentTimeMillis();
-					fps = (int)(1f/((timeRgb - oldTimeDepth)/1000f)+0.5f);
+					if(mf>0)
+					  fps = fpm/mf;
 					if(mc>0)
 					   mouse_depth = md / mc;
-					mc = 0; md = 0;
+					mc = 0; md = 0; mf=0; fpm=0;
 				}
+				mf++;
+				fpm += (int)(1f/((timeRgb - oldTimeDepth)/1000f)+0.5f);
 				oldTimeDepth = timeRgb;
 
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
@@ -134,7 +130,7 @@ public class StreamRealSenseTest extends Application  {
 
 				Graphics c = output.getGraphics();
 
-				int count = 0; float total = 0; found = false; int dx=0, dy=0; int dist=999;
+				int count = 0; float total = 0;  int dx=0, dy=0; int dist=999;
 				int x, y;
 
 				for( int i = 0; i < points.getAllTracks().size(); i++ ) {
@@ -168,10 +164,12 @@ public class StreamRealSenseTest extends Application  {
 					c.drawOval(dx-3,dy-3, 6, 6);
 				}
 
+
 				c.setColor(Color.CYAN);
 				c.drawString("Fps:"+fps, 10, 20);
 				c.drawString(String.format("Loc: %4.2f %4.2f %4.2f", T.x, T.y, T.z), 10, info.height-10);
 				c.drawString(String.format("Depth: %3.2f", mouse_depth), info.width-85, info.height-10);
+
 				if((count / total)>0.6f) {
 					c.setColor(Color.RED);
 					c.drawString("WARNING!", info.width-70, 20);

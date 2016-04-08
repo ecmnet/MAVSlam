@@ -1,15 +1,18 @@
-package com.comino.realsense.boofcv;
+package com.comino.librealsense.wrapper;
 
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_intrinsics;
 
 import boofcv.struct.calib.IntrinsicParameters;
 
-public class RealSenseIntrinsicParameters extends IntrinsicParameters {
+public class LibRealSenseIntrinsics extends IntrinsicParameters {
 
 	private static final long serialVersionUID = -3525224116201930353L;
 
-	public RealSenseIntrinsicParameters(rs_intrinsics intrinsics) {
+	public int model=0;
 
+	public LibRealSenseIntrinsics(rs_intrinsics intrinsics) {
+
+	   this.model = intrinsics.model;
 
        this.cx = intrinsics.ppx;
        this.cy = intrinsics.ppy;
