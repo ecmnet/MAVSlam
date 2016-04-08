@@ -2,15 +2,7 @@ package com.comino.librealsense.wrapper;
 
 import java.nio.IntBuffer;
 
-import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_device;
-import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_distortion;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_option;
-import com.sun.jna.Memory;
-import com.sun.jna.Native;
-import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
-import com.sun.jna.ptr.DoubleByReference;
-import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 
 public class LibRealSenseUtils {
@@ -38,10 +30,16 @@ public class LibRealSenseUtils {
 		    };
 
 
+	 public static final int PRESET_DEPTH_DEFAULT 	= 0;
+	 public static final int PRESET_DEPTH_OFF 		= 1;
+	 public static final int PRESET_DEPTH_LOW 		= 2;
+	 public static final int PRESET_DEPTH_MEDIUM 	= 3;
+	 public static final int PRESET_DEPTH_OPTIMIZED = 4;
+	 public static final int PRESET_DEPTH_HIGH      = 5;
 
 
 	/* Provide access to several recommend sets of depth control parameters */
-	static void rs_apply_depth_control_preset(PointerByReference dev, int preset)
+	public static void rs_apply_depth_control_preset(PointerByReference dev, int preset)
 	{
 	    IntBuffer options = IntBuffer.wrap(depth_control_options);
 	    LibRealSenseWrapper.INSTANCE.rs_set_device_options(dev,options, 10, depth_control_presets[preset], null);

@@ -36,6 +36,7 @@ package com.comino.realsense.boofcv;
 
 import com.comino.librealsense.wrapper.LibRealSenseWrapper;
 import com.comino.librealsense.wrapper.LibRealSenseIntrinsics;
+import com.comino.librealsense.wrapper.LibRealSenseUtils;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_format;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_intrinsics;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_option;
@@ -92,7 +93,8 @@ public class StreamRealSenseVisDepth {
 		System.out.println("Firmware version: "+ch.getString(0));
 
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED, 1, error);
-    	LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_EXPOSURE, 1, error);
+
+		LibRealSenseUtils.rs_apply_depth_control_preset(dev, LibRealSenseUtils.PRESET_DEPTH_OPTIMIZED);
 
 		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_COLOR,
 				info.width,info.height,rs_format.RS_FORMAT_RGB8, info.framerate, error);
