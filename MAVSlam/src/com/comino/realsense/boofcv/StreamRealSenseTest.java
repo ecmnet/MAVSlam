@@ -5,6 +5,7 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
+import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -14,7 +15,6 @@ import boofcv.alg.distort.DoNothingPixelTransform_F32;
 import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
 import boofcv.factory.feature.tracker.FactoryPointTrackerTwoPass;
-import boofcv.factory.sfm.FactoryVisualOdometry;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU16;
@@ -84,7 +84,7 @@ public class StreamRealSenseTest extends Application  {
 
 		// declares the algorithm
 		DepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
-				FactoryVisualOdometry.depthDepthPnP(1.5, 120, 2, 200, 50, true,
+				FactoryRealSenseOdometry.depthDepthPnP(1.5, 120, 2, 200, 50, true,
 						sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
@@ -134,13 +134,14 @@ public class StreamRealSenseTest extends Application  {
 				int x, y;
 
 				for( int i = 0; i < points.getAllTracks().size(); i++ ) {
+					if(points.isInlier(i)) {
 					c.setColor(Color.BLUE);
 
 					x = (int)points.getAllTracks().get(i).x;
 					y = (int)points.getAllTracks().get(i).y;
 
 					int d = depth.get(x,y);
-					if(d> 0 && points.isInlier(i)) {
+					if(d > 0) {
 
 
 						int di = (int)Math.sqrt((x-mouse_x)*(x-mouse_x) + (y-mouse_y)*(y-mouse_y));
@@ -154,6 +155,7 @@ public class StreamRealSenseTest extends Application  {
 							c.setColor(Color.RED); count++;
 						}
 						c.drawRect(x,y, 1, 1);
+					}
 					}
 				}
 

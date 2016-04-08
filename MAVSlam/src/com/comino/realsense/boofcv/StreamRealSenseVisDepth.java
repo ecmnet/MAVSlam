@@ -34,9 +34,9 @@
 
 package com.comino.realsense.boofcv;
 
-import com.comino.librealsense.wrapper.LibRealSenseWrapper;
 import com.comino.librealsense.wrapper.LibRealSenseIntrinsics;
 import com.comino.librealsense.wrapper.LibRealSenseUtils;
+import com.comino.librealsense.wrapper.LibRealSenseWrapper;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_format;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_intrinsics;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_option;

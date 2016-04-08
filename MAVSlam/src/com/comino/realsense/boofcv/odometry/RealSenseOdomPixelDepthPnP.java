@@ -237,14 +237,17 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 
 
 			// discard point if it can't localized
-			if( !pixelTo3D.process(t.x,t.y) || pixelTo3D.getW() == 0
-					|| pixelTo3D.getZ() > 4.0f ) {
+			if( !pixelTo3D.process(t.x,t.y) || pixelTo3D.getW() == 0) {
+
 				tracker.dropTrack(t);
 			} else {
 				Point3D_F64 X = p.getLocation();
 
-				double w = pixelTo3D.getW();
-				X.set(pixelTo3D.getX() / w, pixelTo3D.getY() / w, pixelTo3D.getZ() / w);
+// *** division not needed for RealSense
+
+//				double w = pixelTo3D.getW();
+//				X.set(pixelTo3D.getX() / w, pixelTo3D.getY() / w, pixelTo3D.getZ() / w);
+				X.set(pixelTo3D.getX(), pixelTo3D.getY(), pixelTo3D.getZ());
 
 				// translate the point into the key frame
 				// SePointOps_F64.transform(currToKey,X,X);

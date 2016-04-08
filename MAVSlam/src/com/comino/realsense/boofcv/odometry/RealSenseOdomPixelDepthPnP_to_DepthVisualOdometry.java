@@ -18,6 +18,11 @@
 
 package com.comino.realsense.boofcv.odometry;
 
+import static boofcv.alg.distort.LensDistortionOps.transformPoint;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import boofcv.abst.feature.tracker.PointTrack;
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.abst.sfm.d3.DepthVisualOdometry;
@@ -35,11 +40,6 @@ import boofcv.struct.sfm.Point2D3DTrack;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static boofcv.alg.distort.LensDistortionOps.transformPoint;
 
 /**
  * Wrapper around {@link VisOdomPixelDepthPnP} for {@link DepthVisualOdometry}.
