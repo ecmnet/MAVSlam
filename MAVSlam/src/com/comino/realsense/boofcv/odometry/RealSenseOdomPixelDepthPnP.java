@@ -54,7 +54,7 @@ import georegression.transform.se.SePointOps_F64;
  *
  * @author Peter Abeles
  */
-public class RealsenseOdomPixelDepthPnP<T extends ImageBase> {
+public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 
 	// when the inlier set is less than this number new features are detected
 	private int thresholdAdd;
@@ -113,7 +113,7 @@ public class RealsenseOdomPixelDepthPnP<T extends ImageBase> {
 	 * @param pixelToNorm Converts from raw image pixels into normalized image coordinates.
 	 * @param normToPixel Converts from normalized image coordinates into raw pixels
 	 */
-	public RealsenseOdomPixelDepthPnP(int thresholdAdd,
+	public RealSenseOdomPixelDepthPnP(int thresholdAdd,
 								int thresholdRetire ,
 								boolean doublePass ,
 								ModelMatcher<Se3_F64, Point2D3D> motionEstimator,
@@ -235,8 +235,10 @@ public class RealsenseOdomPixelDepthPnP<T extends ImageBase> {
 				t.cookie = p = new Point2D3DTrack();
 			}
 
+
 			// discard point if it can't localized
-			if( !pixelTo3D.process(t.x,t.y) || pixelTo3D.getW() == 0 ) {
+			if( !pixelTo3D.process(t.x,t.y) || pixelTo3D.getW() == 0
+					|| pixelTo3D.getZ() > 4.0f ) {
 				tracker.dropTrack(t);
 			} else {
 				Point3D_F64 X = p.getLocation();

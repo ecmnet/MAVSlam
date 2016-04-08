@@ -54,7 +54,7 @@ public class FactoryRealSenseOdometry {
 	 * Depth sensor based visual odometry algorithm which runs a sparse feature tracker in the visual camera and
 	 * estimates the range of tracks once when first detected using the depth sensor.
 	 *
-	 * @see RealsenseOdomPixelDepthPnP
+	 * @see RealSenseOdomPixelDepthPnP
 	 *
 	 * @param thresholdAdd Add new tracks when less than this number are in the inlier set.  Tracker dependent. Set to
 	 *                     a value &le; 0 to add features every frame.
@@ -96,10 +96,10 @@ public class FactoryRealSenseOdometry {
 			refine = FactoryMultiView.refinePnP(1e-12,refineIterations);
 		}
 
-		VisOdomPixelDepthPnP<Vis> alg = new VisOdomPixelDepthPnP<Vis>
+		RealSenseOdomPixelDepthPnP<Vis> alg = new RealSenseOdomPixelDepthPnP<Vis>
 						(thresholdAdd,thresholdRetire ,doublePass,motion,pixelTo3D,refine,tracker,null,null);
 
-		return new VisOdomPixelDepthPnP_to_DepthVisualOdometry<Vis,Depth>
+		return new RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis,Depth>
 				(sparseDepth,alg,distance, ImageType.single(visualType),depthType);
 	}
 

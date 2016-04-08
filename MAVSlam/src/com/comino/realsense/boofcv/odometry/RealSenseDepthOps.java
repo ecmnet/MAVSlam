@@ -36,7 +36,7 @@ import georegression.struct.point.Point3D_F64;
  *
  * @author Peter Abeles
  */
-public class RealsenseDepthOps {
+public class RealSenseDepthOps {
 	/**
 	 * Creates a point cloud from a depth image.
 	 * @param param Intrinsic camera parameters for depth image
