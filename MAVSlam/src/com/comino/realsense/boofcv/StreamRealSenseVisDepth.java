@@ -94,7 +94,7 @@ public class StreamRealSenseVisDepth {
 
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED, 1, error);
 
-		LibRealSenseUtils.rs_apply_depth_control_preset(dev, LibRealSenseUtils.PRESET_DEPTH_OPTIMIZED);
+		LibRealSenseUtils.rs_apply_depth_control_preset(dev, LibRealSenseUtils.PRESET_DEPTH_HIGH);
 
 		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_COLOR,
 				info.width,info.height,rs_format.RS_FORMAT_RGB8, info.framerate, error);
@@ -226,6 +226,15 @@ public class StreamRealSenseVisDepth {
 
 	public void bufferDepthToU16(Pointer input , GrayU16 output ) {
 		short[] inp = input.getShortArray(0, output.width * output.height);
+
+//		int indexOut = 0;
+//		for( int y = 0; y < output.height; y++ ) {
+//			for( int x = 0; x < output.width; x++) {
+//				if(inp[indexOut]<4000)
+//				  output.set(x, y, inp[indexOut]);
+//				indexOut++;
+//			}
+//		}
 		output.setData(inp);
 	}
 

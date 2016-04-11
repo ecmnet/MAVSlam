@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
+import com.comino.mq.bus.MWMessageBus;
+import com.comino.mq.tests.OptPos;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 
@@ -45,6 +47,9 @@ public class StreamRealSenseTest extends Application  {
 
 	private int mouse_x;
 	private int mouse_y;
+
+	private MWMessageBus bus1 = new MWMessageBus(1,"127.0.0.1");
+	private OptPos position = new OptPos();
 
 	@Override
 	public void start(Stage primaryStage) {
@@ -118,6 +123,7 @@ public class StreamRealSenseTest extends Application  {
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
 					System.out.println("VO Failed!");
 					visualOdometry.reset();
+					return;
 				}
 
 
@@ -171,6 +177,14 @@ public class StreamRealSenseTest extends Application  {
 				c.drawString("Fps:"+fps, 10, 20);
 				c.drawString(String.format("Loc: %4.2f %4.2f %4.2f", T.x, T.y, T.z), 10, info.height-10);
 				c.drawString(String.format("Depth: %3.2f", mouse_depth), info.width-85, info.height-10);
+
+				position.x = T.x;
+				position.y = T.y;
+				position.z = T.z;
+
+				position.tms = timeRgb;
+
+				bus1.writeObject(position);
 
 				if((count / total)>0.6f) {
 					c.setColor(Color.RED);
