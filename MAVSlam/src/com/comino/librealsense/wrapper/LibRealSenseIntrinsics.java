@@ -23,9 +23,14 @@ public class LibRealSenseIntrinsics extends IntrinsicParameters {
        this.fx = intrinsics.fx;
        this.fy = intrinsics.fy;
 
-       this.radial = new double[2];
+       this.radial = new double[5];
+       for(int i=0;i<intrinsics.coeffs.length;i++)
+    	   this.radial[i] = intrinsics.coeffs[i];
+
        this.t1 = 0;
        this.t2 = 0;
+
+
 
 	}
 

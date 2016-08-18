@@ -69,13 +69,21 @@ public class StreamRealSenseTest extends Application  {
 		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 //		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 
+		try {
+
+		realsense = new StreamRealSenseVisDepth(0,info);
+
+		} catch(Exception e) {
+			System.out.println("REALSENSE:"+e.getMessage());
+			return;
+		}
+
 		mouse_x = info.width/2;
 		mouse_y = info.height/2;
 
 		primaryStage.setScene(new Scene(root, info.width,info.height));
 		primaryStage.show();
 
-		realsense = new StreamRealSenseVisDepth(0,info);
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
@@ -89,7 +97,7 @@ public class StreamRealSenseTest extends Application  {
 
 		// declares the algorithm
 		DepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
-				FactoryRealSenseOdometry.depthDepthPnP(1.5, 120, 2, 200, 50, true,
+				FactoryRealSenseOdometry.depthDepthPnP(1.2, 120, 2, 200, 50, true,
 						sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
@@ -121,6 +129,7 @@ public class StreamRealSenseTest extends Application  {
 				oldTimeDepth = timeRgb;
 
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
+					bus1.writeObject(position);
 					System.out.println("VO Failed!");
 					visualOdometry.reset();
 					return;
@@ -198,12 +207,13 @@ public class StreamRealSenseTest extends Application  {
 			}
 
 		});
-	}
 
+	}
 
 	@Override
 	public void stop() throws Exception {
 		realsense.stop();
+		bus1.release();
 		super.stop();
 	}
 

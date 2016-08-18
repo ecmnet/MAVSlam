@@ -247,6 +247,7 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 
 //				double w = pixelTo3D.getW();
 //				X.set(pixelTo3D.getX() / w, pixelTo3D.getY() / w, pixelTo3D.getZ() / w);
+
 				X.set(pixelTo3D.getX(), pixelTo3D.getY(), pixelTo3D.getZ());
 
 				// translate the point into the key frame

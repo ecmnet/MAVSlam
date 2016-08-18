@@ -1,0 +1,61 @@
+<project name="PIX4Comm" basedir=".">
+
+	<property name="lib.dir" value="lib" />
+	<property name="dis.dir" value="dis" />
+	<property name="build.dir" value="bin" />
+
+
+
+	<target name="compile">
+	<javac destdir="bin" includeantruntime="false">
+		<src path="src" />
+		<classpath>
+			<fileset dir="lib">
+				<include name="*.jar" />
+			</fileset>
+		</classpath>
+	</javac>
+	</target>
+
+	<target name="build" depends="compile" description="Build mavslam.jar">
+		<!--	 <mkdir dir="${dis.dir}"/> -->
+		<jar destfile="${dis.dir}/mavslam.jar" basedir="${build.dir}">
+			<manifest>
+				<attribute name="Main-Class" value="com.comino.realsense.boofcv.StreamRealSenseTest" />
+				<attribute name="Built-By" value="${user.name}" />
+
+				<attribute name="Class-Path" value="jna-4.2.2.jar
+					                                jna-platform-4.2.2.jar
+									    	        BoofCV-calibration-0.23.jar
+					                                BoofCV-feature-0.23.jar
+													BoofCV-geo-0.23.jar
+													BoofCV-io-0.23.jar
+													BoofCV-ip-0.23.jar
+													BoofCV-jcodec-0.23.jar
+													BoofCV-learning-0.23.jar
+													BoofCV-recognition-0.23.jar
+													BoofCV-sfm-0.23.jar
+													BoofCV-visualize-0.23.jar
+													core-0.29.jar
+													ddogleg-0.9.jar
+													dense64-0.29.jar
+													equation-0.29.jar
+													georegression-0.10.jar
+													simple-0.29.jar
+													xmlpull-1.1.3.1.jar
+													xpp3_min-1.1.4c.jar
+													xstream-1.4.7.jar
+
+													mavmq.jar
+													fastcast-3.0.jar
+													fst-2.42-onejar.jar
+													jnaerator-runtime-0.13.jar
+					"
+				/>
+			</manifest>
+		</jar>
+	</target>
+
+
+
+</project>
