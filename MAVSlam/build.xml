@@ -47,6 +47,7 @@
 													simple-0.29.jar
 													xmlpull-1.1.3.1.jar
 													xpp3_min-1.1.4c.jar
+													jssc.jar
 													xstream-1.4.7.jar
                                                     mavcomm.jar
 													mavmq.jar

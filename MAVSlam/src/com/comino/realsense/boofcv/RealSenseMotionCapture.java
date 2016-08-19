@@ -44,7 +44,7 @@ public class RealSenseMotionCapture {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(100, 2, 1),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(200, 2, 1),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
