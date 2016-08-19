@@ -83,8 +83,7 @@ public class StreamRealSenseVisDepth {
 
 		if(LibRealSenseWrapper.INSTANCE.rs_get_device_count(ctx, error)<1) {
 			LibRealSenseWrapper.INSTANCE.rs_delete_context(ctx, error);
-			throw new IllegalArgumentException("No device connected: "+
-					LibRealSenseWrapper.INSTANCE.rs_get_error_message(error).dump(0, 20));
+			throw new IllegalArgumentException("No device connected: ");
 		}
 
 		this.info = info;
@@ -122,9 +121,13 @@ public class StreamRealSenseVisDepth {
 
 	}
 
-
-	public void start(Listener listener ) {
+	public StreamRealSenseVisDepth registerListener(Listener listener) {
 		this.listener = listener;
+		return this;
+	}
+
+
+	public void start() {
 		LibRealSenseWrapper.INSTANCE.rs_start_device(dev, error);
 
 		thread = new CombineThread();

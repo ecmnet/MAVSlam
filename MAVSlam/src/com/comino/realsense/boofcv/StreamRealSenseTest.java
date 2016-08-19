@@ -108,7 +108,7 @@ public class StreamRealSenseTest extends Application  {
 		ivrgb.setImage(wirgb);
 
 
-		realsense.start(new Listener() {
+		realsense.registerListener(new Listener() {
 
 			int fps; float mouse_depth; float md; int mc; int mf=0; int fpm;
 
@@ -206,7 +206,7 @@ public class StreamRealSenseTest extends Application  {
 				});
 			}
 
-		});
+		}).start();
 
 	}
 
