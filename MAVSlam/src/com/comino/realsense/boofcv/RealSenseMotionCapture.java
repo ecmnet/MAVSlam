@@ -95,7 +95,6 @@ public class RealSenseMotionCapture {
 				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
 				pos = leftToWorld.getT();
 
-
 				if(pos_old!=null) {
 					speed.x = (speed.x + (pos.x - pos_old.x)/dt)/2;
 					speed.y = (speed.y + (pos.y - pos_old.y)/dt)/2;
@@ -109,15 +108,13 @@ public class RealSenseMotionCapture {
 						msg.vy = (float) speed.z;
 						msg.vz = (float) speed.y;
 						msg.fps = fps;
-						msg.flags = 1;
+						msg.flags = msg.flags | 1;
 						msg.tms = System.nanoTime() / 1000;
 						control.sendMAVLinkMessage(msg);
 					}
 				}
 
 				pos_old = pos.copy();
-
-				//System.out.println(String.format("Loc: %4.1f %4.1f %4.1f", speed.x, speed.y, speed.z));
 			}
 		}).start();
 
