@@ -1,9 +1,11 @@
 package com.comino.realsense.boofcv;
 
-import org.mavlink.messages.lquac.msg_msp_mocap;
-import org.mavlink.messages.lquac.msg_msp_status;
+import org.mavlink.messages.lquac.msg_msp_vision;
+import org.mavlink.messages.lquac.msg_vision_speed_estimate;
 
 import com.comino.mav.control.IMAVMSPController;
+import com.comino.msp.model.DataModel;
+import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 
@@ -34,8 +36,13 @@ public class RealSenseMotionCapture {
 	private Vector3D_F64 speed = new Vector3D_F64();
 
 	private long tms=0;
+	private float  initial_heading =0;
+	private DataModel model;
 
 	public RealSenseMotionCapture(IMAVMSPController control) {
+
+		this.model = control.getCurrentModel();
+		initial_heading = MSPMathUtils.toRad(model.state.h);
 
 		info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 
@@ -62,12 +69,14 @@ public class RealSenseMotionCapture {
 
 		realsense.registerListener(new Listener() {
 
-			float fps; float dt; float md; int mf=0; int fpm;
+			float fps; float dt; float md; int mf=0; int fpm; float dh;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
 				dt = (timeRgb - oldTimeDepth)/1000f;
+
+				dh = MSPMathUtils.toRad(model.state.h) - initial_heading;
 
 				if((System.currentTimeMillis() - tms) > 250) {
 					tms = System.currentTimeMillis();
@@ -82,10 +91,12 @@ public class RealSenseMotionCapture {
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
 					pos = null; pos_old = null; speed.x=0; speed.y=0; speed.z=0;
 					visualOdometry.reset();
-					msg_msp_mocap msg = new msg_msp_mocap(1,2);
+					initial_heading = MSPMathUtils.toRad(model.state.h);
+					msg_msp_vision msg = new msg_msp_vision(1,2);
 					msg.vx = (float) speed.x;
 					msg.vy = (float) speed.z;
 					msg.vz = (float) speed.y;
+					msg.vh = initial_heading;
 					msg.flags = 0;
 					msg.tms = System.nanoTime() / 1000;
 					control.sendMAVLinkMessage(msg);
@@ -96,17 +107,32 @@ public class RealSenseMotionCapture {
 				pos = leftToWorld.getT();
 
 				if(pos_old!=null) {
-					speed.x = (speed.x + (pos.x - pos_old.x)/dt)/2;
-					speed.y = (speed.y + (pos.y - pos_old.y)/dt)/2;
+
+					float[] sr = MSPMathUtils.rotateRad((float)((pos.x - pos_old.x)/dt), (float)((pos.y - pos_old.y)/dt), -dh);
+
+					speed.x = (speed.x + sr[0])/2;
+					speed.y = (speed.y + sr[1])/2;
 					speed.z = (speed.z + (pos.z - pos_old.z)/dt)/2;
+
+
 				}
 
 				if(control!=null) {
 					if(Math.abs(speed.x)< 10 && Math.abs(speed.y)< 10 && Math.abs(speed.z)< 10 ) {
-						msg_msp_mocap msg = new msg_msp_mocap(1,2);
+
+						msg_vision_speed_estimate sms = new msg_vision_speed_estimate(1,1);
+						sms.usec = System.nanoTime() / 1000;
+						sms.x = (float) speed.x;
+						sms.y = (float) speed.z;
+						sms.z = (float) speed.y;
+						control.sendMAVLinkMessage(sms);
+
+
+						msg_msp_vision msg = new msg_msp_vision(1,2);
 						msg.vx = (float) speed.x;
 						msg.vy = (float) speed.z;
 						msg.vz = (float) speed.y;
+						msg.vh = dh;
 						msg.fps = fps;
 						msg.flags = msg.flags | 1;
 						msg.tms = System.nanoTime() / 1000;
