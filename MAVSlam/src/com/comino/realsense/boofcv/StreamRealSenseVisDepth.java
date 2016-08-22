@@ -79,6 +79,7 @@ public class StreamRealSenseVisDepth {
 
 	public StreamRealSenseVisDepth(int devno , RealSenseInfo info)
 	{
+
 		ctx = LibRealSenseWrapper.INSTANCE.rs_create_context(5, error);
 		if(LibRealSenseWrapper.INSTANCE.rs_get_device_count(ctx, error)<1)
 			ctx = LibRealSenseWrapper.INSTANCE.rs_create_context(4, error);
@@ -88,9 +89,14 @@ public class StreamRealSenseVisDepth {
 			throw new IllegalArgumentException("No device connected: ");
 		}
 
+
+
 		this.info = info;
 
 		dev = LibRealSenseWrapper.INSTANCE.rs_get_device(ctx, devno, error);
+		LibRealSenseWrapper.INSTANCE.rs_wait_for_frames(dev, error);
+
+
 		Pointer ch = LibRealSenseWrapper.INSTANCE.rs_get_device_firmware_version(dev, error);
 		System.out.println("Firmware version: "+ch.getString(0));
 

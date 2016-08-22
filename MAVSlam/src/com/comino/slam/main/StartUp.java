@@ -22,6 +22,8 @@ public class StartUp implements Runnable {
 	private OperatingSystemMXBean osBean = null;
 	private MemoryMXBean mxBean = null;
 
+	RealSenseMotionCapture vision = null;
+
 	public StartUp(String[] args) {
 
 		config  = MSPConfig.getInstance("msp.properties");
@@ -40,7 +42,7 @@ public class StartUp implements Runnable {
 
 		// TODO 1.0: Start services if required
 
-		new RealSenseMotionCapture(control);
+		vision = new RealSenseMotionCapture(control);
 
 		// TODO 1.0: register MSP commands here
 
@@ -77,8 +79,14 @@ public class StartUp implements Runnable {
 		while(true) {
 			try {
 				Thread.sleep(2000);
-				if(!control.isConnected())
+				if(!control.isConnected()) {
 					control.connect();
+					continue;
+				}
+
+				if(!vision.isRunning())
+					vision.start();
+
 
 				msg_msp_status msg = new msg_msp_status(1,2);
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);
