@@ -251,7 +251,7 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 				X.set(pixelTo3D.getX(), pixelTo3D.getY(), pixelTo3D.getZ());
 
 				// translate the point into the key frame
-				// SePointOps_F64.transform(currToKey,X,X);
+				 SePointOps_F64.transform(currToKey,X,X);
 				// not needed since the current frame was just set to be the key frame
 
 				p.lastInlier = tick;
