@@ -28,6 +28,8 @@ import georegression.struct.se.Se3_F64;
 
 public class RealSenseMotionCapture {
 
+	private static final int MIN_COUNT = 10;
+
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseInfo info;
 	private DepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
@@ -38,7 +40,6 @@ public class RealSenseMotionCapture {
 	private Vector3D_F64 pos_raw_old;
 	private Vector3D_F64 speed   = new Vector3D_F64();
 	private Vector3D_F64 pos     = new Vector3D_F64();
-	private Vector3D_F64 pos_ref = new Vector3D_F64();
 
 	private long tms=0;
 	private long framecount=0;
@@ -79,7 +80,7 @@ public class RealSenseMotionCapture {
 
 		realsense.registerListener(new Listener() {
 
-			float fps; float dt; float md; int mf=0; int fpm; float[] pos_rot = new float[2];
+			float fps; float dt; int mf=0; int fpm; float[] pos_rot = new float[2];
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -92,7 +93,7 @@ public class RealSenseMotionCapture {
 					tms = System.currentTimeMillis();
 					if(mf>0)
 						fps = fpm/mf;
-					md = 0; mf=0; fpm=0;
+					mf=0; fpm=0;
 				}
 				mf++;
 				fpm += (int)(1f/((timeDepth - oldTimeDepth)/1000f)+0.5f);
@@ -122,7 +123,7 @@ public class RealSenseMotionCapture {
 					}
 				}
 
-				if(framecount < 10) {
+				if(framecount < MIN_COUNT) {
 					MSPMathUtils.rotateRad(pos_rot, model.state.l_x,model.state.l_y,init_head_rad);
 					pos.set(pos_rot[0],pos_rot[1], model.state.l_z);
 					return;
