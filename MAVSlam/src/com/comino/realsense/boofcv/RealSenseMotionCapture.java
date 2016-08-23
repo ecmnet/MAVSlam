@@ -61,7 +61,7 @@ public class RealSenseMotionCapture {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(100, 2, 1),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(120, 3, 1),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -79,7 +79,7 @@ public class RealSenseMotionCapture {
 
 		realsense.registerListener(new Listener() {
 
-			float fps; float dt; float md; int mf=0; int fpm;
+			float fps; float dt; float md; int mf=0; int fpm; float[] pos_rot = new float[2];
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -115,7 +115,7 @@ public class RealSenseMotionCapture {
 					if(Math.abs(speed.x)< 20 && Math.abs(speed.y)< 20 && Math.abs(speed.z)< 20 ) {
 						pos.x += speed.x * dt;
 						pos.y += speed.y * dt;
-						pos.z +=  speed.z * dt;
+						pos.z += speed.z * dt;
 					} else {
 						init();
 						return;
@@ -123,14 +123,14 @@ public class RealSenseMotionCapture {
 				}
 
 				if(framecount < 10) {
-					float[] pos_rot = MSPMathUtils.rotateRad(model.state.l_x,model.state.l_y,init_head_rad);
+					MSPMathUtils.rotateRad(pos_rot, model.state.l_x,model.state.l_y,init_head_rad);
 					pos.set(pos_rot[0],pos_rot[1], model.state.l_z);
 					return;
 				}
 
 				if(control!=null) {
 
-    				float[] pos_rot = MSPMathUtils.rotateRad((float)pos.x,(float)pos.y,-init_head_rad);
+    				MSPMathUtils.rotateRad(pos_rot,(float)pos.x,(float)pos.y,-init_head_rad);
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
 					sms.usec =timeDepth*1000;
