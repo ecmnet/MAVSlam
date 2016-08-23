@@ -42,7 +42,11 @@ public class StartUp implements Runnable {
 
 		// TODO 1.0: Start services if required
 
+		try {
 		vision = new RealSenseMotionCapture(control);
+		} catch(Exception e) {
+			System.out.println("Vision not available: "+e.getMessage());
+		}
 
 		// TODO 1.0: register MSP commands here
 
