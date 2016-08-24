@@ -11,6 +11,7 @@ import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
+import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -29,10 +30,11 @@ import georegression.struct.se.Se3_F64;
 public class RealSenseMotionCapture {
 
 	private static final int MIN_COUNT = 10;
+	private static final int MAXTRACKS = 120;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseInfo info;
-	private DepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
+	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
 
 	private long oldTimeDepth=0;
 
@@ -62,7 +64,7 @@ public class RealSenseMotionCapture {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(120, 2, 1),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 2, 1),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -149,6 +151,7 @@ public class RealSenseMotionCapture {
 					msg.vy = (float) speed.y;
 					msg.vz = (float) speed.z;
 					msg.h = model.state.h;
+					msg.quality = visualOdometry.getInlierCount() *100 / MAXTRACKS;
 					msg.fps = fps;
 					msg.flags = msg.flags | 1;
 					msg.tms = System.nanoTime() / 1000;

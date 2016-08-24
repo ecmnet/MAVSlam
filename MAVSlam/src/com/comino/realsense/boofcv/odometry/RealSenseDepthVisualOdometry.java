@@ -10,6 +10,6 @@ public interface RealSenseDepthVisualOdometry<Vis extends ImageBase, Depth exten
 	/**
 	 * Get the quality of current estimation (0..100)
 	 */
-	public int getQuality();
+	public int getInlierCount();
 
 }

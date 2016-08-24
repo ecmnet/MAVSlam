@@ -154,8 +154,7 @@ public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends Image
 	}
 
 	@Override
-	public int getQuality() {
-		// TODO Auto-generated method stub
-		return 0;
+	public int getInlierCount() {
+		return alg.getInlierTracks().size();
 	}
 }
