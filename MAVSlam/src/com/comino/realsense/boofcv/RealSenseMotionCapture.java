@@ -29,8 +29,9 @@ import georegression.struct.se.Se3_F64;
 
 public class RealSenseMotionCapture {
 
-	private static final int MIN_COUNT = 10;
-	private static final int MAXTRACKS = 120;
+	private static final int MIN_COUNT   = 10;
+	private static final int MIN_QUALITY = 10;
+	private static final int MAXTRACKS   = 120;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseInfo info;
@@ -82,7 +83,7 @@ public class RealSenseMotionCapture {
 
 		realsense.registerListener(new Listener() {
 
-			float fps; float dt; int mf=0; int fpm; float[] pos_rot = new float[2];
+			float fps; float dt; int mf=0; int fpm; float[] pos_rot = new float[2]; int quality=0;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -125,7 +126,9 @@ public class RealSenseMotionCapture {
 					}
 				}
 
-				if(framecount < MIN_COUNT) {
+				quality = visualOdometry.getInlierCount() *100 / MAXTRACKS;
+
+				if(framecount < MIN_COUNT || quality < MIN_QUALITY) {
 					MSPMathUtils.rotateRad(pos_rot, model.state.l_x,model.state.l_y,init_head_rad);
 					pos.set(pos_rot[0],pos_rot[1], model.state.l_z);
 					return;
@@ -151,7 +154,7 @@ public class RealSenseMotionCapture {
 					msg.vy = (float) speed.y;
 					msg.vz = (float) speed.z;
 					msg.h = model.state.h;
-					msg.quality = visualOdometry.getInlierCount() *100 / MAXTRACKS;
+					msg.quality = quality;
 					msg.fps = fps;
 					msg.flags = msg.flags | 1;
 					msg.tms = System.nanoTime() / 1000;
