@@ -43,7 +43,8 @@ public class StartUp implements Runnable {
 		// TODO 1.0: Start services if required
 
 		try {
-		vision = new RealSenseMotionCapture(control);
+		  if(config.getBoolProperty("vision_enabled", "true"))
+		     vision = new RealSenseMotionCapture(control);
 		} catch(Exception e) {
 			System.out.println("Vision not available: "+e.getMessage());
 		}
@@ -83,14 +84,14 @@ public class StartUp implements Runnable {
 		while(true) {
 			try {
 				Thread.sleep(2000);
+
+				if(vision!=null && !vision.isRunning())
+					vision.start();
+
 				if(!control.isConnected()) {
 					control.connect();
 					continue;
 				}
-
-				if(!vision.isRunning())
-					vision.start();
-
 
 				msg_msp_status msg = new msg_msp_status(1,2);
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);

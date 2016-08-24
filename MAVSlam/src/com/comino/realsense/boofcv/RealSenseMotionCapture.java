@@ -30,7 +30,7 @@ import georegression.struct.se.Se3_F64;
 public class RealSenseMotionCapture {
 
 	private static final int MIN_COUNT   = 10;
-	private static final int MIN_QUALITY = 10;
+	private static final int MIN_QUALITY = 20;
 	private static final int MAXTRACKS   = 120;
 
 	private StreamRealSenseVisDepth realsense;
@@ -128,10 +128,15 @@ public class RealSenseMotionCapture {
 
 				quality = visualOdometry.getInlierCount() *100 / MAXTRACKS;
 
-				if(framecount < MIN_COUNT || quality < MIN_QUALITY) {
+				if(framecount < MIN_COUNT) {
 					MSPMathUtils.rotateRad(pos_rot, model.state.l_x,model.state.l_y,init_head_rad);
 					pos.set(pos_rot[0],pos_rot[1], model.state.l_z);
 					return;
+				} else {
+					if(quality < MIN_QUALITY) {
+						init();
+						return;
+					}
 				}
 
 				if(control!=null) {
