@@ -62,7 +62,7 @@ public class RealSenseMotionCapture {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(120, 3, 1),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(120, 2, 1),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -148,7 +148,7 @@ public class RealSenseMotionCapture {
 					msg.vx = (float) speed.x;
 					msg.vy = (float) speed.y;
 					msg.vz = (float) speed.z;
-					msg.vh = model.state.h;
+					msg.h = model.state.h;
 					msg.fps = fps;
 					msg.flags = msg.flags | 1;
 					msg.tms = System.nanoTime() / 1000;

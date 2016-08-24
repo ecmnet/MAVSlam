@@ -49,7 +49,7 @@ import georegression.struct.se.Se3_F64;
 // TODO WARNING! active list has been modified by dropping and adding tracks
 // this is probably true of other SFM algorithms
 public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends ImageBase, Depth extends ImageGray>
-	implements DepthVisualOdometry<Vis,Depth> , AccessPointTracks3D
+	implements RealSenseDepthVisualOdometry<Vis,Depth> , AccessPointTracks3D
 {
 	// low level algorithm
 	DepthSparse3D<Depth> sparse3D;
@@ -151,5 +151,11 @@ public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends Image
 	@Override
 	public Class<Depth> getDepthType() {
 		return depthType;
+	}
+
+	@Override
+	public int getQuality() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

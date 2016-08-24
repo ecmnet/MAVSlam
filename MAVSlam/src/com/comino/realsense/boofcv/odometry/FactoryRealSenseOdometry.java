@@ -63,7 +63,7 @@ public class FactoryRealSenseOdometry {
 	 * @return StereoVisualOdometry
 	 */
 	public static <Vis extends ImageGray, Depth extends ImageGray>
-	DepthVisualOdometry<Vis,Depth> depthDepthPnP(double inlierPixelTol,
+	RealSenseDepthVisualOdometry<Vis,Depth> depthDepthPnP(double inlierPixelTol,
 												 int thresholdAdd,
 												 int thresholdRetire ,
 												 int ransacIterations ,
