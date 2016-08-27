@@ -12,7 +12,7 @@ import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.segment.Status;
-import com.comino.realsense.boofcv.RealSenseMotionCapture;
+import com.comino.realsense.boofcv.RealSensePositionEstimator;
 
 public class StartUp implements Runnable {
 
@@ -22,7 +22,7 @@ public class StartUp implements Runnable {
 	private OperatingSystemMXBean osBean = null;
 	private MemoryMXBean mxBean = null;
 
-	RealSenseMotionCapture vision = null;
+	RealSensePositionEstimator vision = null;
 
 	public StartUp(String[] args) {
 
@@ -44,7 +44,7 @@ public class StartUp implements Runnable {
 
 		try {
 		  if(config.getBoolProperty("vision_enabled", "true"))
-		     vision = new RealSenseMotionCapture(control);
+		     vision = new RealSensePositionEstimator(control);
 		} catch(Exception e) {
 			System.out.println("Vision not available: "+e.getMessage());
 		}

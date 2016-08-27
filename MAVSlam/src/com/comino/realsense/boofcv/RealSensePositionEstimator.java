@@ -15,7 +15,6 @@ import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
-import boofcv.abst.sfm.d3.DepthVisualOdometry;
 import boofcv.alg.distort.DoNothingPixelTransform_F32;
 import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
@@ -27,7 +26,7 @@ import boofcv.struct.image.Planar;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 
-public class RealSenseMotionCapture {
+public class RealSensePositionEstimator {
 
 	private static final int MIN_COUNT   = 10;
 	private static final int MIN_QUALITY = 20;
@@ -54,11 +53,12 @@ public class RealSenseMotionCapture {
 
 	private float init_head_rad = 0;
 
-	public RealSenseMotionCapture(IMAVMSPController control) {
+	public RealSensePositionEstimator(IMAVMSPController control) {
         this.control = control;
 		this.model = control.getCurrentModel();
 
 		info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
+	//	info = new RealSenseInfo(649,480, RealSenseInfo.MODE_RGB);
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
@@ -73,7 +73,7 @@ public class RealSenseMotionCapture {
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
 		} catch(Exception e) {
-			System.out.println(e.getMessage());
+
 		}
 
 		visualOdometry = FactoryRealSenseOdometry.depthDepthPnP(1.2, 120, 2, 200, 50, true,
@@ -171,14 +171,15 @@ public class RealSenseMotionCapture {
 		});
 	}
 
-	public RealSenseMotionCapture() {
+	public RealSensePositionEstimator() {
 		this(null);
 	}
 
 	public void start() {
 		isRunning = true;
 		init();
-		realsense.start();
+		if(realsense!=null)
+		    realsense.start();
 	}
 
 	public boolean isRunning() {
@@ -195,7 +196,7 @@ public class RealSenseMotionCapture {
 
 
 	public static void main(String[] args) {
-		new RealSenseMotionCapture();
+		new RealSensePositionEstimator();
 	}
 
 }
