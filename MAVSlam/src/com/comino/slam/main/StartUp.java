@@ -10,6 +10,7 @@ import com.comino.mav.control.IMAVMSPController;
 import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
+import com.comino.msp.main.control.MSPMainController;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.segment.Status;
 import com.comino.realsense.boofcv.RealSensePositionEstimator;
@@ -21,6 +22,8 @@ public class StartUp implements Runnable {
 
 	private OperatingSystemMXBean osBean = null;
 	private MemoryMXBean mxBean = null;
+
+	private MSPMainController  mspMainController = null;
 
 	RealSensePositionEstimator vision = null;
 
@@ -39,6 +42,7 @@ public class StartUp implements Runnable {
 
 		MSPLogger.getInstance(control);
 
+		mspMainController = new MSPMainController(control);
 
 		// TODO 1.0: Start services if required
 
@@ -51,14 +55,6 @@ public class StartUp implements Runnable {
 
 		// TODO 1.0: register MSP commands here
 
-		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
-			@Override
-			public void received(Object o) {
-				msg_msp_command hud = (msg_msp_command)o;
-				MSPLogger.getInstance().writeLocalMsg("Companion Command "+hud.command+" executed");
-			}
-		});
-
 		control.start();
 
 		control.connect();
@@ -66,7 +62,6 @@ public class StartUp implements Runnable {
         Thread worker = new Thread(this);
         worker.start();
 
-        control.getCurrentModel().sys.setMSPStatus(Status.MSP_HEALTH_OK, true);
 	}
 
 
@@ -98,7 +93,7 @@ public class StartUp implements Runnable {
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
 				msg.com_error = control.getErrorCount();
 				msg.uptime_ms = System.currentTimeMillis() - tms;
-				msg.status = control.getCurrentModel().sys.msp_status;
+				msg.status = control.getCurrentModel().sys.getStatus();
 				msg.setVersion(config.getVersion());
 				msg.setArch(osBean.getArch());
 				control.sendMAVLinkMessage(msg);
