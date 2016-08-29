@@ -3,16 +3,13 @@ package com.comino.slam.main;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 
-import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_status;
 
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
-import com.comino.msp.main.control.MSPMainController;
-import com.comino.msp.main.control.listener.IMAVLinkListener;
-import com.comino.msp.model.segment.Status;
+import com.comino.msp.main.commander.MSPCommander;
 import com.comino.realsense.boofcv.RealSensePositionEstimator;
 
 public class StartUp implements Runnable {
@@ -23,7 +20,7 @@ public class StartUp implements Runnable {
 	private OperatingSystemMXBean osBean = null;
 	private MemoryMXBean mxBean = null;
 
-	private MSPMainController  mspMainController = null;
+	private MSPCommander  commander = null;
 
 	RealSensePositionEstimator vision = null;
 
@@ -42,7 +39,7 @@ public class StartUp implements Runnable {
 
 		MSPLogger.getInstance(control);
 
-		mspMainController = new MSPMainController(control);
+		commander = new MSPCommander(control);
 
 		// TODO 1.0: Start services if required
 
