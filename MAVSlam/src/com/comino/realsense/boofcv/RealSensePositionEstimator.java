@@ -15,6 +15,7 @@ import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
+import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.alg.distort.DoNothingPixelTransform_F32;
 import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
@@ -52,6 +53,7 @@ public class RealSensePositionEstimator {
 	private IMAVMSPController control;
 
 	private float init_head_rad = 0;
+	private AccessPointTracks3D points;
 
 	public RealSensePositionEstimator(IMAVMSPController control) {
         this.control = control;
@@ -81,6 +83,8 @@ public class RealSensePositionEstimator {
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
 
+		this.points = (AccessPointTracks3D)visualOdometry;
+
 		realsense.registerListener(new Listener() {
 
 			float fps; float dt; int mf=0; int fpm; float[] pos_rot = new float[2]; int quality=0;
@@ -109,6 +113,7 @@ public class RealSensePositionEstimator {
 
 				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
 				pos_raw = leftToWorld.getT();
+
 
 				if(pos_raw_old!=null) {
 
@@ -192,6 +197,10 @@ public class RealSensePositionEstimator {
 		visualOdometry.reset();
 		pos_raw = null; pos_raw_old = null; speed.x=0; speed.y=0; speed.z=0;
 		framecount = 0;
+	}
+
+	private void collisionDetection() {
+
 	}
 
 
