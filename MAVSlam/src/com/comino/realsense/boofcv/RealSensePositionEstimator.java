@@ -172,7 +172,6 @@ public class RealSensePositionEstimator {
 
 					if(Math.abs(speed.x)< MAX_SPEED && Math.abs(speed.y)< MAX_SPEED && Math.abs(speed.z)< MAX_SPEED) {
 
-						// TODO: eventually rotate from body to nav frame in PX4
 						MSPMathUtils.rotateRad(pos_rot,(float)speed.x * dt,(float)speed.y * dt,-init_head_rad);
 
 						pos.x += pos_rot[0];

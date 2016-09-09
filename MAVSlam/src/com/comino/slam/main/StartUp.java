@@ -74,7 +74,7 @@ public class StartUp implements Runnable {
 
 		commander = new MSPCommander(control);
 
-		// TODO 1.0: Start services if required
+		// Start services if required
 
 		try {
 		  if(config.getBoolProperty("vision_enabled", "true"))
@@ -83,7 +83,7 @@ public class StartUp implements Runnable {
 			System.out.println("Vision not available: "+e.getMessage());
 		}
 
-		// TODO 1.0: register MSP commands here
+		// register MSP commands here
 
 		control.start();
 
