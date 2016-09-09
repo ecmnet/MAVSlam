@@ -216,7 +216,8 @@ public class StreamRealSenseVisDepth {
 
 
 					timeOld = time;
-					listener.process(rgb, depth, timeRgb, timeDepth);
+					if(listener!=null)
+					  listener.process(rgb, depth, timeRgb, timeDepth);
 				}
 			}
 

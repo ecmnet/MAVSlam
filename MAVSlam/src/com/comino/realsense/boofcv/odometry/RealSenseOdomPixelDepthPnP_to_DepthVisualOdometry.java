@@ -73,7 +73,6 @@ public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends Image
 
 	@Override
 	public Point3D_F64 getTrackLocation(int index) {
-		// TODO see comment above
 		try {
 			PointTrack t = alg.getTracker().getActiveTracks(null).get(index);
 			return ((Point2D3D)t.getCookie()).getLocation();

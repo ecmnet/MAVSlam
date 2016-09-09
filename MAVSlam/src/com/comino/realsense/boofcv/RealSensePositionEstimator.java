@@ -41,7 +41,6 @@ import org.mavlink.messages.lquac.msg_vision_position_estimate;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
-import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
@@ -64,8 +63,8 @@ import georegression.struct.se.Se3_F64;
 public class RealSensePositionEstimator {
 
 	private static final int    INIT_TIME_MS   = 600;
-	private static final float  MAX_SPEED   	= 20;
-	private static final int    MIN_QUALITY 	= 10;
+	private static final float  MAX_SPEED   	= 2;
+	private static final int    MIN_QUALITY 	= 20;
 	private static final int    MAXTRACKS   	= 120;
 
 	private StreamRealSenseVisDepth realsense;
@@ -84,18 +83,21 @@ public class RealSensePositionEstimator {
 
 	private DataModel model;
 
+	private boolean debug = false;
+
 	private boolean isRunning = false;
 	private IMAVMSPController control;
 
 	private float init_head_rad = 0;
 	private AccessPointTracks3D points;
 
-	public RealSensePositionEstimator(IMAVMSPController control) {
-        this.control = control;
+	public RealSensePositionEstimator(IMAVMSPController control, boolean debug) {
+		this.control = control;
+		this.debug = debug;
 		this.model = control.getCurrentModel();
 
 		info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-	//	info = new RealSenseInfo(649,480, RealSenseInfo.MODE_RGB);
+		//	info = new RealSenseInfo(649,480, RealSenseInfo.MODE_RGB);
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
@@ -120,6 +122,7 @@ public class RealSensePositionEstimator {
 
 		this.points = (AccessPointTracks3D)visualOdometry;
 
+
 		realsense.registerListener(new Listener() {
 
 			float fps; float dt; int mf=0; int fpm; float[] pos_rot = new float[2]; int quality=0;
@@ -128,6 +131,9 @@ public class RealSensePositionEstimator {
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
 				dt = (timeDepth - oldTimeDepth)/1000f;
+
+				if(debug)
+					System.out.println("Vision time: "+dt);
 
 				if((System.currentTimeMillis() - fps_tms) > 250) {
 					fps_tms = System.currentTimeMillis();
@@ -139,7 +145,10 @@ public class RealSensePositionEstimator {
 				fpm += (int)(1f/((timeDepth - oldTimeDepth)/1000f)+0.5f);
 				oldTimeDepth = timeDepth;
 
+
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
+					if(debug)
+						System.out.println("Vision initialized");
 					init();
 					return;
 				}
@@ -151,13 +160,17 @@ public class RealSensePositionEstimator {
 
 				if(pos_raw_old!=null) {
 
+					if(quality > MIN_QUALITY ) {
+						speed.y = (pos_raw.x - pos_raw_old.x)/dt;
+						speed.x = (pos_raw.z - pos_raw_old.z)/dt;
+						speed.z = (pos_raw.y - pos_raw_old.y)/dt;
+					} else
+						speed.set(0,0,0);
 
-					speed.y = (pos_raw.x - pos_raw_old.x)/dt;
-					speed.x = (pos_raw.z - pos_raw_old.z)/dt;
-					speed.z = (pos_raw.y - pos_raw_old.y)/dt;
+					if(debug)
+						System.out.println("Speed: "+speed.x +"/"+speed.x);
 
-					if(Math.abs(speed.x)< MAX_SPEED && Math.abs(speed.y)< MAX_SPEED && Math.abs(speed.z)< MAX_SPEED
-							&& quality > MIN_QUALITY ) {
+					if(Math.abs(speed.x)< MAX_SPEED && Math.abs(speed.y)< MAX_SPEED && Math.abs(speed.z)< MAX_SPEED) {
 
 						// TODO: eventually rotate from body to nav frame in PX4
 						MSPMathUtils.rotateRad(pos_rot,(float)speed.x * dt,(float)speed.y * dt,-init_head_rad);
@@ -169,6 +182,7 @@ public class RealSensePositionEstimator {
 						pos.z += speed.z * dt;
 
 					} else {
+						init();
 						return;
 					}
 				}
@@ -176,7 +190,8 @@ public class RealSensePositionEstimator {
 				pos_raw_old = pos_raw.copy();
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
-					pos.set(model.state.l_x,model.state.l_y, model.raw.di);
+					init_head_rad = MSPMathUtils.toRad(model.state.h);
+					pos.set(0,0, model.raw.di);
 					return;
 				}
 
@@ -188,7 +203,6 @@ public class RealSensePositionEstimator {
 					sms.y = (float) pos.y;
 					sms.z = (float) pos.z;
 					control.sendMAVLinkMessage(sms);
-
 
 					msg_msp_vision msg = new msg_msp_vision(1,2);
 					msg.x = (float) pos.x;
@@ -210,14 +224,14 @@ public class RealSensePositionEstimator {
 	}
 
 	public RealSensePositionEstimator() {
-		this(null);
+		this(null, false);
 	}
 
 	public void start() {
 		isRunning = true;
 		init();
 		if(realsense!=null)
-		    realsense.start();
+			realsense.start();
 	}
 
 	public boolean isRunning() {
@@ -226,11 +240,12 @@ public class RealSensePositionEstimator {
 
 	private void init() {
 		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS)
-		   control.writeLogMessage(new LogMessage("[vis] reset odometry",
-				    MAV_SEVERITY.MAV_SEVERITY_WARNING));
+			control.writeLogMessage(new LogMessage("[vis] reset odometry",
+					MAV_SEVERITY.MAV_SEVERITY_WARNING));
 		visualOdometry.reset();
 		init_head_rad = MSPMathUtils.toRad(model.state.h);
-		pos.set(model.state.l_x,model.state.l_y, model.raw.di);
+		//pos.set(model.state.l_x,model.state.l_y, model.raw.di);
+		pos.set(0,0, model.raw.di);
 		init_tms = System.currentTimeMillis();
 	}
 
