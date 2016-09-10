@@ -109,10 +109,11 @@ public class RealSensePositionEstimator {
 				msg_msp_command cmd = (msg_msp_command)o;
 				switch(cmd.command) {
 					case MSP_CMD.MSP_CMD_VISION:
-						if((int)(cmd.param1)==MSP_COMPONENT_CTRL.ENABLE && !isRunning)
-							System.out.println("VISION ENABLE");
-						else
-							System.out.println("VISION DISABLE");
+						if((int)(cmd.param1)==MSP_COMPONENT_CTRL.ENABLE && !isRunning) {
+							start(); break;
+						}
+						if((int)(cmd.param1)==MSP_COMPONENT_CTRL.DISABLE && isRunning) {
+							stop(); break; };
 					break;
 				}
 			}
@@ -212,6 +213,11 @@ public class RealSensePositionEstimator {
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 					init_head_rad = MSPMathUtils.toRad(model.state.h);
+
+					// currently LPE resets POSXY to 0,0 when XY timeout
+					// => therefore reset VISION as well to 0,0
+
+					//pos.set(model.state.l_x,model.state.l_y, model.raw.di);
 					pos.set(0,0, model.raw.di);
 					return;
 				}
@@ -249,10 +255,16 @@ public class RealSensePositionEstimator {
 	}
 
 	public void start() {
-		isRunning = true;
+		isRunning = true; init_tms=0;
 		init();
 		if(realsense!=null)
 			realsense.start();
+	}
+
+	public void stop() {
+		if(isRunning)
+			realsense.stop();
+		isRunning=false;
 	}
 
 	public boolean isRunning() {
@@ -264,9 +276,6 @@ public class RealSensePositionEstimator {
 			control.writeLogMessage(new LogMessage("[vis] reset odometry",
 					MAV_SEVERITY.MAV_SEVERITY_WARNING));
 		visualOdometry.reset();
-		init_head_rad = MSPMathUtils.toRad(model.state.h);
-		pos.set(model.state.l_x,model.state.l_y, model.raw.di);
-		//pos.set(0,0, model.raw.di);
 		init_tms = System.currentTimeMillis();
 	}
 

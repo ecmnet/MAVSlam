@@ -106,12 +106,14 @@ public class StartUp implements Runnable {
 	@Override
 	public void run() {
 		long tms = System.currentTimeMillis();
+
+		if(vision!=null && !vision.isRunning())
+			vision.start();
+
 		while(true) {
 			try {
 				Thread.sleep(2000);
 
-				if(vision!=null && !vision.isRunning())
-					vision.start();
 
 				if(!control.isConnected()) {
 					control.connect();
