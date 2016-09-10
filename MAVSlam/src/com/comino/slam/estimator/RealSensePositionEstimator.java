@@ -108,13 +108,13 @@ public class RealSensePositionEstimator {
 			public void received(Object o) {
 				msg_msp_command cmd = (msg_msp_command)o;
 				switch(cmd.command) {
-					case MSP_CMD.MSP_CMD_VISION:
-						if((int)(cmd.param1)==MSP_COMPONENT_CTRL.ENABLE && !isRunning) {
-							start(); break;
-						}
-						if((int)(cmd.param1)==MSP_COMPONENT_CTRL.DISABLE && isRunning) {
-							stop(); break; };
-					break;
+				case MSP_CMD.MSP_CMD_VISION:
+					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.ENABLE && !isRunning) {
+						start(); break;
+					}
+					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.DISABLE && isRunning) {
+						stop(); break; };
+						break;
 				}
 			}
 		});
@@ -262,8 +262,21 @@ public class RealSensePositionEstimator {
 	}
 
 	public void stop() {
-		if(isRunning)
+		if(isRunning) {
 			realsense.stop();
+
+			msg_msp_vision msg = new msg_msp_vision(1,2);
+			msg.x = Float.NaN;
+			msg.y = Float.NaN;
+			msg.z = Float.NaN;
+			msg.h = model.state.h;
+			msg.quality = 0;
+			msg.fps = 0;
+			msg.flags = 0;
+			msg.tms = System.nanoTime() / 1000;
+			control.sendMAVLinkMessage(msg);
+
+		}
 		isRunning=false;
 	}
 
