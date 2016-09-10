@@ -43,7 +43,7 @@ import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
-import com.comino.realsense.boofcv.RealSensePositionEstimator;
+import com.comino.slam.estimator.RealSensePositionEstimator;
 
 public class StartUp implements Runnable {
 

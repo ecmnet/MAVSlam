@@ -31,17 +31,24 @@
  *
  ****************************************************************************/
 
-package com.comino.realsense.boofcv;
+package com.comino.slam.estimator;
 
 
 import org.mavlink.messages.MAV_SEVERITY;
+import org.mavlink.messages.MSP_CMD;
+import org.mavlink.messages.MSP_COMPONENT_CTRL;
+import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
 import org.mavlink.messages.lquac.msg_vision_position_estimate;
 
 import com.comino.mav.control.IMAVMSPController;
+import com.comino.msp.log.MSPLogger;
+import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.utils.MSPMathUtils;
+import com.comino.realsense.boofcv.RealSenseInfo;
+import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
@@ -95,6 +102,21 @@ public class RealSensePositionEstimator {
 		this.control = control;
 		this.debug = debug;
 		this.model = control.getCurrentModel();
+
+		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
+			@Override
+			public void received(Object o) {
+				msg_msp_command cmd = (msg_msp_command)o;
+				switch(cmd.command) {
+					case MSP_CMD.MSP_CMD_VISION:
+						if((int)(cmd.param1)==MSP_COMPONENT_CTRL.ENABLE && !isRunning)
+							System.out.println("VISION ENABLE");
+						else
+							System.out.println("VISION DISABLE");
+					break;
+				}
+			}
+		});
 
 		info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 		//	info = new RealSenseInfo(649,480, RealSenseInfo.MODE_RGB);
@@ -243,8 +265,8 @@ public class RealSensePositionEstimator {
 					MAV_SEVERITY.MAV_SEVERITY_WARNING));
 		visualOdometry.reset();
 		init_head_rad = MSPMathUtils.toRad(model.state.h);
-		//pos.set(model.state.l_x,model.state.l_y, model.raw.di);
-		pos.set(0,0, model.raw.di);
+		pos.set(model.state.l_x,model.state.l_y, model.raw.di);
+		//pos.set(0,0, model.raw.di);
 		init_tms = System.currentTimeMillis();
 	}
 
