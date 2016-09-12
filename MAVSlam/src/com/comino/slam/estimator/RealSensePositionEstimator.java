@@ -34,6 +34,9 @@
 package com.comino.slam.estimator;
 
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
@@ -53,6 +56,7 @@ import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
+import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -92,18 +96,24 @@ public class RealSensePositionEstimator {
 	private DataModel model;
 
 	private boolean debug = false;
+	private boolean enable_detectors = false;
 
 	private boolean isRunning = false;
 	private IMAVMSPController control;
 
 	private float init_head_rad = 0;
 	private float init_offset_rad = 0;
-	private AccessPointTracks3D points;
+
+	private List<ISLAMDetector> detectors = null;;
 
 	public RealSensePositionEstimator(IMAVMSPController control, MSPConfig config) {
 		this.control = control;
+		this.detectors = new ArrayList<ISLAMDetector>();
+
 		this.debug = config.getBoolProperty("vision_debug", "false");
+		this.enable_detectors = config.getBoolProperty("vision_detectors", "false");
 		this.init_offset_rad = MSPMathUtils.toRad(config.getFloatProperty("vision_rot_offset", "0.0"));
+
 	    System.out.println("Vision rotation offset: "+init_offset_rad+" rad");
 
 		this.model = control.getCurrentModel();
@@ -147,8 +157,6 @@ public class RealSensePositionEstimator {
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
-
-		this.points = (AccessPointTracks3D)visualOdometry;
 
 
 		realsense.registerListener(new Listener() {
@@ -249,10 +257,10 @@ public class RealSensePositionEstimator {
 					control.sendMAVLinkMessage(msg);
 				}
 
-				// TODO: Obstacle detection
-//				if(false) {
-//					AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
-//				}
+				if(enable_detectors && detectors.size()>0) {
+					for(ISLAMDetector d : detectors)
+					    d.process((AccessPointTracks3D)visualOdometry, depth, rgb);
+				}
 
 			}
 		});
@@ -260,6 +268,10 @@ public class RealSensePositionEstimator {
 
 	public RealSensePositionEstimator() {
 		this(null, MSPConfig.getInstance("msp.properties"));
+	}
+
+	public void registerDetector(ISLAMDetector detector) {
+      detectors.add(detector);
 	}
 
 	public void start() {

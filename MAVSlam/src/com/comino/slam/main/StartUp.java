@@ -43,6 +43,7 @@ import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
+import com.comino.slam.detectors.impl.SimpleCollisionDetector;
 import com.comino.slam.estimator.RealSensePositionEstimator;
 
 public class StartUp implements Runnable {
@@ -79,6 +80,7 @@ public class StartUp implements Runnable {
 		try {
 		  if(config.getBoolProperty("vision_enabled", "true"))
 		     vision = new RealSensePositionEstimator(control, config);
+		     vision.registerDetector(new SimpleCollisionDetector(control));
 		} catch(Exception e) {
 			System.out.println("Vision not available: "+e.getMessage());
 		}
