@@ -43,6 +43,7 @@ import org.mavlink.messages.lquac.msg_vision_position_estimate;
 
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.log.MSPLogger;
+import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
@@ -96,11 +97,15 @@ public class RealSensePositionEstimator {
 	private IMAVMSPController control;
 
 	private float init_head_rad = 0;
+	private float init_offset_rad = 0;
 	private AccessPointTracks3D points;
 
-	public RealSensePositionEstimator(IMAVMSPController control, boolean debug) {
+	public RealSensePositionEstimator(IMAVMSPController control, MSPConfig config) {
 		this.control = control;
-		this.debug = debug;
+		this.debug = config.getBoolProperty("vision_debug", "false");
+		this.init_offset_rad = MSPMathUtils.toRad(config.getFloatProperty("vision_rot_offset", "0.0"));
+	    System.out.println("Vision rotation offset: "+init_offset_rad+" rad");
+
 		this.model = control.getCurrentModel();
 
 		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
@@ -120,7 +125,7 @@ public class RealSensePositionEstimator {
 		});
 
 		info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-		//	info = new RealSenseInfo(649,480, RealSenseInfo.MODE_RGB);
+		//	info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
@@ -200,11 +205,10 @@ public class RealSensePositionEstimator {
 						pos.x += pos_rot[0];
 						pos.y += pos_rot[1];
 
-						// TODO: PITCH, ROLL correction
+						// TODO: EVENTUALLY PITCH, ROLL correction needed
 						pos.z += speed.z * dt;
 
 					} else {
-						init();
 						return;
 					}
 				}
@@ -212,13 +216,12 @@ public class RealSensePositionEstimator {
 				pos_raw_old = pos_raw.copy();
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
-					init_head_rad = MSPMathUtils.toRad(model.state.h);
+					init_head_rad = MSPMathUtils.toRad(model.state.h)+init_offset_rad;
 
-					// currently LPE resets POSXY to 0,0 when XY timeout
-					// => therefore reset VISION as well to 0,0
+					// currently LPE resets POSXY to 0,0 when vision XY is resumed
+					// refer to branch ecm_lpe_vision_bias
 
-					//pos.set(model.state.l_x,model.state.l_y, model.raw.di);
-					pos.set(0,0, model.raw.di);
+					pos.set(0,0,0);
 					return;
 				}
 
@@ -238,7 +241,7 @@ public class RealSensePositionEstimator {
 					msg.vx = (float) speed.x;
 					msg.vy = (float) speed.y;
 					msg.vz = (float) speed.z;
-					msg.h = model.state.h;
+					msg.h = MSPMathUtils.fromRad(init_head_rad);
 					msg.quality = quality;
 					msg.fps = fps;
 					msg.flags = msg.flags | 1;
@@ -246,12 +249,17 @@ public class RealSensePositionEstimator {
 					control.sendMAVLinkMessage(msg);
 				}
 
+				// TODO: Obstacle detection
+//				if(false) {
+//					AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
+//				}
+
 			}
 		});
 	}
 
 	public RealSensePositionEstimator() {
-		this(null, false);
+		this(null, MSPConfig.getInstance("msp.properties"));
 	}
 
 	public void start() {

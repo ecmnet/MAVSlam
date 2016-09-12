@@ -78,7 +78,7 @@ public class StartUp implements Runnable {
 
 		try {
 		  if(config.getBoolProperty("vision_enabled", "true"))
-		     vision = new RealSensePositionEstimator(control, config.getBoolProperty("vision_debug", "false"));
+		     vision = new RealSensePositionEstimator(control, config);
 		} catch(Exception e) {
 			System.out.println("Vision not available: "+e.getMessage());
 		}
