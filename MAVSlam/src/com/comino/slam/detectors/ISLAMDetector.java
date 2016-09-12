@@ -7,6 +7,6 @@ import boofcv.struct.image.Planar;
 
 public interface ISLAMDetector {
 
-	public void process(AccessPointTracks3D points, GrayU16 depth, Planar<GrayU8> rgb);
+	public void process(AccessPointTracks3D points, GrayU16 depth, Planar<GrayU8> rgb, int quality);
 
 }

@@ -114,7 +114,7 @@ public class RealSensePositionEstimator {
 		this.enable_detectors = config.getBoolProperty("vision_detectors", "false");
 		this.init_offset_rad = MSPMathUtils.toRad(config.getFloatProperty("vision_rot_offset", "0.0"));
 
-	    System.out.println("Vision rotation offset: "+init_offset_rad+" rad");
+		System.out.println("Vision rotation offset: "+init_offset_rad+" rad");
 
 		this.model = control.getCurrentModel();
 
@@ -170,16 +170,6 @@ public class RealSensePositionEstimator {
 
 				if(debug)
 					System.out.println("Vision time: "+dt);
-
-				if((System.currentTimeMillis() - fps_tms) > 250) {
-					fps_tms = System.currentTimeMillis();
-					if(mf>0)
-						fps = fpm/mf;
-					mf=0; fpm=0;
-				}
-				mf++;
-				fpm += (int)(1f/((timeDepth - oldTimeDepth)/1000f)+0.5f);
-				oldTimeDepth = timeDepth;
 
 
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
@@ -257,10 +247,22 @@ public class RealSensePositionEstimator {
 					control.sendMAVLinkMessage(msg);
 				}
 
-				if(enable_detectors && detectors.size()>0) {
-					for(ISLAMDetector d : detectors)
-					    d.process((AccessPointTracks3D)visualOdometry, depth, rgb);
+				if((System.currentTimeMillis() - fps_tms) > 250) {
+					fps_tms = System.currentTimeMillis();
+
+					if(enable_detectors && detectors.size()>0) {
+						for(ISLAMDetector d : detectors)
+							d.process((AccessPointTracks3D)visualOdometry, depth, rgb, quality);
+					}
+
+					if(mf>0)
+						fps = fpm/mf;
+					mf=0; fpm=0;
 				}
+				mf++;
+				fpm += (int)(1f/((timeDepth - oldTimeDepth)/1000f)+0.5f);
+				oldTimeDepth = timeDepth;
+
 
 			}
 		});
@@ -271,7 +273,10 @@ public class RealSensePositionEstimator {
 	}
 
 	public void registerDetector(ISLAMDetector detector) {
-      detectors.add(detector);
+		if(enable_detectors) {
+			System.out.println("Vision register detector: "+detector.getClass().getSimpleName());
+			detectors.add(detector);
+		}
 	}
 
 	public void start() {

@@ -15,9 +15,11 @@ import boofcv.struct.image.Planar;
 
 public class SimpleCollisionDetector implements ISLAMDetector {
 
-	private IMAVMSPController control;
-    private long tms = 0;
+	private static final int   MIN_DISTANCE_CM        = 800;
+	private static final float COLLISION_FACTOR       = 0.6f;
 
+	private IMAVMSPController control;
+	private long tms = 0;
 
 	public SimpleCollisionDetector(IMAVMSPController control) {
 		this.control = control;
@@ -25,21 +27,30 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	}
 
 	@Override
-	public void process(AccessPointTracks3D points, GrayU16 depth, Planar<GrayU8> rgb) {
-       int total = 0; int count = 0;int x = 0; int y = 0; int d = 0;
+	public void process(AccessPointTracks3D points, GrayU16 depth, Planar<GrayU8> rgb, int quality) {
+		int total = 0; float count = 0;int x = 0; int y = 0;
+
+		if(quality < 10)
+			return;
+
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i)) {
 				x = (int)points.getAllTracks().get(i).x;
 				y = (int)points.getAllTracks().get(i).y;
-				d = depth.get(x,y);
-				total++;
-				if(d<500) count++;
+
+				// look only in the upper half of the pic
+				if(y < depth.height/2) {
+					total++;
+					if(depth.get(x,y)<MIN_DISTANCE_CM) count++;
+				}
 			}
 		}
-		if((count / total)>0.6f && (System.currentTimeMillis() - tms) > 500) {
-		   control.writeLogMessage(new LogMessage("[vis] Collision warning",
-					MAV_SEVERITY.MAV_SEVERITY_WARNING));
-		   tms = System.currentTimeMillis();
+
+		if((count / total)>COLLISION_FACTOR && (System.currentTimeMillis()-tms)>1000) {
+            tms = System.currentTimeMillis();
+			control.writeLogMessage(new LogMessage("[vis] Collision warning "+(count/total),
+					MAV_SEVERITY.MAV_SEVERITY_CRITICAL));
+
 		}
 	}
 }
