@@ -38,7 +38,6 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				x = (int)points.getAllTracks().get(i).x;
 				y = (int)points.getAllTracks().get(i).y;
 
-				// look only in the upper half of the pic
 				if(y < depth.height/2) {
 					total++;
 					if(depth.get(x,y)<MIN_DISTANCE_CM) count++;
