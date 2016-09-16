@@ -47,7 +47,7 @@ public class NavigationSpace {
 	 * Add a feature point to the corresponding block of the space
 	 * @param point: Feature point
 	 */
-	public void addFeature(AttributedPoint3D_F32 point) {
+	public void addFeature(Feature point) {
 		NavigationBlock block = getNavigationBlock(point.x,point.y,point.z);
 		if(block!=null) {
 			block.getFeatures().add(point);

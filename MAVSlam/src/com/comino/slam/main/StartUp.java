@@ -44,7 +44,7 @@ import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
-import com.comino.slam.estimator.RealSensePositionEstimator;
+import com.comino.slam.estimators.RealSensePositionEstimator;
 
 public class StartUp implements Runnable {
 

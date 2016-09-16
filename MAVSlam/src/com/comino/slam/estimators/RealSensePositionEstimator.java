@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-package com.comino.slam.estimator;
+package com.comino.slam.estimators;
 
 
 import java.util.ArrayList;
@@ -74,10 +74,14 @@ import georegression.struct.se.Se3_F64;
 
 public class RealSensePositionEstimator {
 
-	private static final int    INIT_TIME_MS   = 600;
-	private static final float  MAX_SPEED   	= 2;
-	private static final int    MIN_QUALITY 	= 20;
-	private static final int    MAXTRACKS   	= 120;
+	private static final int    INIT_TIME_MS    	= 200;
+
+	private static final float  MAX_SPEED   		= 2;
+	private static final float  MAX_ROT_SPEED   	= 1;
+	private static final float  MAX_ROTATION_RAD    = 0.3927f;  // max 45° rotation
+
+	private static final int    MIN_QUALITY 		= 20;
+	private static final int    MAXTRACKS   		= 120;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseInfo info;
@@ -162,6 +166,7 @@ public class RealSensePositionEstimator {
 		realsense.registerListener(new Listener() {
 
 			float fps; float dt; int mf=0; int fpm; float[] pos_rot = new float[2]; int quality=0;
+			Se3_F64 leftToWorld; float ang_speed; float odo_speed;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -171,15 +176,29 @@ public class RealSensePositionEstimator {
 				if(debug)
 					System.out.println("Vision time: "+dt);
 
+				// Check rotation and reset odometry if rotating too fast
+				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
+						model.attitude.rr * model.attitude.rr +
+						model.attitude.yr * model.attitude.yr);
 
-				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
-					if(debug)
-						System.out.println("Vision initialized");
+				if(ang_speed > MAX_ROT_SPEED) {
 					init();
 					return;
 				}
 
-				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
+				if(Math.abs(init_head_rad - model.attitude.y) > MAX_ROTATION_RAD) {
+					init();
+					return;
+				}
+
+
+
+				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
+					init();
+					return;
+				}
+
+				leftToWorld = visualOdometry.getCameraToWorld();
 				pos_raw = leftToWorld.getT();
 
 				quality = visualOdometry.getInlierCount() *100 / MAXTRACKS;
@@ -187,16 +206,22 @@ public class RealSensePositionEstimator {
 				if(pos_raw_old!=null) {
 
 					if(quality > MIN_QUALITY ) {
-						speed.y = (pos_raw.x - pos_raw_old.x)/dt;
-						speed.x = (pos_raw.z - pos_raw_old.z)/dt;
-						speed.z = (pos_raw.y - pos_raw_old.y)/dt;
+						speed.y =  (pos_raw.x - pos_raw_old.x)/dt;
+						speed.x =  (pos_raw.z - pos_raw_old.z)/dt;
+						speed.z =  (pos_raw.y - pos_raw_old.y)/dt;
 					} else
 						speed.set(0,0,0);
 
 					if(debug)
 						System.out.println("Speed: "+speed.x +"/"+speed.x);
 
-					if(Math.abs(speed.x)< MAX_SPEED && Math.abs(speed.y)< MAX_SPEED && Math.abs(speed.z)< MAX_SPEED) {
+
+					odo_speed = (float) Math.sqrt(speed.x * speed.x +
+							speed.y * speed.y +
+							speed.z * speed.z);
+
+
+					if(odo_speed < MAX_SPEED) {
 
 						MSPMathUtils.rotateRad(pos_rot,(float)speed.x * dt,(float)speed.y * dt,-init_head_rad);
 
@@ -214,7 +239,7 @@ public class RealSensePositionEstimator {
 				pos_raw_old = pos_raw.copy();
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
-					init_head_rad = MSPMathUtils.toRad(model.state.h)+init_offset_rad;
+					init_head_rad = model.attitude.y+init_offset_rad;
 
 					// currently LPE resets POSXY to 0,0 when vision XY is resumed
 					// refer to branch ecm_lpe_vision_bias
@@ -232,6 +257,7 @@ public class RealSensePositionEstimator {
 					sms.z = (float) pos.z;
 					control.sendMAVLinkMessage(sms);
 
+					// TODO msp_vision only status and only at 4HZ (change msg)
 					msg_msp_vision msg = new msg_msp_vision(1,2);
 					msg.x = (float) pos.x;
 					msg.y = (float) pos.y;
@@ -252,7 +278,7 @@ public class RealSensePositionEstimator {
 
 					if(enable_detectors && detectors.size()>0) {
 						for(ISLAMDetector d : detectors)
-							d.process((AccessPointTracks3D)visualOdometry, depth, rgb, quality);
+							d.process(visualOdometry, depth, rgb, quality);
 					}
 
 					if(mf>0)

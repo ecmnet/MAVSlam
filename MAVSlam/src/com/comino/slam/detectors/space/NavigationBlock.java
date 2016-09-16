@@ -5,14 +5,14 @@ import java.util.List;
 
 public class NavigationBlock {
 
-	private List<AttributedPoint3D_F32> features;
+	private List<Feature> features;
 	private boolean isObstacle = false;
 
 	public NavigationBlock() {
-		this.features = new ArrayList<AttributedPoint3D_F32>();
+		this.features = new ArrayList<Feature>();
 	}
 
-	public List<AttributedPoint3D_F32> getFeatures() {
+	public List<Feature> getFeatures() {
 		return features;
 	}
 

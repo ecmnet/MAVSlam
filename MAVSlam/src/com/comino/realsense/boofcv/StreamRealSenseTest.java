@@ -41,6 +41,7 @@ import com.comino.mq.bus.MWMessageBus;
 import com.comino.mq.tests.OptPos;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
+import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -55,6 +56,7 @@ import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
+import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 import javafx.application.Application;
@@ -129,7 +131,7 @@ public class StreamRealSenseTest extends Application  {
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
 		// declares the algorithm
-		DepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
+		RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
 				FactoryRealSenseOdometry.depthDepthPnP(1.2, 120, 2, 200, 50, true,
 						sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
@@ -169,6 +171,7 @@ public class StreamRealSenseTest extends Application  {
 				}
 
 
+
 				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
 				Vector3D_F64 T = leftToWorld.getT();
 
@@ -179,14 +182,18 @@ public class StreamRealSenseTest extends Application  {
 				Graphics c = output.getGraphics();
 
 				int count = 0; float total = 0;  int dx=0, dy=0; int dist=999;
-				int x, y;
+				int x, y; int index = -1;
 
 				for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 					if(points.isInlier(i)) {
+
+
 					c.setColor(Color.BLUE);
 
 					x = (int)points.getAllTracks().get(i).x;
 					y = (int)points.getAllTracks().get(i).y;
+
+
 
 					int d = depth.get(x,y);
 					if(d > 0) {
@@ -194,6 +201,7 @@ public class StreamRealSenseTest extends Application  {
 
 						int di = (int)Math.sqrt((x-mouse_x)*(x-mouse_x) + (y-mouse_y)*(y-mouse_y));
 						if(di < dist) {
+							index = i;
 							dx = x;
 							dy = y;
 							dist = di;
@@ -208,6 +216,9 @@ public class StreamRealSenseTest extends Application  {
 				}
 
 				if(depth!=null) {
+					if(index > -1)
+					   System.out.println(visualOdometry.getTrackLocation(index));
+
 					mc++;
 					md = md + depth.get(dx,dy) / 1000f;
 					c.setColor(Color.GREEN);
