@@ -34,6 +34,9 @@
 
 package com.comino.realsense.boofcv;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.comino.librealsense.wrapper.LibRealSenseIntrinsics;
 import com.comino.librealsense.wrapper.LibRealSenseUtils;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper;
@@ -55,7 +58,7 @@ public class StreamRealSenseVisDepth {
 	private long timeout=10000;
 
 
-	private Listener listener;
+	private List<Listener> listeners;
 
 	// image with depth information
 	private GrayU16 depth = new GrayU16(1,1);
@@ -89,7 +92,7 @@ public class StreamRealSenseVisDepth {
 			throw new IllegalArgumentException("No device connected: ");
 		}
 
-
+        this.listeners = new ArrayList();
 
 		this.info = info;
 
@@ -130,7 +133,7 @@ public class StreamRealSenseVisDepth {
 	}
 
 	public StreamRealSenseVisDepth registerListener(Listener listener) {
-		this.listener = listener;
+		listeners.add(listener);
 		return this;
 	}
 
@@ -216,8 +219,10 @@ public class StreamRealSenseVisDepth {
 
 
 					timeOld = time;
-					if(listener!=null)
-					  listener.process(rgb, depth, timeRgb, timeDepth);
+					if(listeners.size()>0) {
+					   for(Listener listener : listeners)
+					     listener.process(rgb, depth, timeRgb, timeDepth);
+					}
 				}
 			}
 
