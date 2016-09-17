@@ -148,8 +148,15 @@ public class RealSensePositionEstimator {
 			}
 		});
 
+		// TODO: Put RealSense out of the position estimator
+
 		info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 	    //info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+		try {
+			realsense = new StreamRealSenseVisDepth(0,info);
+		} catch(Exception e) {
+
+		}
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
@@ -160,12 +167,6 @@ public class RealSensePositionEstimator {
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
-
-		try {
-			realsense = new StreamRealSenseVisDepth(0,info);
-		} catch(Exception e) {
-
-		}
 
 		visualOdometry = FactoryRealSenseOdometry.depthDepthPnP(1.2, 120, 2, 200, 50, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
@@ -200,6 +201,7 @@ public class RealSensePositionEstimator {
 					return;
 				}
 
+				// TODO: Here RGB band 0 is used - try with real grey or infrared
 
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
 					init();
@@ -251,7 +253,7 @@ public class RealSensePositionEstimator {
 						pos.x += speed.x * dt;
 						pos.y += speed.y * dt;
 
-						pos.z += speed.z * dt * Math.cos(model.attitude.r) * Math.cos(model.attitude.p);
+						pos.z += speed.z * dt;
 
 						error=0;
 
@@ -283,9 +285,12 @@ public class RealSensePositionEstimator {
 
 				if(control!=null) {
 
+					// Rotate from bodyframe into NED frame
+					// TODO: Rotate all planes
+
 					MSPMathUtils.rotateRad(pos_rot,(float)(pos.x + cam_offset.x),
 		                                           (float)(pos.y + cam_offset.y),
-		                                   -(init_head_rad+init_offset_rad));
+		                                       -(init_head_rad+init_offset_rad));
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
 					sms.usec =timeDepth*1000;
