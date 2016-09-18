@@ -101,7 +101,7 @@ public class StartUp implements Runnable {
 		HttpServer server;
 		try {
 			server = HttpServer.create(new InetSocketAddress(8080),2);
-			server.createContext("/mjpeg", new MJPEGHandler());
+			server.createContext("/mjpeg", new MJPEGHandler(control.getCurrentModel()));
 			server.setExecutor(null); // creates a default executor
 			server.start();
 		} catch (IOException e) {

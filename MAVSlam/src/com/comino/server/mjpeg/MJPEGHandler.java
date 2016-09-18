@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 
+import com.comino.msp.model.DataModel;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -22,8 +23,13 @@ public class MJPEGHandler implements HttpHandler  {
 
 	private IMJPEGOverlayListener listener = null;
 	private BufferedImage image = new BufferedImage(320, 240, BufferedImage.TYPE_BYTE_GRAY);
+	private DataModel model = null;
+
 	private static List<GrayU8>imageByteList = new ArrayList<GrayU8>(0);
-	private long start = System.currentTimeMillis();
+
+	public MJPEGHandler(DataModel model) {
+		this.model = model;
+	}
 
 	@Override
 	public void handle(HttpExchange he) throws IOException {
@@ -59,6 +65,7 @@ public class MJPEGHandler implements HttpHandler  {
 	}
 
 	private void addTimeOverlay(Graphics ctx) {
-		ctx.drawString("Time:"+(System.currentTimeMillis()-start)+"ms", 10, 20);
+		if(!Float.isNaN(model.sys.t_armed_ms))
+		   ctx.drawString("Time:"+(int)model.sys.t_armed_ms+"ms", 10, 20);
 	}
 }

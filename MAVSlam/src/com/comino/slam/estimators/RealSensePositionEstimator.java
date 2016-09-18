@@ -185,10 +185,12 @@ public class RealSensePositionEstimator {
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
-				MJPEGHandler.addImage(rgb.bands[0]);
 
 				dt = (timeDepth - oldTimeDepth)/1000f;
 				oldTimeDepth = timeDepth;
+
+				MJPEGHandler.addImage(rgb.bands[0]);
+
 
 				if(debug)
 					System.out.println("Vision time: "+dt);
