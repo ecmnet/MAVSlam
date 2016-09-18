@@ -107,7 +107,7 @@ public class StartUp implements Runnable {
 			server.setExecutor(null); // creates a default executor
 			server.start();
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.println(e.getMessage());
 		}
 
 

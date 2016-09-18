@@ -104,7 +104,6 @@ public class RealSensePositionEstimator {
 	private DataModel model;
 
 	private boolean debug = false;
-	private boolean enable_detectors = false;
 
 	private boolean isRunning = false;
 	private IMAVMSPController control;
@@ -115,6 +114,11 @@ public class RealSensePositionEstimator {
 	private int error = 0;
 	private int init_count = 0;
 
+	private boolean do_odometry = true;
+
+	private long detector_tms = 0;
+	private int  detector_cycle_ms = 250;
+
 	private List<ISLAMDetector> detectors = null;;
 
 	public RealSensePositionEstimator(IMAVMSPController control, MSPConfig config) {
@@ -122,7 +126,7 @@ public class RealSensePositionEstimator {
 		this.detectors = new ArrayList<ISLAMDetector>();
 
 		this.debug = config.getBoolProperty("vision_debug", "false");
-		this.enable_detectors = config.getBoolProperty("vision_detectors", "false");
+		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "250");
 		this.init_offset_rad = MSPMathUtils.toRad(config.getFloatProperty("vision_rot_offset", "0.0"));
 		System.out.printf("Vision rotation offset: %2.3f [rad]\n",init_offset_rad);
 
@@ -139,11 +143,11 @@ public class RealSensePositionEstimator {
 				msg_msp_command cmd = (msg_msp_command)o;
 				switch(cmd.command) {
 				case MSP_CMD.MSP_CMD_VISION:
-					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.ENABLE && !isRunning) {
-						start(); break;
+					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.ENABLE) {
+						do_odometry = true; init(); break;
 					}
-					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.DISABLE && isRunning) {
-						stop(); break; };
+					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.DISABLE) {
+						do_odometry = false; break; };
 						break;
 				}
 			}
@@ -152,7 +156,7 @@ public class RealSensePositionEstimator {
 		// TODO: Put RealSense out of the position estimator
 
 		info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-	    //info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+		//info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
 		} catch(Exception e) {
@@ -190,6 +194,34 @@ public class RealSensePositionEstimator {
 				oldTimeDepth = timeDepth;
 
 				MJPEGHandler.addImage(rgb.bands[0]);
+
+				fpm += (int)(1f/dt+0.5f);
+				if((System.currentTimeMillis() - fps_tms) > 250) {
+					fps_tms = System.currentTimeMillis();
+					if(mf>0)
+						fps = fpm/mf;
+					mf=0; fpm=0;
+				}
+				mf++;
+
+				if(!do_odometry) {
+					msg_msp_vision msg = new msg_msp_vision(1,2);
+					msg.x =  Float.NaN;
+					msg.y =  Float.NaN;
+					msg.z =  Float.NaN;
+					msg.vx = Float.NaN;
+					msg.vy = Float.NaN;
+					msg.vz = Float.NaN;
+					msg.h = MSPMathUtils.fromRad(init_head_rad);
+					msg.quality = quality;
+					msg.fps = fps;
+					msg.errors = error;
+					msg.flags = msg.flags | 1;
+					msg.tms = System.nanoTime() / 1000;
+					control.sendMAVLinkMessage(msg);
+
+					return;
+				}
 
 
 				if(debug)
@@ -247,8 +279,8 @@ public class RealSensePositionEstimator {
 
 
 					odo_speed = (float) Math.sqrt(speed.x * speed.x +
-							                      speed.y * speed.y +
-							                      speed.z * speed.z);
+							speed.y * speed.y +
+							speed.z * speed.z);
 
 					if(odo_speed < MAX_SPEED) {
 
@@ -293,8 +325,8 @@ public class RealSensePositionEstimator {
 					// TODO: Rotate all planes
 
 					MSPMathUtils.rotateRad(pos_rot,(float)(pos.x + cam_offset.x),
-		                                           (float)(pos.y + cam_offset.y),
-		                                       -(init_head_rad+init_offset_rad));
+							(float)(pos.y + cam_offset.y),
+							-(init_head_rad+init_offset_rad));
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
 					sms.usec =timeDepth*1000;
@@ -318,20 +350,13 @@ public class RealSensePositionEstimator {
 					msg.tms = System.nanoTime() / 1000;
 					control.sendMAVLinkMessage(msg);
 				}
-
-				fpm += (int)(1f/dt+0.5f);
-				if((System.currentTimeMillis() - fps_tms) > 250) {
-					fps_tms = System.currentTimeMillis();
-
-					if(enable_detectors && detectors.size()>0) {
+				if(detectors.size()>0 && detector_cycle_ms>0) {
+					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
+						detector_tms = System.currentTimeMillis();
 						for(ISLAMDetector d : detectors)
 							d.process(visualOdometry, depth, rgb, quality);
 					}
-					if(mf>0)
-						fps = fpm/mf;
-					mf=0; fpm=0;
 				}
-				mf++;
 			}
 		});
 	}
@@ -341,7 +366,7 @@ public class RealSensePositionEstimator {
 	}
 
 	public void registerDetector(ISLAMDetector detector) {
-		if(enable_detectors) {
+		if(detector_cycle_ms>0) {
 			System.out.println("Vision register detector: "+detector.getClass().getSimpleName());
 			detectors.add(detector);
 		}
