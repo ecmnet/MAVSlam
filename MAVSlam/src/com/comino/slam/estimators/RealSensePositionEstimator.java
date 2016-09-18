@@ -219,7 +219,6 @@ public class RealSensePositionEstimator {
 					msg.flags = msg.flags | 1;
 					msg.tms = System.nanoTime() / 1000;
 					control.sendMAVLinkMessage(msg);
-
 					return;
 				}
 
