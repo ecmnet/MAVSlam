@@ -11,7 +11,7 @@ import georegression.struct.point.Point3D_F32;
  * @author ecmnet
  *
  */
-public class NavigationSpace {
+public class Space {
 
 	private static final float SPACE_RESOLUTION = 0.5f;
 
@@ -19,12 +19,12 @@ public class NavigationSpace {
 	private static final int SPACE_Y_EXTENSION = 10;
 	private static final int SPACE_Z_EXTENSION = 5;
 
-	private Map<Integer,NavigationBlock> space = null;
+	private Map<Integer,SpaceBlock> space = null;
 	private Point3D_F32 origin;
 	private int total_feature_count=0;
 
-	public NavigationSpace() {
-		this.space = new HashMap<Integer,NavigationBlock>();
+	public Space() {
+		this.space = new HashMap<Integer,SpaceBlock>();
 		this.origin = new Point3D_F32();
 
 	}
@@ -48,7 +48,7 @@ public class NavigationSpace {
 	 * @param point: Feature point
 	 */
 	public void addFeature(Feature point) {
-		NavigationBlock block = getNavigationBlock(point.x,point.y,point.z);
+		SpaceBlock block = getNavigationBlock(point.x,point.y,point.z);
 		if(block!=null) {
 			block.getFeatures().add(point);
 			total_feature_count++;
@@ -60,9 +60,9 @@ public class NavigationSpace {
 	}
 
 	public Point3D_F32 getMaxFeaturesPositionWorld() {
-		int max = 0; Entry<Integer,NavigationBlock> e; int hashBlock=0;
+		int max = 0; Entry<Integer,SpaceBlock> e; int hashBlock=0;
 
-		Iterator<Entry<Integer,NavigationBlock>> i = space.entrySet().iterator();
+		Iterator<Entry<Integer,SpaceBlock>> i = space.entrySet().iterator();
 		while(i.hasNext()) {
 			e = i.next();
 			if(e.getValue().getFeatures().size()>max) {
@@ -86,7 +86,7 @@ public class NavigationSpace {
 	}
 
 
-	public NavigationBlock getNavigationBlock(float wx, float wy, float wz) {
+	public SpaceBlock getNavigationBlock(float wx, float wy, float wz) {
 		int x_index = (int)(( wx  + SPACE_X_EXTENSION / 2f) / SPACE_RESOLUTION - origin.x);
 		int y_index = (int)(  wy / SPACE_RESOLUTION - origin.y);
 		int z_index = (int)(( wz  + SPACE_X_EXTENSION / 2f) / SPACE_RESOLUTION - origin.z);
@@ -96,9 +96,9 @@ public class NavigationSpace {
 		   z_index > 0 && z_index < SPACE_Z_EXTENSION)  {
 
 			int blockHash = calcHash(x_index, y_index, z_index);
-			NavigationBlock block = space.get(blockHash);
+			SpaceBlock block = space.get(blockHash);
 			if(block == null) {
-				block = new NavigationBlock();
+				block = new SpaceBlock();
 				space.put(blockHash, block);
 			}
 			return block;

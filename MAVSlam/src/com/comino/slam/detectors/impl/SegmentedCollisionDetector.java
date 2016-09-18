@@ -9,7 +9,7 @@ import com.comino.msp.model.segment.LogMessage;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
 import com.comino.slam.detectors.space.Feature;
-import com.comino.slam.detectors.space.NavigationSpace;
+import com.comino.slam.detectors.space.Space;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.struct.image.Color3_I32;
@@ -25,12 +25,12 @@ public class SegmentedCollisionDetector implements ISLAMDetector {
 
 	private IMAVMSPController control;
 	private DataModel         model;
-	private NavigationSpace   obstacles;
+	private Space   obstacles;
 
 	public SegmentedCollisionDetector(IMAVMSPController control) {
 		this.control  = control;
 		this.model    = control.getCurrentModel();
-		this.obstacles = new NavigationSpace();
+		this.obstacles = new Space();
 	}
 
 	@Override

@@ -3,12 +3,12 @@ package com.comino.slam.detectors.space;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NavigationBlock {
+public class SpaceBlock {
 
 	private List<Feature> features;
 	private boolean isObstacle = false;
 
-	public NavigationBlock() {
+	public SpaceBlock() {
 		this.features = new ArrayList<Feature>();
 	}
 
