@@ -98,6 +98,8 @@ public class StartUp implements Runnable {
 		Thread worker = new Thread(this);
 		worker.start();
 
+		// Start HTTP Service with MJPEG streamer
+
 		HttpServer server;
 		try {
 			server = HttpServer.create(new InetSocketAddress(8080),2);
