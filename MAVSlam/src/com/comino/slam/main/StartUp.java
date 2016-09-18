@@ -33,8 +33,10 @@
 
 package com.comino.slam.main;
 
+import java.io.IOException;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
+import java.net.InetSocketAddress;
 
 import org.mavlink.messages.lquac.msg_msp_status;
 
@@ -43,8 +45,10 @@ import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
+import com.comino.server.mjpeg.MJPEGHandler;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
 import com.comino.slam.estimators.RealSensePositionEstimator;
+import com.sun.net.httpserver.HttpServer;
 
 public class StartUp implements Runnable {
 
@@ -68,8 +72,8 @@ public class StartUp implements Runnable {
 		else
 			control = new MAVProxyController(false);
 
-		 osBean =  java.lang.management.ManagementFactory.getOperatingSystemMXBean();
-		 mxBean = java.lang.management.ManagementFactory.getMemoryMXBean();
+		osBean =  java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+		mxBean = java.lang.management.ManagementFactory.getMemoryMXBean();
 
 		MSPLogger.getInstance(control);
 
@@ -78,9 +82,9 @@ public class StartUp implements Runnable {
 		// Start services if required
 
 		try {
-		  if(config.getBoolProperty("vision_enabled", "true"))
-		     vision = new RealSensePositionEstimator(control, config);
-		     vision.registerDetector(new SimpleCollisionDetector(control));
+			if(config.getBoolProperty("vision_enabled", "true"))
+				vision = new RealSensePositionEstimator(control, config);
+			vision.registerDetector(new SimpleCollisionDetector(control));
 		} catch(Exception e) {
 			System.out.println("Vision not available: "+e.getMessage());
 		}
@@ -91,8 +95,19 @@ public class StartUp implements Runnable {
 
 		control.connect();
 		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
-        Thread worker = new Thread(this);
-        worker.start();
+		Thread worker = new Thread(this);
+		worker.start();
+
+		HttpServer server;
+		try {
+			server = HttpServer.create(new InetSocketAddress(8080),2);
+			server.createContext("/mjpeg", new MJPEGHandler());
+			server.setExecutor(null); // creates a default executor
+			server.start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 
 	}
 

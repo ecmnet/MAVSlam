@@ -55,6 +55,7 @@ import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
+import com.comino.server.mjpeg.MJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
@@ -178,14 +179,15 @@ public class RealSensePositionEstimator {
 
 		realsense.registerListener(new Listener() {
 
-			float fps; float dt; int mf=0; int fpm; float[] pos_rot = new float[2]; int quality=0;
+			float fps; float fps_tmp; float dt; int mf=0; int fpm; float[] pos_rot = new float[2]; int quality=0;
 			Se3_F64 leftToWorld; float ang_speed; float odo_speed;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
+				MJPEGHandler.addImage(rgb.bands[0]);
+
 				dt = (timeDepth - oldTimeDepth)/1000f;
-				fpm += (int)(1f/((timeDepth - oldTimeDepth)/1000f)+0.5f);
 				oldTimeDepth = timeDepth;
 
 				if(debug)
@@ -208,6 +210,7 @@ public class RealSensePositionEstimator {
 					return;
 				}
 
+
 				leftToWorld = visualOdometry.getCameraToWorld();
 				pos_raw = leftToWorld.getT();
 
@@ -216,7 +219,6 @@ public class RealSensePositionEstimator {
 				if(pos_raw_old!=null) {
 
 					if(quality > MIN_QUALITY ) {
-
 
 						speed.y =  (pos_raw.x - pos_raw_old.x)/dt;
 						speed.x =  (pos_raw.z - pos_raw_old.z)/dt;
@@ -315,6 +317,7 @@ public class RealSensePositionEstimator {
 					control.sendMAVLinkMessage(msg);
 				}
 
+				fpm += (int)(1f/dt+0.5f);
 				if((System.currentTimeMillis() - fps_tms) > 250) {
 					fps_tms = System.currentTimeMillis();
 
@@ -322,14 +325,11 @@ public class RealSensePositionEstimator {
 						for(ISLAMDetector d : detectors)
 							d.process(visualOdometry, depth, rgb, quality);
 					}
-
 					if(mf>0)
 						fps = fpm/mf;
 					mf=0; fpm=0;
 				}
 				mf++;
-
-
 			}
 		});
 	}
