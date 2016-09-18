@@ -83,7 +83,7 @@ public class RealSensePositionEstimator {
 	private static final float  MAX_ROTATION_RAD    = 0.3927f;  // max 45° rotation
 
 	private static final int    MIN_QUALITY 		= 20;
-	private static final int    MAXTRACKS   		= 100;
+	private static final int    MAXTRACKS   		= 120;
 
 	private static final float  LP_SPEED            = 0.85f;
 
@@ -114,7 +114,7 @@ public class RealSensePositionEstimator {
 	private float init_head_rad = 0;
 	private float init_offset_rad = 0;
 
-	private int error = 0;
+	private int error_count = 0;
 	private int init_count = 0;
 
 	private boolean do_odometry = true;
@@ -195,7 +195,7 @@ public class RealSensePositionEstimator {
 
 		realsense.registerListener(new Listener() {
 
-			float fps; float fps_tmp; float dt; int mf=0; int fpm; float[] pos_rot = new float[2]; int quality=0;
+			float fps; float dt; int mf=0; int fpm; float[] pos_rot = new float[2]; int quality=0;
 			Se3_F64 leftToWorld; float ang_speed; float odo_speed;
 
 			@Override
@@ -214,6 +214,9 @@ public class RealSensePositionEstimator {
 				}
 				mf++;
 
+				if(streamer!=null)
+					streamer.addImage(rgb.bands[0]);
+
 				if(!do_odometry) {
 					msg_msp_vision msg = new msg_msp_vision(1,2);
 					msg.x =  Float.NaN;
@@ -225,8 +228,8 @@ public class RealSensePositionEstimator {
 					msg.h = MSPMathUtils.fromRad(init_head_rad);
 					msg.quality = quality;
 					msg.fps = fps;
-					msg.errors = error;
-					msg.flags = msg.flags | 1;
+					msg.errors = error_count;
+					msg.flags = msg.flags & 1;
 					msg.tms = System.nanoTime() / 1000;
 					control.sendMAVLinkMessage(msg);
 					return;
@@ -238,6 +241,7 @@ public class RealSensePositionEstimator {
 						model.attitude.yr * model.attitude.yr);
 
 				if(ang_speed > MAX_ROT_SPEED) {
+					error_count++;
 					init();
 					return;
 				}
@@ -248,9 +252,6 @@ public class RealSensePositionEstimator {
 					init();
 					return;
 				}
-
-				if(streamer!=null)
-					streamer.addImage(rgb.bands[0]);
 
 				leftToWorld = visualOdometry.getCameraToWorld();
 				pos_raw = leftToWorld.getT();
@@ -277,7 +278,7 @@ public class RealSensePositionEstimator {
 						speed_old.z = speed.z;
 
 					} else {
-						error++;
+						error_count++;
 						return;
 					}
 
@@ -294,10 +295,8 @@ public class RealSensePositionEstimator {
 
 						pos.z += speed.z * dt;
 
-						error=0;
-
 					} else {
-						error++;
+						error_count++;
 						//return;
 					}
 				}
@@ -348,7 +347,7 @@ public class RealSensePositionEstimator {
 					msg.h = MSPMathUtils.fromRad(init_head_rad);
 					msg.quality = quality;
 					msg.fps = fps;
-					msg.errors = error;
+					msg.errors = error_count;
 					msg.flags = msg.flags | 1;
 					msg.tms = System.nanoTime() / 1000;
 					control.sendMAVLinkMessage(msg);
@@ -365,14 +364,10 @@ public class RealSensePositionEstimator {
 	}
 
 	private void overlayFeatures(Graphics ctx) {
-		int x,y;
 		AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
-			if(points.isInlier(i)) {
-				x = (int)points.getAllTracks().get(i).x;
-				y = (int)points.getAllTracks().get(i).y;
-				ctx.drawRect(x,y, 1, 1);
-			}
+			if(points.isInlier(i))
+				ctx.drawRect((int)points.getAllTracks().get(i).x,(int)points.getAllTracks().get(i).y, 1, 1);
 		}
 	}
 
@@ -418,12 +413,13 @@ public class RealSensePositionEstimator {
 	}
 
 	private void init() {
-		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS)
+		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS) {
 			control.writeLogMessage(new LogMessage("[vis] reset odometry",
 					MAV_SEVERITY.MAV_SEVERITY_WARNING));
-		visualOdometry.reset();
-		init_count = 0;
-		init_tms = System.currentTimeMillis();
+			visualOdometry.reset();
+			init_count = 0; error_count=0;
+			init_tms = System.currentTimeMillis();
+		}
 	}
 
 	public static void main(String[] args) {
