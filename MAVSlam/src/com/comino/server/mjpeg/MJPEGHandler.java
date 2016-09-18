@@ -53,14 +53,17 @@ import boofcv.struct.image.GrayU8;
 
 public class MJPEGHandler implements HttpHandler  {
 
-	private IMJPEGOverlayListener listener = null;
-	private BufferedImage image = new BufferedImage(320, 240, BufferedImage.TYPE_BYTE_GRAY);
+	private List<IMJPEGOverlayListener> listeners = null;
+	private BufferedImage image = null;
 	private DataModel model = null;
 
-	private static List<GrayU8>imageByteList = new ArrayList<GrayU8>(0);
+	private  List<GrayU8>imageByteList ;
 
 	public MJPEGHandler(DataModel model) {
 		this.model = model;
+		this.imageByteList = new ArrayList<GrayU8>(0);
+		this.listeners = new ArrayList<IMJPEGOverlayListener>();
+		this.image = new BufferedImage(320, 240, BufferedImage.TYPE_BYTE_GRAY);
 	}
 
 	@Override
@@ -72,8 +75,10 @@ public class MJPEGHandler implements HttpHandler  {
 		while(true) {
 			if(imageByteList.size() > 0) {
 				ConvertBufferedImage.convertTo(imageByteList.get(0), image);
-				if(listener!=null)
-					listener.processOverlay(gr);
+				if(listeners.size()>0) {
+					for(IMJPEGOverlayListener listener : listeners)
+						listener.processOverlay(gr);
+				}
 				addTimeOverlay(gr);
 				os.write(("--BoundaryString\r\nContent-type: image/jpeg\r\n\r\n").getBytes());
 				ImageIO.write(image, "jpg", os );
@@ -87,10 +92,10 @@ public class MJPEGHandler implements HttpHandler  {
 	}
 
 	public void registerOverlayListener(IMJPEGOverlayListener listener) {
-		this.listener = listener;
+		this.listeners.add(listener);
 	}
 
-	public static void addImage(GrayU8 bands) {
+	public void addImage(GrayU8 bands) {
 		if(imageByteList.size()>10)
 			imageByteList.remove(0);
 		imageByteList.add(bands);
@@ -98,6 +103,6 @@ public class MJPEGHandler implements HttpHandler  {
 
 	private void addTimeOverlay(Graphics ctx) {
 		if(!Float.isNaN(model.sys.t_armed_ms))
-		   ctx.drawString("Time:"+(int)model.sys.t_armed_ms+"ms", 10, 20);
+			ctx.drawString("Time:"+(int)model.sys.t_armed_ms+"ms", 10, 20);
 	}
 }

@@ -81,9 +81,11 @@ public class StartUp implements Runnable {
 
 		// Start services if required
 
+		MJPEGHandler streamer = new MJPEGHandler(control.getCurrentModel());
+
 		try {
 			if(config.getBoolProperty("vision_enabled", "true"))
-				vision = new RealSensePositionEstimator(control, config);
+				vision = new RealSensePositionEstimator(control, config,streamer);
 			vision.registerDetector(new SimpleCollisionDetector(control));
 		} catch(Exception e) {
 			System.out.println("Vision not available: "+e.getMessage());
@@ -103,7 +105,7 @@ public class StartUp implements Runnable {
 		HttpServer server;
 		try {
 			server = HttpServer.create(new InetSocketAddress(8080),2);
-			server.createContext("/mjpeg", new MJPEGHandler(control.getCurrentModel()));
+			server.createContext("/mjpeg", streamer);
 			server.setExecutor(null); // creates a default executor
 			server.start();
 		} catch (IOException e) {

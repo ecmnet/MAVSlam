@@ -34,6 +34,8 @@
 package com.comino.slam.estimators;
 
 
+import java.awt.Color;
+import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,6 +62,7 @@ import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
+import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.alg.distort.DoNothingPixelTransform_F32;
 import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
@@ -119,11 +122,14 @@ public class RealSensePositionEstimator {
 	private long detector_tms = 0;
 	private int  detector_cycle_ms = 250;
 
-	private List<ISLAMDetector> detectors = null;;
+	private List<ISLAMDetector> detectors = null;
 
-	public RealSensePositionEstimator(IMAVMSPController control, MSPConfig config) {
+	private MJPEGHandler streamer;;
+
+	public RealSensePositionEstimator(IMAVMSPController control, MSPConfig config, MJPEGHandler streamer ) {
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
+		this.streamer = streamer;
 
 		this.debug = config.getBoolProperty("vision_debug", "false");
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "250");
@@ -178,6 +184,12 @@ public class RealSensePositionEstimator {
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
 
+		if(debug) {
+			streamer.registerOverlayListener(ctx -> {
+				overlayFeatures(ctx);
+			});
+		}
+
 		init_count = 0;
 		init_tms = System.currentTimeMillis();
 
@@ -192,8 +204,6 @@ public class RealSensePositionEstimator {
 
 				dt = (timeDepth - oldTimeDepth)/1000f;
 				oldTimeDepth = timeDepth;
-
-				MJPEGHandler.addImage(rgb.bands[0]);
 
 				fpm += (int)(1f/dt+0.5f);
 				if((System.currentTimeMillis() - fps_tms) > 250) {
@@ -222,10 +232,6 @@ public class RealSensePositionEstimator {
 					return;
 				}
 
-
-				if(debug)
-					System.out.println("Vision time: "+dt);
-
 				// Check rotation and reset odometry if rotating too fast
 				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
 						model.attitude.rr * model.attitude.rr +
@@ -243,6 +249,8 @@ public class RealSensePositionEstimator {
 					return;
 				}
 
+				if(streamer!=null)
+					streamer.addImage(rgb.bands[0]);
 
 				leftToWorld = visualOdometry.getCameraToWorld();
 				pos_raw = leftToWorld.getT();
@@ -272,10 +280,6 @@ public class RealSensePositionEstimator {
 						error++;
 						return;
 					}
-
-					if(debug)
-						System.out.println("Speed: "+speed.x +"/"+speed.x);
-
 
 					odo_speed = (float) Math.sqrt(speed.x * speed.x +
 							speed.y * speed.y +
@@ -340,7 +344,7 @@ public class RealSensePositionEstimator {
 					msg.z =  (float) pos.z;
 					msg.vx = (float) speed.x;
 					msg.vy = (float) speed.y;
-					msg.vz = (float) (pos.z + cam_offset.y);
+					msg.vz = (float) (pos.z + cam_offset.z);
 					msg.h = MSPMathUtils.fromRad(init_head_rad);
 					msg.quality = quality;
 					msg.fps = fps;
@@ -360,8 +364,20 @@ public class RealSensePositionEstimator {
 		});
 	}
 
+	private void overlayFeatures(Graphics ctx) {
+		int x,y;
+		AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
+		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
+			if(points.isInlier(i)) {
+				x = (int)points.getAllTracks().get(i).x;
+				y = (int)points.getAllTracks().get(i).y;
+				ctx.drawRect(x,y, 1, 1);
+			}
+		}
+	}
+
 	public RealSensePositionEstimator() {
-		this(null, MSPConfig.getInstance("msp.properties"));
+		this(null, MSPConfig.getInstance("msp.properties"),null);
 	}
 
 	public void registerDetector(ISLAMDetector detector) {
