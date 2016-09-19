@@ -57,31 +57,27 @@ public class MJPEGHandler implements HttpHandler  {
 	private BufferedImage image = null;
 	private DataModel model = null;
 
-	private  List<GrayU8>imageByteList ;
+	private  List<BufferedImage>imageByteList ;
+	private Graphics gr;
+	private long last_image_tms = 0;
 
 	public MJPEGHandler(DataModel model) {
 		this.model = model;
-		this.imageByteList = new ArrayList<GrayU8>(0);
+		this.imageByteList = new ArrayList<BufferedImage>(0);
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
 		this.image = new BufferedImage(320, 240, BufferedImage.TYPE_BYTE_GRAY);
+		this.gr =  image.getGraphics();
 	}
 
 	@Override
 	public void handle(HttpExchange he) throws IOException {
-		Graphics gr =  image.getGraphics();
 		he.getResponseHeaders().add("content-type","multipart/x-mixed-replace; boundary=--BoundaryString");
 		he.sendResponseHeaders(200, 0);
 		OutputStream os = he.getResponseBody();
 		while(true) {
 			if(imageByteList.size() > 0) {
-				ConvertBufferedImage.convertTo(imageByteList.get(0), image);
-				if(listeners.size()>0) {
-					for(IMJPEGOverlayListener listener : listeners)
-						listener.processOverlay(gr);
-				}
-				addTimeOverlay(gr);
 				os.write(("--BoundaryString\r\nContent-type:image/jpeg content-length:1\r\n\r\n").getBytes());
-				ImageIO.write(image, "jpg", os );
+				ImageIO.write(imageByteList.get(0), "jpg", os );
 				os.write("\r\n\r\n".getBytes());
 				imageByteList.remove(0);
 			}
@@ -96,9 +92,21 @@ public class MJPEGHandler implements HttpHandler  {
 	}
 
 	public void addImage(GrayU8 bands) {
+
+		if((System.currentTimeMillis()-last_image_tms)<50)
+			return;
+		last_image_tms = System.currentTimeMillis();
+
 		if(imageByteList.size()>10)
 			imageByteList.remove(0);
-		imageByteList.add(bands);
+
+		ConvertBufferedImage.convertTo(bands, image);
+		if(listeners.size()>0) {
+			for(IMJPEGOverlayListener listener : listeners)
+				listener.processOverlay(gr);
+		}
+		addTimeOverlay(gr);
+		imageByteList.add(image);
 	}
 
 	private void addTimeOverlay(Graphics ctx) {

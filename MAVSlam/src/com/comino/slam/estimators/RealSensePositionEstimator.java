@@ -211,7 +211,6 @@ public class RealSensePositionEstimator {
 				mf++;
 
 				// TODO: Here RGB band 0 is used - try with real grey or infrared
-
 				if(streamer!=null)
 					streamer.addImage(rgb.bands[0]);
 
