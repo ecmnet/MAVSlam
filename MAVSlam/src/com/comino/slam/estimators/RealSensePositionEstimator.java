@@ -34,7 +34,6 @@
 package com.comino.slam.estimators;
 
 
-import java.awt.Color;
 import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,7 +81,7 @@ public class RealSensePositionEstimator {
 	private static final float  MAX_ROT_SPEED   	= 1;
 	private static final float  MAX_ROTATION_RAD    = 0.3927f;  // max 45° rotation
 
-	private static final int    MIN_QUALITY 		= 20;
+	private static final int    MIN_QUALITY 		= 15;
 	private static final int    MAXTRACKS   		= 120;
 
 	private static final float  LP_SPEED            = 0.85f;
@@ -124,12 +123,9 @@ public class RealSensePositionEstimator {
 
 	private List<ISLAMDetector> detectors = null;
 
-	private MJPEGHandler streamer;;
-
 	public RealSensePositionEstimator(IMAVMSPController control, MSPConfig config, MJPEGHandler streamer ) {
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
-		this.streamer = streamer;
 
 		this.debug = config.getBoolProperty("vision_debug", "false");
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "250");
@@ -214,6 +210,8 @@ public class RealSensePositionEstimator {
 				}
 				mf++;
 
+				// TODO: Here RGB band 0 is used - try with real grey or infrared
+
 				if(streamer!=null)
 					streamer.addImage(rgb.bands[0]);
 
@@ -246,7 +244,6 @@ public class RealSensePositionEstimator {
 					return;
 				}
 
-				// TODO: Here RGB band 0 is used - try with real grey or infrared
 
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
 					init();
@@ -288,7 +285,7 @@ public class RealSensePositionEstimator {
 
 					if(odo_speed < MAX_SPEED) {
 
-						// TODO: EVENTUALLY PITCH, ROLL correction for XY needed
+						// TODO: EVENTUALLY initial PITCH, ROLL correction for XY needed
 
 						pos.x += speed.x * dt;
 						pos.y += speed.y * dt;
@@ -352,6 +349,9 @@ public class RealSensePositionEstimator {
 					msg.tms = System.nanoTime() / 1000;
 					control.sendMAVLinkMessage(msg);
 				}
+
+				// Processing detectors if enabled
+
 				if(detectors.size()>0 && detector_cycle_ms>0) {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
