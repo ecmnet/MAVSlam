@@ -80,7 +80,7 @@ public class MJPEGHandler implements HttpHandler  {
 						listener.processOverlay(gr);
 				}
 				addTimeOverlay(gr);
-				os.write(("--BoundaryString\r\nContent-type: image/jpeg\r\n\r\n").getBytes());
+				os.write(("--BoundaryString\r\nContent-type:image/jpeg content-length:1\r\n\r\n").getBytes());
 				ImageIO.write(image, "jpg", os );
 				os.write("\r\n\r\n".getBytes());
 				imageByteList.remove(0);
