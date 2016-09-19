@@ -74,12 +74,11 @@ import boofcv.struct.image.Planar;
 import georegression.geometry.GeometryMath_F32;
 import georegression.struct.point.Vector3D_F32;
 import georegression.struct.point.Vector3D_F64;
-import georegression.struct.se.Se3_F32;
 import georegression.struct.se.Se3_F64;
 
 public class RealSensePositionEstimator {
 
-	private static final int    INIT_TIME_MS    	= 200;
+	private static final int    INIT_TIME_MS    	= 100;
 
 	private static final float  MAX_SPEED   		= 2;
 	private static final float  MAX_ROT_SPEED   	= 1.5f;
@@ -196,7 +195,7 @@ public class RealSensePositionEstimator {
 			});
 		}
 
-    	init_count = 0;
+		init_count = 0;
 		init_tms = System.currentTimeMillis();
 
 		realsense.registerListener(new Listener() {
@@ -220,7 +219,6 @@ public class RealSensePositionEstimator {
 				}
 				mf++;
 
-				// TODO: Here RGB band 0 is used - try with real grey or infrared
 				if(streamer!=null)
 					streamer.addImage(rgb.bands[0]);
 
@@ -294,8 +292,6 @@ public class RealSensePositionEstimator {
 
 					if(odo_speed < MAX_SPEED) {
 
-						// TODO: EVENTUALLY initial PITCH, ROLL correction for XY needed
-
 						pos.x += speed.x * dt;
 						pos.y += speed.y * dt;
 
@@ -338,8 +334,6 @@ public class RealSensePositionEstimator {
 
 				if(control!=null) {
 
-
-					// rotate from vision-init to NED
     				GeometryMath_F32.mult(attitude.R_VIS, pos, pos_ned);
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
@@ -364,8 +358,6 @@ public class RealSensePositionEstimator {
 					msg.tms = System.nanoTime() / 1000;
 					control.sendMAVLinkMessage(msg);
 				}
-
-				// Processing detectors if enabled
 
 				if(detectors.size()>0 && detector_cycle_ms>0) {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
