@@ -33,13 +33,10 @@
 
 package com.comino.slam.detectors.impl;
 
-import java.awt.Color;
-
-import org.mavlink.messages.MAV_SEVERITY;
-
 import com.comino.mav.control.IMAVMSPController;
-import com.comino.msp.model.segment.LogMessage;
+import com.comino.msp.model.DataModel;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
+import com.comino.server.mjpeg.MJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
@@ -49,43 +46,63 @@ import boofcv.struct.image.Planar;
 
 public class SimpleCollisionDetector implements ISLAMDetector {
 
-	private static final int   MIN_DISTANCE_CM        = 800;
-	private static final float COLLISION_FACTOR       = 0.6f;
+	private static final float     MIN_DISTANCE_M         = 0.75f;
+	private static final int       COLLISION_FACTOR       = 20;
 
 	private IMAVMSPController control;
-	private long tms = 0;
 
-	public SimpleCollisionDetector(IMAVMSPController control) {
+	private int center_x=0;
+	private int center_y=0;
+	private DataModel model;
+
+	public SimpleCollisionDetector(IMAVMSPController control, MJPEGHandler streamer) {
 		this.control = control;
-
+		this.model   = control.getCurrentModel();
+		streamer.registerOverlayListener(ctx -> {
+           if(center_x > 0 && center_y > 0)
+        	   ctx.drawRect(center_x-20, center_y-20, 40, 40);
+		});
 	}
 
 	@Override
 	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, Planar<GrayU8> rgb, int quality) {
-		int total = 0; float count = 0;int x = 0; int y = 0;
+		int count=0; int x = 0; int y = 0; int cx=0; int cy=0; float distance=0; double dx,dy,dz;
 
 		if(quality < 10)
 			return;
 
 		AccessPointTracks3D points = (AccessPointTracks3D)odometry;
 
+		count = 0; cx = 0; cy = 0;
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i)) {
 				x = (int)points.getAllTracks().get(i).x;
 				y = (int)points.getAllTracks().get(i).y;
 
+				// TODO: Distance determination not working (rotate into bodyframe)
+				// Problem: get Trackposition in NED Frame => rotate with RoTMatrix
+
 				if(y < depth.height/2) {
-					total++;
-					if(depth.get(x,y)<MIN_DISTANCE_CM) count++;
+
+					dx = odometry.getTrackLocation(i).x - model.state.l_x;
+					dy = odometry.getTrackLocation(i).y - model.state.l_y;
+					dz = odometry.getTrackLocation(i).z - model.state.l_z;
+
+					distance = (float)Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+					if(distance<MIN_DISTANCE_M) {
+						cx += x; cy +=y;
+						count++;
+					}
 				}
 			}
 		}
 
-		if((count / total)>COLLISION_FACTOR && (System.currentTimeMillis()-tms)>1000) {
-            tms = System.currentTimeMillis();
-			control.writeLogMessage(new LogMessage("[vis] Collision warning "+(count/total),
-					MAV_SEVERITY.MAV_SEVERITY_CRITICAL));
+		if(count>COLLISION_FACTOR) {
+			center_x = cx / count; center_y = cy / count;
 
+		} else {
+			center_x = 0; center_y = 0;
 		}
 	}
 }

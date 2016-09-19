@@ -82,7 +82,7 @@ public class RealSensePositionEstimator {
 	private static final float  MAX_ROTATION_RAD    = 0.3927f;  // max 45° rotation
 
 	private static final int    MIN_QUALITY 		= 15;
-	private static final int    MAXTRACKS   		= 120;
+	private static final int    MAXTRACKS   		= 250;
 
 	private static final float  LP_SPEED            = 0.85f;
 
@@ -376,7 +376,7 @@ public class RealSensePositionEstimator {
 
 	public void registerDetector(ISLAMDetector detector) {
 		if(detector_cycle_ms>0) {
-			System.out.println("Vision register detector: "+detector.getClass().getSimpleName());
+			System.out.println("Vision detector registered: "+detector.getClass().getSimpleName());
 			detectors.add(detector);
 		}
 	}
