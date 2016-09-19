@@ -1,11 +1,26 @@
 package com.comino.slam.model;
 
+import org.ejml.data.DenseMatrix64F;
+
+import georegression.geometry.ConvertRotation3D_F32;
+import georegression.geometry.ConvertRotation3D_F64;
+import georegression.struct.EulerType;
+
 public class AttitudeModel {
 
-	// Device position in NED
-	// Heading, Speeds
-	// Rotation Matrix NED to bodyframe
-	// Rotation Matrix Vision to NED
-	// etc
+	public int 		  		quality = 0;
+	public DenseMatrix64F  	R_NED  	= new DenseMatrix64F(3,3);
+	public DenseMatrix64F  	R_BODY  = new DenseMatrix64F(3,3);
+	public DenseMatrix64F  	R_VIS   = new DenseMatrix64F(3,3);
+
+
+	public void setR(float pitch, float roll, float yaw) {
+		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ,-pitch, -roll, -yaw, R_NED);
+		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ, pitch,  roll,  yaw, R_BODY);
+	}
+
+	public void setV(float pitch, float roll, float yaw) {
+		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ,-pitch, -roll, -yaw, R_VIS);
+	}
 
 }

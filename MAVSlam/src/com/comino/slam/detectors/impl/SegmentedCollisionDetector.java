@@ -10,6 +10,7 @@ import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
 import com.comino.slam.detectors.space.Feature;
 import com.comino.slam.detectors.space.Space;
+import com.comino.slam.model.AttitudeModel;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.struct.image.Color3_I32;
@@ -67,10 +68,10 @@ public class SegmentedCollisionDetector implements ISLAMDetector {
 	}
 
 	@Override
-	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, Planar<GrayU8> rgb, int quality) {
+	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, Planar<GrayU8> rgb, AttitudeModel att) {
 		int x = 0; int y = 0; int z = 0;
 
-		if(quality < 10)
+		if(att.quality < 10)
 			return;
 
 		obstacles.clear();
