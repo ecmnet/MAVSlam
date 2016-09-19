@@ -53,11 +53,13 @@ import boofcv.struct.image.GrayU8;
 
 public class MJPEGHandler implements HttpHandler  {
 
+	private static final int MAX_VIDEO_RATE_MS = 50;
+
 	private List<IMJPEGOverlayListener> listeners = null;
 	private BufferedImage image = null;
 	private DataModel model = null;
 
-	private  List<BufferedImage>imageByteList ;
+	private  List<BufferedImage>imageByteList;
 	private Graphics gr;
 	private long last_image_tms = 0;
 
@@ -67,6 +69,11 @@ public class MJPEGHandler implements HttpHandler  {
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
 		this.image = new BufferedImage(320, 240, BufferedImage.TYPE_BYTE_GRAY);
 		this.gr =  image.getGraphics();
+
+		this.registerOverlayListener(ctx -> {
+			if(!Float.isNaN(model.sys.t_armed_ms))
+				ctx.drawString("Time:"+(int)model.sys.t_armed_ms+"ms", 10, 20);
+		});
 	}
 
 	@Override
@@ -93,7 +100,7 @@ public class MJPEGHandler implements HttpHandler  {
 
 	public void addImage(GrayU8 bands) {
 
-		if((System.currentTimeMillis()-last_image_tms)<50)
+		if((System.currentTimeMillis()-last_image_tms)<MAX_VIDEO_RATE_MS)
 			return;
 		last_image_tms = System.currentTimeMillis();
 
@@ -105,12 +112,6 @@ public class MJPEGHandler implements HttpHandler  {
 			for(IMJPEGOverlayListener listener : listeners)
 				listener.processOverlay(gr);
 		}
-		addTimeOverlay(gr);
 		imageByteList.add(image);
-	}
-
-	private void addTimeOverlay(Graphics ctx) {
-		if(!Float.isNaN(model.sys.t_armed_ms))
-			ctx.drawString("Time:"+(int)model.sys.t_armed_ms+"ms", 10, 20);
 	}
 }
