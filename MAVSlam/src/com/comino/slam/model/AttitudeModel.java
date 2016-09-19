@@ -16,12 +16,13 @@ public class AttitudeModel {
 
 
 	public void setR(float pitch, float roll, float yaw) {
-		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ,-pitch, -roll, -yaw, R_NED);
+		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ,pitch,roll,yaw, R_NED);
 		CommonOps.invert(R_NED, R_BODY);
 	}
 
 	public void setV(float pitch, float roll, float yaw) {
-		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ,-pitch, -roll, -yaw, R_VIS);
+		// Why not negative
+		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ, pitch, roll, yaw, R_VIS);
 	}
 
 }

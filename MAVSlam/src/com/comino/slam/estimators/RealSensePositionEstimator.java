@@ -211,7 +211,7 @@ public class RealSensePositionEstimator {
 				oldTimeDepth = timeDepth;
 
 				fpm += (int)(1f/dt+0.5f);
-				if((System.currentTimeMillis() - fps_tms) > 250) {
+				if((System.currentTimeMillis() - fps_tms) > 500) {
 					fps_tms = System.currentTimeMillis();
 					if(mf>0)
 						fps = fpm/mf;
@@ -254,6 +254,25 @@ public class RealSensePositionEstimator {
 
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
 					init();
+					return;
+				}
+
+				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
+
+					init_pitch_rad = (init_pitch_rad * init_count + model.attitude.p );
+					init_roll_rad  = (init_roll_rad  * init_count + model.attitude.r );
+					init_yaw_rad   = (init_yaw_rad   * init_count + model.attitude.y );
+
+					init_count++;
+
+					init_pitch_rad = init_pitch_rad / init_count;
+					init_roll_rad  = init_roll_rad  / init_count;
+					init_yaw_rad   = init_yaw_rad   / init_count;
+
+					attitude.setV(init_pitch_rad, init_roll_rad, init_yaw_rad+init_offset_rad);
+
+					pos.set(0,0,0);
+					speed_old.set(0,0,0);
 					return;
 				}
 
@@ -307,25 +326,6 @@ public class RealSensePositionEstimator {
 				pos_raw_old.y = pos_raw.y;
 				pos_raw_old.z = pos_raw.z;
 
-				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
-
-					init_pitch_rad = (init_pitch_rad * init_count + model.attitude.p );
-					init_roll_rad  = (init_roll_rad  * init_count + model.attitude.r );
-					init_yaw_rad   = (init_yaw_rad   * init_count + model.attitude.y );
-
-					init_count++;
-
-					init_pitch_rad = init_pitch_rad / init_count;
-					init_roll_rad  = init_roll_rad  / init_count;
-					init_yaw_rad   = init_yaw_rad   / init_count;
-
-
-					attitude.setV(init_pitch_rad, init_roll_rad, init_yaw_rad+init_offset_rad);
-
-					pos.set(0,0,0);
-					speed_old.set(0,0,0);
-					return;
-				}
 
 				if(Math.abs(init_yaw_rad - model.attitude.y) > MAX_ROTATION_RAD) {
 					init();
