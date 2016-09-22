@@ -78,16 +78,15 @@ import georegression.struct.se.Se3_F64;
 
 public class RealSensePositionEstimator {
 
-	private static final int    INIT_TIME_MS    	= 100;
+	private static final int    INIT_TIME_MS    	= 250;
 
 	private static final float  MAX_SPEED   		= 2;
-	private static final float  MAX_ROT_SPEED   	= 1.5f;
+
+	private static final float  MAX_ROT_SPEED   	= 1f;
 	private static final float  MAX_ROTATION_RAD    = 0.3927f;  // max 45° rotation
 
 	private static final int    MIN_QUALITY 		= 15;
-	private static final int    MAXTRACKS   		= 120;
-
-	private static final float  LP_SPEED            = 0.85f;
+	private static final int    MAXTRACKS   		= 150;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseInfo info;
@@ -97,8 +96,11 @@ public class RealSensePositionEstimator {
 
 	private Vector3D_F64 pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
+
 	private Vector3D_F32 speed       = new Vector3D_F32();
 	private Vector3D_F32 speed_old   = new Vector3D_F32();
+	private Vector3D_F32 speed_ned   = new Vector3D_F32();
+
 	private Vector3D_F32 pos         = new Vector3D_F32();
 	private Vector3D_F32 pos_ned     = new Vector3D_F32();
 
@@ -132,7 +134,8 @@ public class RealSensePositionEstimator {
 
 	private List<ISLAMDetector> detectors = null;
 
-	public RealSensePositionEstimator(IMAVMSPController control, MSPConfig config, MJPEGHandler streamer ) {
+	public RealSensePositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, MJPEGHandler streamer ) {
+		this.info = info;
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
 
@@ -141,9 +144,9 @@ public class RealSensePositionEstimator {
 		this.init_offset_rad = MSPMathUtils.toRad(config.getFloatProperty("vision_rot_offset", "0.0"));
 		System.out.printf("Vision rotation offset: %2.3f [rad]\n",init_offset_rad);
 
-		this.cam_offset.x = config.getFloatProperty("vision_x_offset", "0.0");
-		this.cam_offset.y = config.getFloatProperty("vision_y_offset", "0.0");
-		this.cam_offset.z = config.getFloatProperty("vision_z_offset", "0.0");
+		this.cam_offset.x = -config.getFloatProperty("vision_x_offset", "0.0");
+		this.cam_offset.y = -config.getFloatProperty("vision_y_offset", "0.0");
+		this.cam_offset.z = -config.getFloatProperty("vision_z_offset", "0.0");
 		System.out.printf("Vision position offset: %.3f,%.3f,%.3f [m]\n",this.cam_offset.x,this.cam_offset.y,this.cam_offset.z);
 
 		this.model = control.getCurrentModel();
@@ -164,10 +167,6 @@ public class RealSensePositionEstimator {
 			}
 		});
 
-		// TODO: Put RealSense out of the position estimator
-
-		info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-		//info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
 		} catch(Exception e) {
@@ -179,7 +178,7 @@ public class RealSensePositionEstimator {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 2, 1),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 3, 1),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -246,7 +245,6 @@ public class RealSensePositionEstimator {
 						model.attitude.yr * model.attitude.yr);
 
 				if(ang_speed > MAX_ROT_SPEED) {
-					error_count++;
 					init();
 					return;
 				}
@@ -289,17 +287,6 @@ public class RealSensePositionEstimator {
 						speed.x =  (float)(pos_raw.z - pos_raw_old.z)/dt;
 						speed.z =  (float)(pos_raw.y - pos_raw_old.y)/dt;
 
-
-						// Too high latency
-
-						speed.x = speed.x * LP_SPEED + speed_old.x * (1 - LP_SPEED);
-						speed.y = speed.y * LP_SPEED + speed_old.y * (1 - LP_SPEED);
-						speed.z = speed.z * LP_SPEED + speed_old.z * (1 - LP_SPEED);
-
-						speed_old.x = speed.x;
-						speed_old.y = speed.y;
-						speed_old.z = speed.z;
-
 					} else {
 						error_count++;
 						return;
@@ -313,13 +300,18 @@ public class RealSensePositionEstimator {
 
 						pos.x += speed.x * dt;
 						pos.y += speed.y * dt;
-
 						pos.z += speed.z * dt;
 
 					} else {
+
+						pos.x += speed_old.x * dt;
+						pos.y += speed_old.y * dt;
+						pos.z += speed_old.z * dt;
+
 						error_count++;
-						//return;
 					}
+
+					speed_old.set(speed);
 				}
 
 				pos_raw_old.x = pos_raw.x;
@@ -335,21 +327,24 @@ public class RealSensePositionEstimator {
 				if(control!=null) {
 
     				GeometryMath_F32.mult(attitude.R_VIS, pos, pos_ned);
+    				GeometryMath_F32.add(pos_ned,cam_offset, pos_ned);
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
 					sms.usec =timeDepth*1000;
 					sms.x = (float) pos_ned.x;
 					sms.y = (float) pos_ned.y;
-					sms.z = (float) (pos_ned.z + cam_offset.z);
+					sms.z = (float) pos_ned.z;
 					control.sendMAVLinkMessage(sms);
+
+					GeometryMath_F32.mult(attitude.R_VIS, speed, speed_ned);
 
 					msg_msp_vision msg = new msg_msp_vision(1,2);
 					msg.x =  (float) pos_ned.x;
-					msg.y =  (float) pos.y;
-					msg.z = (float) (pos_ned.z + cam_offset.z);
-					msg.vx = (float) speed.x;
-					msg.vy = (float) speed.y;
-					msg.vz = (float) speed.z;
+					msg.y =  (float) pos_ned.y;
+					msg.z =  (float) pos_ned.z;
+					msg.vx = (float) speed_ned.x;
+					msg.vy = (float) speed_ned.y;
+					msg.vz = (float) speed_ned.z;
 					msg.h = MSPMathUtils.fromRad(init_yaw_rad);
 					msg.quality = attitude.quality;
 					msg.fps = fps;
@@ -379,7 +374,7 @@ public class RealSensePositionEstimator {
 	}
 
 	public RealSensePositionEstimator() {
-		this(null, MSPConfig.getInstance("msp.properties"),null);
+		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance("msp.properties"),null);
 	}
 
 	public void registerDetector(ISLAMDetector detector) {
@@ -426,6 +421,7 @@ public class RealSensePositionEstimator {
 			visualOdometry.reset();
 			init_count = 0;
 			error_count=0;
+			init_pitch_rad=0; init_roll_rad=0; init_yaw_rad=0;
 			init_tms = System.currentTimeMillis();
 		}
 	}

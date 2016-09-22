@@ -45,6 +45,7 @@ import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
+import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.MJPEGHandler;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
 import com.comino.slam.estimators.RealSensePositionEstimator;
@@ -81,15 +82,19 @@ public class StartUp implements Runnable {
 
 		// Start services if required
 
-		MJPEGHandler streamer = new MJPEGHandler(control.getCurrentModel());
+		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
+
+		MJPEGHandler streamer = new MJPEGHandler(info, control.getCurrentModel());
 
 		try {
-			if(config.getBoolProperty("vision_enabled", "true"))
-				vision = new RealSensePositionEstimator(control, config,streamer);
+			if(config.getBoolProperty("vision_enabled", "true")) {
+				vision = new RealSensePositionEstimator(info, control, config,streamer);
 			vision.registerDetector(new SimpleCollisionDetector(control,streamer));
+			}
 		} catch(Exception e) {
 			System.out.println("Vision not available: "+e.getMessage());
 		}
+
 
 		// register MSP commands here
 

@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 
 import com.comino.msp.model.DataModel;
+import com.comino.realsense.boofcv.RealSenseInfo;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -63,11 +64,11 @@ public class MJPEGHandler implements HttpHandler  {
 	private Graphics gr;
 	private long last_image_tms = 0;
 
-	public MJPEGHandler(DataModel model) {
+	public MJPEGHandler(RealSenseInfo info, DataModel model) {
 		this.model = model;
 		this.imageByteList = new ArrayList<BufferedImage>(0);
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
-		this.image = new BufferedImage(320, 240, BufferedImage.TYPE_BYTE_GRAY);
+		this.image = new BufferedImage(info.width, info.height, BufferedImage.TYPE_BYTE_GRAY);
 		this.gr =  image.getGraphics();
 
 		this.registerOverlayListener(ctx -> {
