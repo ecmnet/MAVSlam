@@ -355,6 +355,9 @@ public class RealSensePositionEstimator {
 				}
 
 				if(detectors.size()>0 && detector_cycle_ms>0) {
+
+					attitude.setR(model.attitude.p, model.attitude.r, model.attitude.y);
+
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
 						for(ISLAMDetector d : detectors)
