@@ -86,8 +86,8 @@ public class RealSensePositionEstimator {
 	private static final float  MAX_ROTATION_RAD    = 0.7854f;  // max 45° rotation
 
 	private static final int    MIN_QUALITY 		= 15;
-	private static final int    MAXTRACKS   		= 100;
-	private static final int    RANSAC_ITERATIONS   = 300;
+	private static final int    MAXTRACKS   		= 130;
+	private static final int    RANSAC_ITERATIONS   = 250;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
@@ -97,12 +97,12 @@ public class RealSensePositionEstimator {
 	private Vector3D_F64 pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
 
+	private Vector3D_F32 pos         = new Vector3D_F32();
+	private Vector3D_F32 pos_ned     = new Vector3D_F32();
+
 	private Vector3D_F32 speed       = new Vector3D_F32();
 	private Vector3D_F32 speed_old   = new Vector3D_F32();
 	private Vector3D_F32 speed_ned   = new Vector3D_F32();
-
-	private Vector3D_F32 pos         = new Vector3D_F32();
-	private Vector3D_F32 pos_ned     = new Vector3D_F32();
 
 	private Vector3D_F32 cam_offset  = new Vector3D_F32();
 
