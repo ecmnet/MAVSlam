@@ -6,7 +6,7 @@ import org.ejml.ops.CommonOps;
 import georegression.geometry.ConvertRotation3D_F32;
 import georegression.struct.EulerType;
 
-public class AttitudeModel {
+public class VisualAttitudeModel {
 
 	public int 		  		quality = 0;
 

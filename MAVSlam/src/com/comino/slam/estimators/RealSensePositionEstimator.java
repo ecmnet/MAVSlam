@@ -58,7 +58,7 @@ import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.server.mjpeg.MJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
-import com.comino.slam.model.AttitudeModel;
+import com.comino.slam.model.VisualAttitudeModel;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -106,7 +106,7 @@ public class RealSensePositionEstimator {
 
 	private Vector3D_F32 cam_offset  = new Vector3D_F32();
 
-	private AttitudeModel attitude   = new AttitudeModel();
+	private VisualAttitudeModel visualAttitude   = new VisualAttitudeModel();
 
 	private long fps_tms   =0;
 	private long init_tms  =0;
@@ -235,7 +235,7 @@ public class RealSensePositionEstimator {
 					msg.vy = Float.NaN;
 					msg.vz = Float.NaN;
 					msg.h = MSPMathUtils.fromRad(init_yaw_rad);
-					msg.quality = attitude.quality;
+					msg.quality = visualAttitude.quality;
 					msg.fps = fps;
 					msg.errors = error_count;
 					msg.flags = msg.flags & 1;
@@ -276,7 +276,7 @@ public class RealSensePositionEstimator {
 					init_roll_rad  = init_roll_rad  / init_count;
 					init_yaw_rad   = init_yaw_rad   / init_count;
 
-					attitude.setV(init_pitch_rad, init_roll_rad, init_yaw_rad+init_offset_rad);
+					visualAttitude.setV(init_pitch_rad, init_roll_rad, init_yaw_rad+init_offset_rad);
 
 					pos.set(0,0,0);
 					speed_old.set(0,0,0);
@@ -286,11 +286,11 @@ public class RealSensePositionEstimator {
 				leftToWorld = visualOdometry.getCameraToWorld();
 				pos_raw = leftToWorld.getT();
 
-				attitude.quality = visualOdometry.getInlierCount() *100 / MAXTRACKS ;
+				visualAttitude.quality = visualOdometry.getInlierCount() *100 / MAXTRACKS ;
 
 				if(pos_raw_old!=null) {
 
-					if(attitude.quality > MIN_QUALITY ) {
+					if(visualAttitude.quality > MIN_QUALITY ) {
 
 						speed.y =  (float)(pos_raw.x - pos_raw_old.x)/dt;
 						speed.x =  (float)(pos_raw.z - pos_raw_old.z)/dt;
@@ -298,7 +298,7 @@ public class RealSensePositionEstimator {
 
 					} else {
 						if(debug)
-							System.out.println("[vis] Quality "+attitude.quality+" < Min");
+							System.out.println("[vis] Quality "+visualAttitude.quality+" < Min");
 
 						error_count++;
 						return;
@@ -343,7 +343,7 @@ public class RealSensePositionEstimator {
 
 				if(control!=null) {
 
-    				GeometryMath_F32.mult(attitude.R_VIS, pos, pos_ned);
+    				GeometryMath_F32.mult(visualAttitude.R_VIS, pos, pos_ned);
     				GeometryMath_F32.add(pos_ned,cam_offset, pos_ned);
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
@@ -353,7 +353,7 @@ public class RealSensePositionEstimator {
 					sms.z = (float) pos_ned.z;
 					control.sendMAVLinkMessage(sms);
 
-					GeometryMath_F32.mult(attitude.R_VIS, speed, speed_ned);
+					GeometryMath_F32.mult(visualAttitude.R_VIS, speed, speed_ned);
 
 					msg_msp_vision msg = new msg_msp_vision(1,2);
 					msg.x =  (float) pos_ned.x;
@@ -363,7 +363,7 @@ public class RealSensePositionEstimator {
 					msg.vy = (float) speed_ned.y;
 					msg.vz = (float) speed_ned.z;
 					msg.h = MSPMathUtils.fromRad(init_yaw_rad);
-					msg.quality = attitude.quality;
+					msg.quality = visualAttitude.quality;
 					msg.fps = fps;
 					msg.errors = error_count;
 					msg.flags = msg.flags | 1;
@@ -373,12 +373,12 @@ public class RealSensePositionEstimator {
 
 				if(detectors.size()>0 && detector_cycle_ms>0) {
 
-					attitude.setR(model.attitude.p, model.attitude.r, model.attitude.y);
+					visualAttitude.setR(model.attitude.p, model.attitude.r, model.attitude.y);
 
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
 						for(ISLAMDetector d : detectors)
-							d.process(visualOdometry, depth, rgb, attitude);
+							d.process(visualOdometry, depth, rgb, visualAttitude);
 
 					}
 				}
