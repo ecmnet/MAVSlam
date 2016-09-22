@@ -82,14 +82,13 @@ public class RealSensePositionEstimator {
 
 	private static final float  MAX_SPEED   		= 2;
 
-	private static final float  MAX_ROT_SPEED   	= 1f;
-	private static final float  MAX_ROTATION_RAD    = 0.3927f;  // max 45° rotation
+	private static final float  MAX_ROT_SPEED   	= 2f;
+	private static final float  MAX_ROTATION_RAD    = 0.7854f;  // max 45° rotation
 
 	private static final int    MIN_QUALITY 		= 15;
 	private static final int    MAXTRACKS   		= 150;
 
 	private StreamRealSenseVisDepth realsense;
-	private RealSenseInfo info;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
 
 	private long oldTimeDepth=0;
@@ -135,7 +134,7 @@ public class RealSensePositionEstimator {
 	private List<ISLAMDetector> detectors = null;
 
 	public RealSensePositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, MJPEGHandler streamer ) {
-		this.info = info;
+
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
 
@@ -183,7 +182,7 @@ public class RealSensePositionEstimator {
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
-		visualOdometry = FactoryRealSenseOdometry.depthDepthPnP(1.2, 120, 2, 200, 50, true,
+		visualOdometry = FactoryRealSenseOdometry.depthDepthPnP(1.2, 120, 2, 300, 50, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
@@ -245,12 +244,16 @@ public class RealSensePositionEstimator {
 						model.attitude.yr * model.attitude.yr);
 
 				if(ang_speed > MAX_ROT_SPEED) {
+					if(debug)
+						System.out.println("VIS: Rotation "+ang_speed+" > MAX");
 					init();
 					return;
 				}
 
 
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
+					if(debug)
+						System.out.println("VIS: Odometry failure");
 					init();
 					return;
 				}
@@ -288,6 +291,9 @@ public class RealSensePositionEstimator {
 						speed.z =  (float)(pos_raw.y - pos_raw_old.y)/dt;
 
 					} else {
+						if(debug)
+							System.out.println("VIS: Quality "+attitude.quality+" < Min");
+
 						error_count++;
 						return;
 					}
@@ -304,11 +310,14 @@ public class RealSensePositionEstimator {
 
 					} else {
 
+						if(debug)
+							System.out.println("VIS: Speed  "+odo_speed+" > MAX");
+
 						pos.x += speed_old.x * dt;
 						pos.y += speed_old.y * dt;
 						pos.z += speed_old.z * dt;
 
-						error_count++;
+						error_count--;
 					}
 
 					speed_old.set(speed);
@@ -320,6 +329,8 @@ public class RealSensePositionEstimator {
 
 
 				if(Math.abs(init_yaw_rad - model.attitude.y) > MAX_ROTATION_RAD) {
+					if(debug)
+						System.out.println("VIS: Rotation is too high  "+ MSPMathUtils.fromRad(init_yaw_rad - model.attitude.y));
 					init();
 					return;
 				}
@@ -362,6 +373,7 @@ public class RealSensePositionEstimator {
 						detector_tms = System.currentTimeMillis();
 						for(ISLAMDetector d : detectors)
 							d.process(visualOdometry, depth, rgb, attitude);
+
 					}
 				}
 			}
