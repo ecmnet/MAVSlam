@@ -92,7 +92,7 @@ public class StartUp implements Runnable {
 			vision.registerDetector(new SimpleCollisionDetector(control,streamer));
 			}
 		} catch(Exception e) {
-			System.out.println("Vision not available: "+e.getMessage());
+			System.out.println("[vis] Vision not available: "+e.getMessage());
 		}
 
 
