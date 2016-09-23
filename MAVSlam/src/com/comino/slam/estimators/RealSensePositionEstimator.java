@@ -58,7 +58,7 @@ import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.server.mjpeg.MJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
-import com.comino.slam.model.VisualAttitudeModel;
+import com.comino.slam.model.RotationModel;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -71,7 +71,9 @@ import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
+import georegression.geometry.ConvertRotation3D_F32;
 import georegression.geometry.GeometryMath_F32;
+import georegression.struct.EulerType;
 import georegression.struct.point.Vector3D_F32;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
@@ -106,7 +108,7 @@ public class RealSensePositionEstimator {
 
 	private Vector3D_F32 cam_offset  = new Vector3D_F32();
 
-	private VisualAttitudeModel visualAttitude   = new VisualAttitudeModel();
+	private RotationModel rotation   = new RotationModel();
 
 	private long fps_tms   =0;
 	private long init_tms  =0;
@@ -119,8 +121,8 @@ public class RealSensePositionEstimator {
 	private IMAVMSPController control;
 
 	private float init_pitch_rad = 0;
-	private float init_roll_rad = 0;
-	private float init_yaw_rad = 0;
+	private float init_roll_rad  = 0;
+	private float init_yaw_rad   = 0;
 
 	private float init_offset_rad = 0;
 
@@ -207,6 +209,8 @@ public class RealSensePositionEstimator {
 			float fps; float dt; int mf=0; int fpm;
 			Se3_F64 leftToWorld; float ang_speed; float odo_speed;
 
+			float vis_attitude[]   = new float[3];
+
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
@@ -235,7 +239,7 @@ public class RealSensePositionEstimator {
 					msg.vy = Float.NaN;
 					msg.vz = Float.NaN;
 					msg.h = MSPMathUtils.fromRad(init_yaw_rad);
-					msg.quality = visualAttitude.quality;
+					msg.quality = rotation.quality;
 					msg.fps = fps;
 					msg.errors = error_count;
 					msg.flags = msg.flags & 1;
@@ -246,8 +250,8 @@ public class RealSensePositionEstimator {
 
 				// Check rotation and reset odometry if rotating too fast
 				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
-						model.attitude.rr * model.attitude.rr +
-						model.attitude.yr * model.attitude.yr);
+						                     model.attitude.rr * model.attitude.rr +
+						                     model.attitude.yr * model.attitude.yr);
 
 				if(ang_speed > MAX_ROT_SPEED) {
 					if(debug)
@@ -276,7 +280,7 @@ public class RealSensePositionEstimator {
 					init_roll_rad  = init_roll_rad  / init_count;
 					init_yaw_rad   = init_yaw_rad   / init_count;
 
-					visualAttitude.setV(init_pitch_rad, init_roll_rad, init_yaw_rad+init_offset_rad);
+					rotation.setVIS(init_pitch_rad, init_roll_rad, init_yaw_rad+init_offset_rad);
 
 					pos.set(0,0,0);
 					speed_old.set(0,0,0);
@@ -285,12 +289,13 @@ public class RealSensePositionEstimator {
 
 				leftToWorld = visualOdometry.getCameraToWorld();
 				pos_raw = leftToWorld.getT();
+				rotation.setPOS(leftToWorld.getRotation());
 
-				visualAttitude.quality = visualOdometry.getInlierCount() *100 / MAXTRACKS ;
+				rotation.quality = visualOdometry.getInlierCount() *100 / MAXTRACKS ;
 
 				if(pos_raw_old!=null) {
 
-					if(visualAttitude.quality > MIN_QUALITY ) {
+					if(rotation.quality > MIN_QUALITY ) {
 
 						speed.y =  (float)(pos_raw.x - pos_raw_old.x)/dt;
 						speed.x =  (float)(pos_raw.z - pos_raw_old.z)/dt;
@@ -298,7 +303,7 @@ public class RealSensePositionEstimator {
 
 					} else {
 						if(debug)
-							System.out.println("[vis] Quality "+visualAttitude.quality+" < Min");
+							System.out.println("[vis] Quality "+rotation.quality+" < Min");
 
 						error_count++;
 						return;
@@ -343,17 +348,21 @@ public class RealSensePositionEstimator {
 
 				if(control!=null) {
 
-    				GeometryMath_F32.mult(visualAttitude.R_VIS, pos, pos_ned);
+    				GeometryMath_F32.mult(rotation.R_VIS, pos, pos_ned);
     				GeometryMath_F32.add(pos_ned,cam_offset, pos_ned);
+    				ConvertRotation3D_F32.matrixToEuler(rotation.R_POS,EulerType.XYZ,vis_attitude);
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
-					sms.usec =System.nanoTime() / 1000;
+					sms.usec = System.nanoTime() / 1000;
 					sms.x = (float) pos_ned.x;
 					sms.y = (float) pos_ned.y;
 					sms.z = (float) pos_ned.z;
+					sms.roll  = vis_attitude[RotationModel.ROLL];
+					sms.pitch = vis_attitude[RotationModel.PITCH];
+					sms.yaw   = vis_attitude[RotationModel.YAW];
 					control.sendMAVLinkMessage(sms);
 
-					GeometryMath_F32.mult(visualAttitude.R_VIS, speed, speed_ned);
+					GeometryMath_F32.mult(rotation.R_VIS, speed, speed_ned);
 
 					msg_msp_vision msg = new msg_msp_vision(1,2);
 					msg.x =  (float) pos_ned.x;
@@ -362,8 +371,8 @@ public class RealSensePositionEstimator {
 					msg.vx = (float) speed_ned.x;
 					msg.vy = (float) speed_ned.y;
 					msg.vz = (float) speed_ned.z;
-					msg.h = MSPMathUtils.fromRad(init_yaw_rad);
-					msg.quality = visualAttitude.quality;
+					msg.h = MSPMathUtils.fromRad(vis_attitude[RotationModel.YAW]);
+					msg.quality = rotation.quality;
 					msg.fps = fps;
 					msg.errors = error_count;
 					msg.flags = msg.flags | 1;
@@ -373,12 +382,12 @@ public class RealSensePositionEstimator {
 
 				if(detectors.size()>0 && detector_cycle_ms>0) {
 
-					visualAttitude.setR(model.attitude.p, model.attitude.r, model.attitude.y);
+					rotation.setNED(model.attitude.p, model.attitude.r, model.attitude.y);
 
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
 						for(ISLAMDetector d : detectors)
-							d.process(visualOdometry, depth, rgb, visualAttitude);
+							d.process(visualOdometry, depth, rgb, rotation);
 
 					}
 				}

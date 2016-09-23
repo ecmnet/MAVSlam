@@ -38,7 +38,7 @@ import com.comino.msp.model.DataModel;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.server.mjpeg.MJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
-import com.comino.slam.model.VisualAttitudeModel;
+import com.comino.slam.model.RotationModel;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.struct.image.GrayU16;
@@ -66,7 +66,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	}
 
 	@Override
-	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, Planar<GrayU8> rgb, VisualAttitudeModel att) {
+	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, Planar<GrayU8> rgb, RotationModel att) {
 	int count=0; int x = 0; int y = 0; int cx=0; int cy=0; float distance=0; double dx,dy,dz;
 
 		if(att.quality < 10)
