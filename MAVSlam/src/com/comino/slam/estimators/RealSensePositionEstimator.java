@@ -347,7 +347,7 @@ public class RealSensePositionEstimator {
     				GeometryMath_F32.add(pos_ned,cam_offset, pos_ned);
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
-					sms.usec =timeDepth*1000;
+					sms.usec =System.nanoTime() / 1000;
 					sms.x = (float) pos_ned.x;
 					sms.y = (float) pos_ned.y;
 					sms.z = (float) pos_ned.z;
