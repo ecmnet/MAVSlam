@@ -120,9 +120,8 @@ public class RealSensePositionEstimator {
 	private boolean isRunning = false;
 	private IMAVMSPController control;
 
-	private float init_pitch_rad = 0;
-	private float init_roll_rad  = 0;
-	private float init_yaw_rad   = 0;
+	private float[] init_rotation = new float[3];
+	private float[] vis_attitude  = new float[3];
 
 	private float init_offset_rad = 0;
 
@@ -209,8 +208,6 @@ public class RealSensePositionEstimator {
 			float fps; float dt; int mf=0; int fpm;
 			Se3_F64 leftToWorld; float ang_speed; float odo_speed;
 
-			float vis_attitude[]   = new float[3];
-
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
@@ -238,7 +235,7 @@ public class RealSensePositionEstimator {
 					msg.vx = Float.NaN;
 					msg.vy = Float.NaN;
 					msg.vz = Float.NaN;
-					msg.h = MSPMathUtils.fromRad(init_yaw_rad);
+					msg.h = MSPMathUtils.fromRad(init_rotation[RotationModel.YAW]);
 					msg.quality = rotation.quality;
 					msg.fps = fps;
 					msg.errors = error_count;
@@ -248,7 +245,7 @@ public class RealSensePositionEstimator {
 					return;
 				}
 
-				// Check rotation and reset odometry if rotating too fast
+				// Check PX4 rotation and reset odometry if rotating too fast
 				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
 						                     model.attitude.rr * model.attitude.rr +
 						                     model.attitude.yr * model.attitude.yr);
@@ -270,17 +267,17 @@ public class RealSensePositionEstimator {
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 
-					init_pitch_rad = (init_pitch_rad * init_count + model.attitude.p );
-					init_roll_rad  = (init_roll_rad  * init_count + model.attitude.r );
-					init_yaw_rad   = (init_yaw_rad   * init_count + model.attitude.y );
+					init_rotation[RotationModel.PITCH] = (init_rotation[RotationModel.PITCH] * init_count + model.attitude.p );
+					init_rotation[RotationModel.ROLL]  = (init_rotation[RotationModel.ROLL]  * init_count + model.attitude.r );
+					init_rotation[RotationModel.YAW]   = (init_rotation[RotationModel.YAW]   * init_count + model.attitude.y );
 
 					init_count++;
 
-					init_pitch_rad = init_pitch_rad / init_count;
-					init_roll_rad  = init_roll_rad  / init_count;
-					init_yaw_rad   = init_yaw_rad   / init_count;
+					init_rotation[RotationModel.PITCH] = init_rotation[RotationModel.PITCH] / init_count;
+					init_rotation[RotationModel.ROLL]  = init_rotation[RotationModel.ROLL]  / init_count;
+					init_rotation[RotationModel.YAW]   = init_rotation[RotationModel.YAW]   / init_count +init_offset_rad;
 
-					rotation.setVIS(init_pitch_rad, init_roll_rad, init_yaw_rad+init_offset_rad);
+					rotation.setVIS(init_rotation);
 
 					pos.set(0,0,0);
 					speed_old.set(0,0,0);
@@ -339,9 +336,9 @@ public class RealSensePositionEstimator {
 				pos_raw_old.z = pos_raw.z;
 
 
-				if(Math.abs(init_yaw_rad - model.attitude.y) > MAX_ROTATION_RAD) {
+				if(Math.abs(init_rotation[RotationModel.YAW] - model.attitude.y) > MAX_ROTATION_RAD) {
 					if(debug)
-						System.out.println("[vis] Rotation is too high  "+ MSPMathUtils.fromRad(init_yaw_rad - model.attitude.y));
+						System.out.println("[vis] Rotation is too high  "+ MSPMathUtils.fromRad(init_rotation[RotationModel.YAW] - model.attitude.y));
 					init();
 					return;
 				}
@@ -429,7 +426,7 @@ public class RealSensePositionEstimator {
 			msg.x = Float.NaN;
 			msg.y = Float.NaN;
 			msg.z = Float.NaN;
-			msg.h = MSPMathUtils.fromRad(init_yaw_rad);
+			msg.h = MSPMathUtils.fromRad(vis_attitude[RotationModel.YAW]);
 			msg.quality = 0;
 			msg.fps = 0;
 			msg.flags = 0;
@@ -451,7 +448,7 @@ public class RealSensePositionEstimator {
 			visualOdometry.reset();
 			init_count = 0;
 			error_count=0;
-			init_pitch_rad=0; init_roll_rad=0; init_yaw_rad=0;
+			init_rotation[RotationModel.PITCH]=0; init_rotation[RotationModel.ROLL]=0; init_rotation[RotationModel.YAW]=0;
 			init_tms = System.currentTimeMillis();
 		}
 	}
