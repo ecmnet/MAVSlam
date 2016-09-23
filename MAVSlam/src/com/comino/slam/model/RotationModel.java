@@ -17,7 +17,7 @@ public class RotationModel {
 
 	public DenseMatrix64F  	R_NED  	= new DenseMatrix64F(3,3);  // Rotation BODY to NED
 	public DenseMatrix64F  	R_BODY  = new DenseMatrix64F(3,3);  // Rotation NED to BODY
-	public DenseMatrix64F  	R_VIS   = new DenseMatrix64F(3,3);	// Rotation VisualFrame to NED
+	public DenseMatrix64F  	R_VIS   = new DenseMatrix64F(3,3);	// Rotation VisualFrame to NED (init offset)
 
 	public DenseMatrix64F   R_POS  = new DenseMatrix64F(3,3);	// Rotation CameraPosition to NED
 
