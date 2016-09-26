@@ -5,19 +5,15 @@ import org.ejml.ops.CommonOps;
 
 import com.comino.msp.utils.MSPMathUtils;
 
-import georegression.geometry.ConvertRotation3D_F32;
+import georegression.geometry.ConvertRotation3D_F64;
 import georegression.struct.EulerType;
-import georegression.struct.se.Se3_F64;
+import georegression.struct.point.Vector3D_F64;
 
 public class RotationModel {
 
-	public static int X 	= 0;
-	public static int Y		= 1;
-	public static int Z   	= 2;
-
-	public static int PITCH = 0;
-	public static int YAW   = 1;
-	public static int ROLL  = 2;
+	public static int ROLL  = 0;
+	public static int PITCH = 1;
+	public static int YAW   = 2;
 
 	public int 		  		quality = 0;
 
@@ -28,32 +24,17 @@ public class RotationModel {
 	public DenseMatrix64F   R_POS  = new DenseMatrix64F(3,3);	// Rotation CameraPosition to NED
 
 
-	public void setNED(float[] rotation) {
-		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ, rotation[X], rotation[Y], rotation[Z], R_NED);
-		CommonOps.invert(R_NED, R_BODY);
+	public void setVIS(double[] rotation) {
+		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY, -rotation[ROLL], -rotation[PITCH], rotation[YAW], R_VIS);
 	}
-
-
-	public void setVIS(float[] rotation) {
-		// Why not negative
-		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ, rotation[X], rotation[Y], rotation[Z], R_VIS);
-	}
-
 
 	public void setPOS(DenseMatrix64F rpos) {
-		R_POS.set(rpos);
-	  //  CommonOps.mult(1, rpos, , R_POS);
+		   CommonOps.mult(1, rpos, R_VIS, R_POS);
 	}
 
-	public static String toString(float[] att) {
-		String s = new String();
-		if(att.length==3) {
-			 s = String.format("Roll=%.1f° Pitch=%.1f° Yaw=%.1f°",
-					 MSPMathUtils.fromRad(att[ROLL]),
-					 MSPMathUtils.fromRad(att[PITCH]),
-					 MSPMathUtils.fromRad(att[YAW]));
-		}
-		return s;
+
+	public static String toString(Vector3D_F64 pos) {
+			 return String.format("X=% .3f° Y=% .3f° Z=% .3f°",pos.x,pos.y,pos.z);
 	}
 
 
