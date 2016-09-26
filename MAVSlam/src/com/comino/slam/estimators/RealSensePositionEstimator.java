@@ -85,7 +85,7 @@ public class RealSensePositionEstimator {
 	private static final float  MAX_SPEED   		= 2;
 
 	private static final float  MAX_ROT_SPEED   	= 2f;
-	private static final float  MAX_ROTATION_RAD    = 0.7854f;  // max 45° rotation
+	private static final float  MAX_ROTATION_RAD    = MSPMathUtils.toRad(5f);
 
 	private static final int    MIN_QUALITY 		= 15;
 	private static final int    MAXTRACKS   		= 130;
@@ -150,9 +150,10 @@ public class RealSensePositionEstimator {
 		this.init_offset_rad = MSPMathUtils.toRad(config.getFloatProperty("vision_rot_offset", "0.0"));
 		System.out.printf("Vision rotation offset: %2.3f [rad]\n",init_offset_rad);
 
-		this.cam_offset.x = -config.getFloatProperty("vision_x_offset", "0.0");
-		this.cam_offset.y = -config.getFloatProperty("vision_y_offset", "0.0");
-		this.cam_offset.z = -config.getFloatProperty("vision_z_offset", "0.0");
+		this.cam_offset.z = -config.getFloatProperty("vision_x_offset", "0.0");
+		this.cam_offset.x = -config.getFloatProperty("vision_y_offset", "0.0");
+		this.cam_offset.y = -config.getFloatProperty("vision_z_offset", "0.0");
+
 		System.out.printf("Vision position offset: %.3f,%.3f,%.3f [m]\n",this.cam_offset.x,this.cam_offset.y,this.cam_offset.z);
 
 		this.model = control.getCurrentModel();
@@ -294,9 +295,9 @@ public class RealSensePositionEstimator {
 
 					if(rotation.quality > MIN_QUALITY ) {
 
-						speed.y =  (float)(pos_raw.x - pos_raw_old.x)/dt;
-						speed.x =  (float)(pos_raw.z - pos_raw_old.z)/dt;
-						speed.z =  (float)(pos_raw.y - pos_raw_old.y)/dt;
+						speed.x =  (float)(pos_raw.x - pos_raw_old.x)/dt;
+						speed.y =  (float)(pos_raw.y - pos_raw_old.y)/dt;
+						speed.z =  (float)(pos_raw.z - pos_raw_old.z)/dt;
 
 					} else {
 						if(debug)
@@ -335,25 +336,26 @@ public class RealSensePositionEstimator {
 				pos_raw_old.y = pos_raw.y;
 				pos_raw_old.z = pos_raw.z;
 
+				GeometryMath_F32.mult(rotation.R_VIS, pos, pos_ned);
+				GeometryMath_F32.add(pos_ned,cam_offset, pos_ned);
+				ConvertRotation3D_F32.matrixToEuler(rotation.R_POS,EulerType.XYZ,vis_attitude);
 
-				if(Math.abs(init_rotation[RotationModel.YAW] - model.attitude.y) > MAX_ROTATION_RAD) {
+
+				if(Math.abs(vis_attitude[RotationModel.YAW] - model.attitude.y) > MAX_ROTATION_RAD) {
 					if(debug)
-						System.out.println("[vis] Rotation is too high  "+ MSPMathUtils.fromRad(init_rotation[RotationModel.YAW] - model.attitude.y));
+						System.out.println("[vis] Rot.mag vs. vision too high  "+
+					        MSPMathUtils.fromRad(vis_attitude[RotationModel.YAW] - model.attitude.y));
 					init();
 					return;
 				}
 
 				if(control!=null) {
 
-    				GeometryMath_F32.mult(rotation.R_VIS, pos, pos_ned);
-    				GeometryMath_F32.add(pos_ned,cam_offset, pos_ned);
-    				ConvertRotation3D_F32.matrixToEuler(rotation.R_POS,EulerType.XYZ,vis_attitude);
-
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
 					sms.usec = System.nanoTime() / 1000;
-					sms.x = (float) pos_ned.x;
-					sms.y = (float) pos_ned.y;
-					sms.z = (float) pos_ned.z;
+					sms.x = (float) pos_ned.z;
+					sms.y = (float) pos_ned.x;
+					sms.z = (float) pos_ned.y;
 					sms.roll  = vis_attitude[RotationModel.ROLL];
 					sms.pitch = vis_attitude[RotationModel.PITCH];
 					sms.yaw   = vis_attitude[RotationModel.YAW];
@@ -362,12 +364,12 @@ public class RealSensePositionEstimator {
 					GeometryMath_F32.mult(rotation.R_VIS, speed, speed_ned);
 
 					msg_msp_vision msg = new msg_msp_vision(1,2);
-					msg.x =  (float) pos_ned.x;
-					msg.y =  (float) pos_ned.y;
-					msg.z =  (float) pos_ned.z;
-					msg.vx = (float) speed_ned.x;
-					msg.vy = (float) speed_ned.y;
-					msg.vz = (float) speed_ned.z;
+					msg.x =  (float) pos_ned.z;
+					msg.y =  (float) pos_ned.x;
+					msg.z =  (float) pos_ned.y;
+					msg.vx = (float) speed_ned.z;
+					msg.vy = (float) speed_ned.x;
+					msg.vz = (float) speed_ned.y;
 					msg.h = MSPMathUtils.fromRad(vis_attitude[RotationModel.YAW]);
 					msg.quality = rotation.quality;
 					msg.fps = fps;
@@ -379,7 +381,6 @@ public class RealSensePositionEstimator {
 
 				if(detectors.size()>0 && detector_cycle_ms>0) {
 
-					rotation.setNED(model.attitude.p, model.attitude.r, model.attitude.y);
 
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();

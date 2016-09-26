@@ -7,12 +7,17 @@ import com.comino.msp.utils.MSPMathUtils;
 
 import georegression.geometry.ConvertRotation3D_F32;
 import georegression.struct.EulerType;
+import georegression.struct.se.Se3_F64;
 
 public class RotationModel {
 
-	public static int ROLL 	= 0;
-	public static int PITCH = 1;
-	public static int YAW   = 2;
+	public static int X 	= 0;
+	public static int Y		= 1;
+	public static int Z   	= 2;
+
+	public static int PITCH = 0;
+	public static int YAW   = 1;
+	public static int ROLL  = 2;
 
 	public int 		  		quality = 0;
 
@@ -24,33 +29,20 @@ public class RotationModel {
 
 
 	public void setNED(float[] rotation) {
-		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ, rotation[ROLL], rotation[PITCH], rotation[YAW], R_NED);
+		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ, rotation[X], rotation[Y], rotation[Z], R_NED);
 		CommonOps.invert(R_NED, R_BODY);
 	}
 
-	public void setNED(float pitch, float roll, float yaw) {
-		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ,roll,pitch,yaw, R_NED);
-		CommonOps.invert(R_NED, R_BODY);
-	}
 
 	public void setVIS(float[] rotation) {
 		// Why not negative
-		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ, rotation[ROLL], rotation[PITCH], rotation[YAW], R_VIS);
+		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ, rotation[X], rotation[Y], rotation[Z], R_VIS);
 	}
 
-	public void setVIS(float roll, float pitch, float yaw) {
-		// Why not negative
-		ConvertRotation3D_F32.eulerToMatrix(EulerType.XYZ, roll, pitch, yaw, R_VIS);
-	}
 
 	public void setPOS(DenseMatrix64F rpos) {
-		CommonOps.mult(1, rpos, R_VIS,R_POS);
+	    CommonOps.mult(1, rpos, R_VIS, R_POS);
 	}
-
-
-
-
-	// Helpers
 
 	public static String toString(float[] att) {
 		String s = new String();
