@@ -85,7 +85,7 @@ public class RealSensePositionEstimator {
 	private static final float  MAX_SPEED   		= 2;
 
 	private static final float  MAX_ROT_SPEED   	= 2f;
-	private static final float  MAX_ROTATION_RAD    = MSPMathUtils.toRad(5f);
+	private static final float  MAX_ROTATION_RAD    = MSPMathUtils.toRad(30f);
 
 	private static final int    MIN_QUALITY 		= 15;
 	private static final int    MAXTRACKS   		= 130;
@@ -165,7 +165,7 @@ public class RealSensePositionEstimator {
 				switch(cmd.command) {
 				case MSP_CMD.MSP_CMD_VISION:
 					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.ENABLE) {
-						do_odometry = true; init(); break;
+						do_odometry = true; init("Init"); break;
 					}
 					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.DISABLE) {
 						do_odometry = false; break; };
@@ -254,7 +254,7 @@ public class RealSensePositionEstimator {
 				if(ang_speed > MAX_ROT_SPEED) {
 					if(debug)
 						System.out.println("[vis] Rotation "+ang_speed+" > MAX");
-					init();
+					init("Rot.speed");
 					return;
 				}
 
@@ -262,7 +262,7 @@ public class RealSensePositionEstimator {
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
 					if(debug)
 						System.out.println("[vis] Odometry failure");
-					init();
+					init("Odometry");
 					return;
 				}
 
@@ -343,9 +343,25 @@ public class RealSensePositionEstimator {
 
 				if(Math.abs(vis_attitude[RotationModel.YAW] - model.attitude.y) > MAX_ROTATION_RAD) {
 					if(debug)
-						System.out.println("[vis] Rot.mag vs. vision too high  "+
+						System.out.println("[vis] Rot.Yaw vision too high  "+
 					        MSPMathUtils.fromRad(vis_attitude[RotationModel.YAW] - model.attitude.y));
-					init();
+					init("Max.rot.");
+					return;
+				}
+
+				if(Math.abs(vis_attitude[RotationModel.PITCH] - model.attitude.p) > MAX_ROTATION_RAD) {
+					if(debug)
+						System.out.println("[vis] Rot.Pitch vision too high  "+
+					        MSPMathUtils.fromRad(vis_attitude[RotationModel.PITCH] - model.attitude.p));
+					init("Max.rot.");
+					return;
+				}
+
+				if(Math.abs(vis_attitude[RotationModel.ROLL] - model.attitude.r) > MAX_ROTATION_RAD) {
+					if(debug)
+						System.out.println("[vis] Rot.Roll vision too high  "+
+					        MSPMathUtils.fromRad(vis_attitude[RotationModel.ROLL] - model.attitude.r));
+					init("Max.rot.");
 					return;
 				}
 
@@ -367,6 +383,9 @@ public class RealSensePositionEstimator {
 					msg.x =  (float) pos_ned.z;
 					msg.y =  (float) pos_ned.x;
 					msg.z =  (float) pos_ned.y;
+					msg.ro=  vis_attitude[RotationModel.ROLL];
+					msg.pi=  vis_attitude[RotationModel.PITCH];
+					msg.ya=  vis_attitude[RotationModel.YAW];
 					msg.vx = (float) speed_ned.z;
 					msg.vy = (float) speed_ned.x;
 					msg.vz = (float) speed_ned.y;
@@ -414,7 +433,7 @@ public class RealSensePositionEstimator {
 
 	public void start() {
 		isRunning = true; init_tms=0;
-		init();
+		init("");
 		if(realsense!=null)
 			realsense.start();
 	}
@@ -442,9 +461,9 @@ public class RealSensePositionEstimator {
 		return isRunning;
 	}
 
-	private void init() {
+	private void init(String msg) {
 		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS) {
-			control.writeLogMessage(new LogMessage("[vis] reset odometry",
+			control.writeLogMessage(new LogMessage("[vis] reset odometry: "+msg,
 					MAV_SEVERITY.MAV_SEVERITY_WARNING));
 			visualOdometry.reset();
 			init_count = 0;
