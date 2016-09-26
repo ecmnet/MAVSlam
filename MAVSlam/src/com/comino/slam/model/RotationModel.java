@@ -41,7 +41,8 @@ public class RotationModel {
 
 
 	public void setPOS(DenseMatrix64F rpos) {
-	    CommonOps.mult(1, rpos, R_VIS, R_POS);
+		R_POS.set(rpos);
+	  //  CommonOps.mult(1, rpos, , R_POS);
 	}
 
 	public static String toString(float[] att) {

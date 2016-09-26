@@ -268,15 +268,19 @@ public class RealSensePositionEstimator {
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 
-					init_rotation[RotationModel.PITCH] = (init_rotation[RotationModel.PITCH] * init_count + model.attitude.p );
-					init_rotation[RotationModel.ROLL]  = (init_rotation[RotationModel.ROLL]  * init_count + model.attitude.r );
-					init_rotation[RotationModel.YAW]   = (init_rotation[RotationModel.YAW]   * init_count + model.attitude.y );
+//					init_rotation[RotationModel.PITCH] = (init_rotation[RotationModel.PITCH] * init_count + model.attitude.p );
+//					init_rotation[RotationModel.ROLL]  = (init_rotation[RotationModel.ROLL]  * init_count + model.attitude.r );
+//					init_rotation[RotationModel.YAW]   = (init_rotation[RotationModel.YAW]   * init_count + model.attitude.y );
+//
+//					init_count++;
+//
+//					init_rotation[RotationModel.PITCH] = init_rotation[RotationModel.PITCH] / init_count;
+//					init_rotation[RotationModel.ROLL]  = init_rotation[RotationModel.ROLL]  / init_count;
+//					init_rotation[RotationModel.YAW]   = init_rotation[RotationModel.YAW]   / init_count +init_offset_rad;
 
-					init_count++;
-
-					init_rotation[RotationModel.PITCH] = init_rotation[RotationModel.PITCH] / init_count;
-					init_rotation[RotationModel.ROLL]  = init_rotation[RotationModel.ROLL]  / init_count;
-					init_rotation[RotationModel.YAW]   = init_rotation[RotationModel.YAW]   / init_count +init_offset_rad;
+					init_rotation[RotationModel.PITCH] = model.attitude.p ;
+					init_rotation[RotationModel.ROLL]  = model.attitude.r ;
+					init_rotation[RotationModel.YAW]   = model.attitude.y ;
 
 					rotation.setVIS(init_rotation);
 
@@ -316,6 +320,7 @@ public class RealSensePositionEstimator {
 						pos.x += speed.x * dt;
 						pos.y += speed.y * dt;
 						pos.z += speed.z * dt;
+
 
 					} else {
 
