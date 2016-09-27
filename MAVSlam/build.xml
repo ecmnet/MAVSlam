@@ -1,20 +1,21 @@
-<project name="PIX4Comm" basedir=".">
+<project name="SLAM" basedir=".">
 
 	<property name="lib.dir" value="lib" />
 	<property name="dis.dir" value="dis" />
 	<property name="build.dir" value="bin" />
+	<property name="deploy.dir" value="/Volumes/up" />
 
 
 
 	<target name="compile">
-	<javac destdir="bin" includeantruntime="false">
-		<src path="src" />
-		<classpath>
-			<fileset dir="lib">
-				<include name="*.jar" />
-			</fileset>
-		</classpath>
-	</javac>
+		<javac destdir="bin" includeantruntime="false">
+			<src path="src" />
+			<classpath>
+				<fileset dir="lib">
+					<include name="*.jar" />
+				</fileset>
+			</classpath>
+		</javac>
 	</target>
 
 	<target name="build" depends="compile" description="Build mavslam.jar">
@@ -54,12 +55,16 @@
 													fastcast-3.0.jar
 													fst-2.42-onejar.jar
 													jnaerator-runtime-0.13.jar
-					"
-				/>
+					" />
 			</manifest>
 		</jar>
 	</target>
 
 
+	<target name="UPDEPLOY" depends="build" description="Deploy to UPBOard">
+		<copy todir="${deploy.dir}">
+			<fileset dir="${dis.dir}/" />
+		</copy>
+	</target>
 
 </project>
