@@ -23,6 +23,10 @@ public class RotationModel {
 
 	public DenseMatrix64F   R_POS  = new DenseMatrix64F(3,3);	// Rotation CameraPosition to NED
 
+	public void setNED(double roll, double pitch, double yaw) {
+		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY, roll, pitch, yaw, R_NED);
+		CommonOps.invert(R_NED,R_BODY);
+	}
 
 	public void setVIS(double[] rotation) {
 		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY, -rotation[ROLL], -rotation[PITCH], rotation[YAW], R_VIS);

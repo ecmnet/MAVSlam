@@ -98,6 +98,7 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 	// used when concating motion
 	private Se3_F64 temp = new Se3_F64();
 
+
 	/**
 	 * Configures magic numbers and estimation algorithms.
 	 *
@@ -347,6 +348,7 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 	}
 
 	public Se3_F64 getCurrToWorld() {
+		currToKey.getTranslation().setZ(-0.10);
 		currToKey.concat(keyToWorld,currToWorld);
 		return currToWorld;
 	}

@@ -156,4 +156,5 @@ public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends Image
 	public int getInlierCount() {
 		return alg.getInlierTracks().size();
 	}
+
 }
