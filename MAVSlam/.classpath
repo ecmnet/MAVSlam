@@ -26,8 +26,8 @@
 	<classpathentry kind="lib" path="lib/BoofCV-visualize-0.23.jar"/>
 	<classpathentry kind="lib" path="lib/fastcast-3.0.jar"/>
 	<classpathentry kind="lib" path="lib/fst-2.42-onejar.jar"/>
-	<classpathentry kind="lib" path="lib/http.jar"/>
 	<classpathentry kind="lib" path="lib/mavcomm.jar"/>
 	<classpathentry kind="lib" path="lib/mavmq.jar"/>
+	<classpathentry kind="lib" path="lib/http.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
