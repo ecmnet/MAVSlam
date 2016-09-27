@@ -376,8 +376,8 @@ public class RealSensePositionEstimator {
 	}
 
 	public void start() {
-		isRunning = true; init_tms=0;
-		init("");
+		isRunning = true;
+		init("StartUp");
 		if(realsense!=null)
 			realsense.start();
 	}
