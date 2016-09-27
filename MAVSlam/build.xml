@@ -3,7 +3,7 @@
 	<property name="lib.dir" value="lib" />
 	<property name="dis.dir" value="dis" />
 	<property name="build.dir" value="bin" />
-	<property name="deploy.dir" value="/Volumes/up" />
+	<property name="deploy.dir" value="/Volumes/up/slam" />
 
 
 
