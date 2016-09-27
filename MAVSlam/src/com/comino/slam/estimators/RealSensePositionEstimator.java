@@ -271,8 +271,8 @@ public class RealSensePositionEstimator {
 
 					init_count++;
 
-					init_rot_ned[PITCH] = -init_rot_ned[PITCH] / init_count;
-					init_rot_ned[ROLL]  = -init_rot_ned[ROLL]  / init_count;
+					init_rot_ned[PITCH] =  init_rot_ned[PITCH] / init_count;
+					init_rot_ned[ROLL]  =  init_rot_ned[ROLL]  / init_count;
 					init_rot_ned[YAW]   =  init_rot_ned[YAW]   / init_count;
 
 					ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
