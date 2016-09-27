@@ -38,7 +38,6 @@ import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.ejml.ops.CommonOps;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
@@ -72,18 +71,11 @@ import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
 import georegression.geometry.ConvertRotation3D_F64;
-import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
-import georegression.struct.point.Vector3D_F32;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 
 public class RealSensePositionEstimator {
-
-	private static final int    ROLL = 0;
-	private static final int    PITCH = 1;
-	private static final int    YAW = 2;
-
 
 	private static final int    INIT_TIME_MS    	= 200;
 
@@ -103,11 +95,16 @@ public class RealSensePositionEstimator {
 	private Vector3D_F64 pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
 
-	private Vector3D_F32 pos         = new Vector3D_F32();
-	private Vector3D_F32 speed       = new Vector3D_F32();
+	private Se3_F64 speed       	 = new Se3_F64();
+	private Se3_F64 speed_ned        = new Se3_F64();
+	private Se3_F64 pos_ned          = new Se3_F64();
+	private Se3_F64 pos              = new Se3_F64();
+
+	private Se3_F64 vis_init         = new Se3_F64();
 
 	private Se3_F64 cam_offset       = new Se3_F64();
 	private Se3_F64 cam_offset_ned   = new Se3_F64();
+
 	private Se3_F64 visToNED         = new Se3_F64();
 	private Se3_F64 bodyToNED        = new Se3_F64();
 
@@ -122,9 +119,6 @@ public class RealSensePositionEstimator {
 
 	private boolean isRunning = false;
 	private IMAVMSPController control;
-
-	private double[] init_rot_ned		= new double[3];
-	private double[] vis_att_ned  		= new double[3];
 
 	private int error_count = 0;
 	private int init_count = 0;
@@ -204,7 +198,7 @@ public class RealSensePositionEstimator {
 		realsense.registerListener(new Listener() {
 
 			float fps; float dt; int mf=0; int fpm;
-			Se3_F64 rawPosNED = new Se3_F64(); float ang_speed; float odo_speed;
+			float ang_speed; float odo_speed;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -233,7 +227,7 @@ public class RealSensePositionEstimator {
 					msg.vx = Float.NaN;
 					msg.vy = Float.NaN;
 					msg.vz = Float.NaN;
-					msg.h = MSPMathUtils.fromRad((float)init_rot_ned[YAW]);
+					msg.h = MSPMathUtils.fromRad((float)vis_init.getY());
 					msg.quality = quality;
 					msg.fps = fps;
 					msg.errors = error_count;
@@ -259,33 +253,30 @@ public class RealSensePositionEstimator {
 				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
 					if(debug)
 						System.out.println("[vis] Odometry failure");
-					init("Odometry");
+					init("odometry");
 					return;
 				}
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 
-					init_rot_ned[PITCH] = (init_rot_ned[PITCH] * init_count + model.attitude.p );
-					init_rot_ned[ROLL]  = (init_rot_ned[ROLL]  * init_count + model.attitude.r );
-					init_rot_ned[YAW]   = (init_rot_ned[YAW]   * init_count + model.attitude.y );
+					vis_init.getTranslation().z = vis_init.getTranslation().z * init_count + model.attitude.r;
+					vis_init.getTranslation().x = vis_init.getTranslation().x * init_count + model.attitude.p;
+					vis_init.getTranslation().y = vis_init.getTranslation().y * init_count + model.attitude.y;
 
-					init_count++;
+					vis_init.getTranslation().scale(1d/(++init_count));
 
-					init_rot_ned[PITCH] =  init_rot_ned[PITCH] / init_count;
-					init_rot_ned[ROLL]  =  init_rot_ned[ROLL]  / init_count;
-					init_rot_ned[YAW]   =  init_rot_ned[YAW]   / init_count;
-
-					ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-							init_rot_ned[ROLL],
-							init_rot_ned[PITCH],
-							init_rot_ned[YAW],
+					ConvertRotation3D_F64.eulerToMatrix(EulerType.XYZ,
+							vis_init.getTranslation().x,
+							vis_init.getTranslation().y,
+							vis_init.getTranslation().z,
 							visToNED.getRotation());
 
-					pos.set(0,0,0);
+					pos.reset();
+					speed_ned.reset();
 					return;
 				}
 
-				visualOdometry.getCameraToWorld().concat(visToNED, rawPosNED);
+				pos_raw = visualOdometry.getCameraToWorld().getT();
 
 				ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
 						model.attitude.r,
@@ -295,62 +286,55 @@ public class RealSensePositionEstimator {
 
 				cam_offset.concat(bodyToNED, cam_offset_ned);
 
-				GeometryMath_F64.add(rawPosNED.getTranslation(),
-						cam_offset_ned.getTranslation(), rawPosNED.getTranslation());
-
-				pos_raw = rawPosNED.getT();
-
 				quality = visualOdometry.getInlierCount() *100 / MAXTRACKS ;
 
 				if(pos_raw_old!=null) {
 
 					if(quality > MIN_QUALITY ) {
 
-						speed.x =  (float)(pos_raw.x - pos_raw_old.x)/dt;
-						speed.y =  (float)(pos_raw.y - pos_raw_old.y)/dt;
-						speed.z =  (float)(pos_raw.z - pos_raw_old.z)/dt;
+						speed.setTranslation((pos_raw.x - pos_raw_old.x)/dt,
+								             (pos_raw.x - pos_raw_old.x)/dt,
+								             (pos_raw.z - pos_raw_old.z)/dt);
 
 					} else {
 						if(debug)
 							System.out.println("[vis] Quality "+quality+" < Min");
-
+						init("Quality");
 						error_count++;
 						return;
 					}
 
-					odo_speed = (float) Math.sqrt(speed.x * speed.x +
-							speed.y * speed.y +
-							speed.z * speed.z);
+					odo_speed = (float) Math.sqrt(speed.T.x * speed.T.x +
+							                      speed.T.y * speed.T.y +
+							                      speed.T.z * speed.T.z);
 
 					if(odo_speed < MAX_SPEED) {
-						pos.x += speed.x * dt;
-						pos.y += speed.y * dt;
-						pos.z += speed.z * dt;
+						speed.concat(visToNED, speed_ned);
+						speed_ned.T.scale(dt);
 					}
+					pos.T = pos.T.plus(speed_ned.T);
+					pos_ned.T = pos.T.plus(cam_offset_ned.T);
 				}
 
-				pos_raw_old.x = pos_raw.x;
-				pos_raw_old.y = pos_raw.y;
-				pos_raw_old.z = pos_raw.z;
-
+				pos_raw_old.set(pos_raw);
 
 				if(control!=null) {
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
 					sms.usec = System.nanoTime() / 1000;
-					sms.x = (float) pos.z;
-					sms.y = (float) pos.x;
-					sms.z = (float) pos.y;
+					sms.x = (float) pos_ned.T.z;
+					sms.y = (float) pos_ned.T.x;
+					sms.z = (float) pos_ned.T.y;
 					control.sendMAVLinkMessage(sms);
 
 					msg_msp_vision msg = new msg_msp_vision(1,2);
-					msg.x =  (float) pos.z;
-					msg.y =  (float) pos.x;
-					msg.z =  (float) pos.y;
-					msg.vx = (float) speed.z;
-					msg.vy = (float) speed.x;
-					msg.vz = (float) speed.y;
-					msg.h = MSPMathUtils.fromRad((float)init_rot_ned[YAW]);
+					msg.x =  (float) pos_ned.T.z;
+					msg.y =  (float) pos_ned.T.x;
+					msg.z =  (float) pos_ned.T.y;
+					msg.vx = (float) speed_ned.T.z;
+					msg.vy = (float) speed_ned.T.x;
+					msg.vz = (float) speed_ned.T.y;
+					msg.h = MSPMathUtils.fromRad((float)vis_init.getY());
 					msg.quality = quality;
 					msg.fps = fps;
 					msg.errors = error_count;
@@ -369,7 +353,7 @@ public class RealSensePositionEstimator {
 				}
 			}
 		});
-		init_tms = System.currentTimeMillis();
+		init_tms = System.currentTimeMillis()+5000;
 	}
 
 	private void overlayFeatures(Graphics ctx) {
@@ -406,7 +390,7 @@ public class RealSensePositionEstimator {
 			msg.x = Float.NaN;
 			msg.y = Float.NaN;
 			msg.z = Float.NaN;
-			msg.h = MSPMathUtils.fromRad((float)vis_att_ned[YAW]);
+			msg.h = MSPMathUtils.fromRad((float)vis_init.getY());
 			msg.quality = 0;
 			msg.fps = 0;
 			msg.flags = 0;
@@ -428,7 +412,7 @@ public class RealSensePositionEstimator {
 			visualOdometry.reset();
 			init_count = 0;
 			error_count=0;
-			init_rot_ned[PITCH]=0; init_rot_ned[ROLL]=0; init_rot_ned[YAW]=0;
+			vis_init.reset();
 			init_tms = System.currentTimeMillis();
 		}
 	}
