@@ -59,7 +59,6 @@ import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.server.mjpeg.MJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
-import com.comino.slam.model.RotationModel;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -73,6 +72,7 @@ import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
 import georegression.geometry.ConvertRotation3D_F64;
+import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
 import georegression.struct.point.Vector3D_F32;
 import georegression.struct.point.Vector3D_F64;
@@ -80,7 +80,12 @@ import georegression.struct.se.Se3_F64;
 
 public class RealSensePositionEstimator {
 
-	private static final int    INIT_TIME_MS    	= 100;
+	private static final int    ROLL = 0;
+	private static final int    PITCH = 1;
+	private static final int    YAW = 2;
+
+
+	private static final int    INIT_TIME_MS    	= 200;
 
 	private static final float  MAX_SPEED   		= 2;
 
@@ -101,10 +106,10 @@ public class RealSensePositionEstimator {
 	private Vector3D_F32 pos         = new Vector3D_F32();
 	private Vector3D_F32 speed       = new Vector3D_F32();
 
-	private Vector3D_F32 cam_offset  = new Vector3D_F32();
-
-
-	private Se3_F64 visToNED        = new Se3_F64();
+	private Se3_F64 cam_offset       = new Se3_F64();
+	private Se3_F64 cam_offset_ned   = new Se3_F64();
+	private Se3_F64 visToNED         = new Se3_F64();
+	private Se3_F64 bodyToNED        = new Se3_F64();
 
 	private long fps_tms   =0;
 	private long init_tms  =0;
@@ -143,11 +148,11 @@ public class RealSensePositionEstimator {
 		if(this.detector_cycle_ms>0)
 			System.out.printf("Vision detectors enablied with %2 [ms] cycle \n",detector_cycle_ms);
 
-		this.cam_offset.z = -config.getFloatProperty("vision_x_offset", "0.0");
-		this.cam_offset.x = -config.getFloatProperty("vision_y_offset", "0.0");
-		this.cam_offset.y = -config.getFloatProperty("vision_z_offset", "0.0");
+		this.cam_offset.T.z = -config.getFloatProperty("vision_x_offset", "0.0");
+		this.cam_offset.T.x = -config.getFloatProperty("vision_y_offset", "0.0");
+		this.cam_offset.T.y = -config.getFloatProperty("vision_z_offset", "0.0");
 
-		System.out.printf("Vision position offset: %.3f,%.3f,%.3f [m]\n",this.cam_offset.x,this.cam_offset.y,this.cam_offset.z);
+		System.out.printf("Vision position offset: %s\n",this.cam_offset.T);
 
 		this.model = control.getCurrentModel();
 
@@ -178,7 +183,7 @@ public class RealSensePositionEstimator {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 3, 1),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 2, 1),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -195,7 +200,6 @@ public class RealSensePositionEstimator {
 		}
 
 		init_count = 0;
-		init_tms = System.currentTimeMillis();
 
 		realsense.registerListener(new Listener() {
 
@@ -229,7 +233,7 @@ public class RealSensePositionEstimator {
 					msg.vx = Float.NaN;
 					msg.vy = Float.NaN;
 					msg.vz = Float.NaN;
-					msg.h = MSPMathUtils.fromRad((float)init_rot_ned[RotationModel.YAW]);
+					msg.h = MSPMathUtils.fromRad((float)init_rot_ned[YAW]);
 					msg.quality = quality;
 					msg.fps = fps;
 					msg.errors = error_count;
@@ -261,28 +265,39 @@ public class RealSensePositionEstimator {
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 
-					init_rot_ned[RotationModel.PITCH] = (init_rot_ned[RotationModel.PITCH] * init_count + model.attitude.p );
-					init_rot_ned[RotationModel.ROLL]  = (init_rot_ned[RotationModel.ROLL]  * init_count + model.attitude.r );
-					init_rot_ned[RotationModel.YAW]   = (init_rot_ned[RotationModel.YAW]   * init_count + model.attitude.y );
+					init_rot_ned[PITCH] = (init_rot_ned[PITCH] * init_count + model.attitude.p );
+					init_rot_ned[ROLL]  = (init_rot_ned[ROLL]  * init_count + model.attitude.r );
+					init_rot_ned[YAW]   = (init_rot_ned[YAW]   * init_count + model.attitude.y );
 
 					init_count++;
 
-					init_rot_ned[RotationModel.PITCH] = -init_rot_ned[RotationModel.PITCH] / init_count;
-					init_rot_ned[RotationModel.ROLL]  = -init_rot_ned[RotationModel.ROLL]  / init_count;
-					init_rot_ned[RotationModel.YAW]   =  init_rot_ned[RotationModel.YAW]   / init_count;
+					init_rot_ned[PITCH] = -init_rot_ned[PITCH] / init_count;
+					init_rot_ned[ROLL]  = -init_rot_ned[ROLL]  / init_count;
+					init_rot_ned[YAW]   =  init_rot_ned[YAW]   / init_count;
 
 					ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-							init_rot_ned[RotationModel.ROLL],
-							init_rot_ned[RotationModel.PITCH],
-							init_rot_ned[RotationModel.YAW],
+							init_rot_ned[ROLL],
+							init_rot_ned[PITCH],
+							init_rot_ned[YAW],
 							visToNED.getRotation());
 
-			//		visualOdometry.reset();
 					pos.set(0,0,0);
 					return;
 				}
 
 				visualOdometry.getCameraToWorld().concat(visToNED, rawPosNED);
+
+				ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+						model.attitude.r,
+						model.attitude.p,
+						model.attitude.y,
+						bodyToNED.getRotation());
+
+				cam_offset.concat(bodyToNED, cam_offset_ned);
+
+				GeometryMath_F64.add(rawPosNED.getTranslation(),
+						cam_offset_ned.getTranslation(), rawPosNED.getTranslation());
+
 				pos_raw = rawPosNED.getT();
 
 				quality = visualOdometry.getInlierCount() *100 / MAXTRACKS ;
@@ -335,7 +350,7 @@ public class RealSensePositionEstimator {
 					msg.vx = (float) speed.z;
 					msg.vy = (float) speed.x;
 					msg.vz = (float) speed.y;
-					msg.h = MSPMathUtils.fromRad((float)init_rot_ned[RotationModel.YAW]);
+					msg.h = MSPMathUtils.fromRad((float)init_rot_ned[YAW]);
 					msg.quality = quality;
 					msg.fps = fps;
 					msg.errors = error_count;
@@ -354,6 +369,7 @@ public class RealSensePositionEstimator {
 				}
 			}
 		});
+		init_tms = System.currentTimeMillis();
 	}
 
 	private void overlayFeatures(Graphics ctx) {
@@ -390,7 +406,7 @@ public class RealSensePositionEstimator {
 			msg.x = Float.NaN;
 			msg.y = Float.NaN;
 			msg.z = Float.NaN;
-			msg.h = MSPMathUtils.fromRad((float)vis_att_ned[RotationModel.YAW]);
+			msg.h = MSPMathUtils.fromRad((float)vis_att_ned[YAW]);
 			msg.quality = 0;
 			msg.fps = 0;
 			msg.flags = 0;
@@ -406,13 +422,13 @@ public class RealSensePositionEstimator {
 	}
 
 	private void init(String msg) {
-		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS*3) {
+		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS) {
 			control.writeLogMessage(new LogMessage("[vis] reset odometry: "+msg,
 					MAV_SEVERITY.MAV_SEVERITY_WARNING));
 			visualOdometry.reset();
 			init_count = 0;
 			error_count=0;
-			init_rot_ned[RotationModel.PITCH]=0; init_rot_ned[RotationModel.ROLL]=0; init_rot_ned[RotationModel.YAW]=0;
+			init_rot_ned[PITCH]=0; init_rot_ned[ROLL]=0; init_rot_ned[YAW]=0;
 			init_tms = System.currentTimeMillis();
 		}
 	}

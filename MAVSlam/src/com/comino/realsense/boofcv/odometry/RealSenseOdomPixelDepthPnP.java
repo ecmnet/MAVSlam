@@ -32,8 +32,11 @@ import boofcv.struct.distort.PointTransform_F64;
 import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.ImageBase;
 import boofcv.struct.sfm.Point2D3DTrack;
+import georegression.geometry.GeometryMath_F32;
+import georegression.geometry.GeometryMath_F64;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
+import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.transform.se.SePointOps_F64;
 
@@ -348,7 +351,6 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 	}
 
 	public Se3_F64 getCurrToWorld() {
-		currToKey.getTranslation().setZ(-0.10);
 		currToKey.concat(keyToWorld,currToWorld);
 		return currToWorld;
 	}
