@@ -58,6 +58,7 @@
 					" />
 			</manifest>
 		</jar>
+		<copy file="lib/mavcomm.jar" todir="${dis.dir}"/>
 	</target>
 
 
