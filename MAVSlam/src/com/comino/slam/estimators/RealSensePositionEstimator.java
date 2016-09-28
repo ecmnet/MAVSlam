@@ -71,7 +71,9 @@ import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
 import georegression.geometry.ConvertRotation3D_F64;
+import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
+import georegression.struct.point.Point3D_F64;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 
@@ -97,6 +99,7 @@ public class RealSensePositionEstimator {
 
 	private Se3_F64 speed       	 = new Se3_F64();
 	private Se3_F64 speed_ned        = new Se3_F64();
+	private Se3_F64 pos_delta        = new Se3_F64();
 	private Se3_F64 pos_ned          = new Se3_F64();
 	private Se3_F64 pos              = new Se3_F64();
 
@@ -292,9 +295,9 @@ public class RealSensePositionEstimator {
 
 					if(quality > MIN_QUALITY ) {
 
-						speed.setTranslation((pos_raw.x - pos_raw_old.x)/dt,
-								             (pos_raw.x - pos_raw_old.x)/dt,
-								             (pos_raw.z - pos_raw_old.z)/dt);
+						// speed.T = (pos_raw - pos_raw_old ) / dt
+						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed.T);
+						speed.T.scale(1d/dt);
 
 					} else {
 						if(debug)
@@ -304,16 +307,21 @@ public class RealSensePositionEstimator {
 						return;
 					}
 
-					odo_speed = (float) Math.sqrt(speed.T.x * speed.T.x +
-							                      speed.T.y * speed.T.y +
-							                      speed.T.z * speed.T.z);
+					odo_speed = (float) speed.T.norm();
 
 					if(odo_speed < MAX_SPEED) {
+						// rotate to NED
 						speed.concat(visToNED, speed_ned);
-						speed_ned.T.scale(dt);
 					}
-					pos.T = pos.T.plus(speed_ned.T);
-					pos_ned.T = pos.T.plus(cam_offset_ned.T);
+
+					// pos_delta.T = speed_ned.T * dt
+					pos_delta.T.set(speed_ned.T); pos_delta.T.scale(dt);
+
+					// pos.T = pos.T + pos_delta.T
+					pos.T.plusIP(pos_delta.T);
+
+					// pos_ned.T = pos.T + camm_offset_ned.T
+					pos_ned.T.set(pos.T); pos_ned.T.plusIP(cam_offset_ned.T);
 				}
 
 				pos_raw_old.set(pos_raw);
