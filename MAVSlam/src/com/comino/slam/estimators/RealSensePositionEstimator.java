@@ -37,6 +37,7 @@ package com.comino.slam.estimators;
 import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.LockSupport;
 
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
@@ -79,7 +80,7 @@ import georegression.struct.se.Se3_F64;
 
 public class RealSensePositionEstimator {
 
-	private static final int    INIT_TIME_MS    	= 200;
+	private static final int    INIT_TIME_MS    	= 250;
 
 	private static final float  MAX_SPEED   		= 2;
 
@@ -92,13 +93,14 @@ public class RealSensePositionEstimator {
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
 
-	private long oldTimeDepth=0;
+	private float oldTimeDepth_us=0;
+	private float estTimeDepth_us=0;
 
 	private Vector3D_F64 pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
 
 	private Se3_F64 speed       	 = new Se3_F64();
-	private Se3_F64 speed_ned        = new Se3_F64();
+	private Se3_F64 pos_delta_ned    = new Se3_F64();
 	private Se3_F64 pos_delta        = new Se3_F64();
 	private Se3_F64 pos_ned          = new Se3_F64();
 	private Se3_F64 pos              = new Se3_F64();
@@ -206,18 +208,16 @@ public class RealSensePositionEstimator {
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
-
-				dt = (timeDepth - oldTimeDepth)/1000f;
-				oldTimeDepth = timeDepth;
-
-				fpm += (int)(1f/dt+0.5f);
-				if((System.currentTimeMillis() - fps_tms) > 500) {
-					fps_tms = System.currentTimeMillis();
-					if(mf>0)
-						fps = fpm/mf;
-					mf=0; fpm=0;
+				if(dt >0) {
+					fpm += (int)(1f/dt+0.5f);
+					if((System.currentTimeMillis() - fps_tms) > 500) {
+						fps_tms = System.currentTimeMillis();
+						if(mf>0)
+							fps = fpm/mf;
+						mf=0; fpm=0;
+					}
+					mf++;
 				}
-				mf++;
 
 				if(streamer!=null)
 					streamer.addImage(rgb.bands[0]);
@@ -242,8 +242,8 @@ public class RealSensePositionEstimator {
 
 				// Check PX4 rotation and reset odometry if rotating too fast
 				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
-						                     model.attitude.rr * model.attitude.rr +
-						                     model.attitude.yr * model.attitude.yr);
+						model.attitude.rr * model.attitude.rr +
+						model.attitude.yr * model.attitude.yr);
 
 				if(ang_speed > MAX_ROT_SPEED) {
 					if(debug)
@@ -274,10 +274,16 @@ public class RealSensePositionEstimator {
 							vis_init.getTranslation().z,
 							visToNED.getRotation());
 
+					pos_raw_old.set(0,0,0);
 					pos.reset();
-					speed_ned.reset();
 					return;
 				}
+
+				estTimeDepth_us = System.nanoTime()/1000f;
+				if(oldTimeDepth_us>0)
+				  dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
+
+				oldTimeDepth_us = estTimeDepth_us;
 
 				pos_raw = visualOdometry.getCameraToWorld().getT();
 
@@ -291,7 +297,7 @@ public class RealSensePositionEstimator {
 
 				quality = visualOdometry.getInlierCount() *100 / MAXTRACKS ;
 
-				if(pos_raw_old!=null) {
+				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
 					if(quality > MIN_QUALITY ) {
 
@@ -310,44 +316,49 @@ public class RealSensePositionEstimator {
 					odo_speed = (float) speed.T.norm();
 
 					if(odo_speed < MAX_SPEED) {
+
+						// pos_delta.T = speed.T * dt
+						pos_delta.T.set(speed.T); pos_delta.T.scale(dt);
 						// rotate to NED
-						speed.concat(visToNED, speed_ned);
+						pos_delta.concat(visToNED, pos_delta_ned);
+
+					} else {
+						init("Odomery speed");
+						return;
 					}
 
-					// pos_delta.T = speed_ned.T * dt
-					pos_delta.T.set(speed_ned.T); pos_delta.T.scale(dt);
-
 					// pos.T = pos.T + pos_delta.T
-					pos.T.plusIP(pos_delta.T);
+					pos.T.plusIP(pos_delta_ned.T);
 
 					// pos_ned.T = pos.T + camm_offset_ned.T
 					pos_ned.T.set(pos.T); pos_ned.T.plusIP(cam_offset_ned.T);
 				}
-
 				pos_raw_old.set(pos_raw);
 
 				if(control!=null) {
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
-					sms.usec = System.nanoTime() / 1000;
+					sms.usec = System.nanoTime()/1000;
 					sms.x = (float) pos_ned.T.z;
 					sms.y = (float) pos_ned.T.x;
 					sms.z = (float) pos_ned.T.y;
 					control.sendMAVLinkMessage(sms);
 
+					LockSupport.parkNanos(2000000);
+
 					msg_msp_vision msg = new msg_msp_vision(1,2);
 					msg.x =  (float) pos_ned.T.z;
 					msg.y =  (float) pos_ned.T.x;
 					msg.z =  (float) pos_ned.T.y;
-					msg.vx = (float) speed_ned.T.z;
-					msg.vy = (float) speed_ned.T.x;
-					msg.vz = (float) speed_ned.T.y;
+					msg.vx = (float) speed.T.z;
+					msg.vy = (float) speed.T.x;
+					msg.vz = (float) speed.T.y;
 					msg.h = MSPMathUtils.fromRad((float)vis_init.getY());
 					msg.quality = quality;
 					msg.fps = fps;
 					msg.errors = error_count;
 					msg.flags = msg.flags | 1;
-					msg.tms = System.nanoTime() / 1000;
+					msg.tms = (long)estTimeDepth_us;
 					control.sendMAVLinkMessage(msg);
 				}
 
