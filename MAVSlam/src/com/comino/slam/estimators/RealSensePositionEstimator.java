@@ -100,6 +100,7 @@ public class RealSensePositionEstimator {
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
 
 	private Se3_F64 speed       	 = new Se3_F64();
+	private Se3_F64 speed_old        = new Se3_F64();
 	private Se3_F64 pos_delta_ned    = new Se3_F64();
 	private Se3_F64 pos_delta        = new Se3_F64();
 	private Se3_F64 pos_ned          = new Se3_F64();
@@ -305,6 +306,10 @@ public class RealSensePositionEstimator {
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed.T);
 						speed.T.scale(1d/dt);
 
+//						Extreme filtering has no effect on accuracy
+//						speed.T.z = speed.T.z * 0.2f + speed_old.T.z * 0.8f;
+//						speed.T.x = speed.T.x * 0.2f + speed_old.T.x * 0.8f;
+
 					} else {
 						if(debug)
 							System.out.println("[vis] Quality "+quality+" < Min");
@@ -314,6 +319,7 @@ public class RealSensePositionEstimator {
 					}
 
 					odo_speed = (float) speed.T.norm();
+					speed_old.T.set(speed.T);
 
 					if(odo_speed < MAX_SPEED) {
 
@@ -338,7 +344,7 @@ public class RealSensePositionEstimator {
 				if(control!=null) {
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
-					sms.usec = System.nanoTime()/1000;
+					sms.usec = (long)estTimeDepth_us;
 					sms.x = (float) pos_ned.T.z;
 					sms.y = (float) pos_ned.T.x;
 					sms.z = (float) pos_ned.T.y;
