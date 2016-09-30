@@ -45,6 +45,7 @@ import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
 import org.mavlink.messages.lquac.msg_vision_position_estimate;
+import org.mavlink.messages.lquac.msg_vision_speed_estimate;
 
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.main.MSPConfig;
@@ -100,6 +101,7 @@ public class RealSensePositionEstimator {
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
 
 	private Se3_F64 speed       	 = new Se3_F64();
+	private Se3_F64 speed_ned        = new Se3_F64();
 	private Se3_F64 speed_old        = new Se3_F64();
 	private Se3_F64 pos_delta_ned    = new Se3_F64();
 	private Se3_F64 pos_delta        = new Se3_F64();
@@ -280,7 +282,7 @@ public class RealSensePositionEstimator {
 					return;
 				}
 
-				estTimeDepth_us = System.nanoTime()/1000f;
+				estTimeDepth_us = timeDepth*1000;
 				if(oldTimeDepth_us>0)
 				  dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
 
@@ -327,6 +329,7 @@ public class RealSensePositionEstimator {
 						pos_delta.T.set(speed.T); pos_delta.T.scale(dt);
 						// rotate to NED
 						pos_delta.concat(visToNED, pos_delta_ned);
+						speed.concat(visToNED, speed_ned);
 
 					} else {
 						init("Odomery speed");
@@ -344,11 +347,20 @@ public class RealSensePositionEstimator {
 				if(control!=null) {
 
 					msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
-					sms.usec = (long)estTimeDepth_us;
+					sms.usec = System.nanoTime()/1000; //(long)estTimeDepth_us;
 					sms.x = (float) pos_ned.T.z;
 					sms.y = (float) pos_ned.T.x;
 					sms.z = (float) pos_ned.T.y;
 					control.sendMAVLinkMessage(sms);
+
+/* Currently not supported by PX4
+					msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,1);
+					sse.usec = (long)estTimeDepth_us;
+					sse.x = (float) speed_ned.T.z;
+					sse.y = (float) speed_ned.T.x;
+					sse.z = (float) speed_ned.T.y;
+					control.sendMAVLinkMessage(sse);
+*/
 
 					LockSupport.parkNanos(2000000);
 
@@ -356,9 +368,9 @@ public class RealSensePositionEstimator {
 					msg.x =  (float) pos_ned.T.z;
 					msg.y =  (float) pos_ned.T.x;
 					msg.z =  (float) pos_ned.T.y;
-					msg.vx = (float) speed.T.z;
-					msg.vy = (float) speed.T.x;
-					msg.vz = (float) speed.T.y;
+					msg.vx = (float) speed_ned.T.z;
+					msg.vy = (float) speed_ned.T.x;
+					msg.vz = (float) speed_ned.T.y;
 					msg.h = MSPMathUtils.fromRad((float)vis_init.getY());
 					msg.quality = quality;
 					msg.fps = fps;
