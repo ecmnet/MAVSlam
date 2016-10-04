@@ -308,10 +308,6 @@ public class RealSensePositionEstimator {
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed.T);
 						speed.T.scale(1d/dt);
 
-//						Extreme filtering has no effect on accuracy
-//						speed.T.z = speed.T.z * 0.2f + speed_old.T.z * 0.8f;
-//						speed.T.x = speed.T.x * 0.2f + speed_old.T.x * 0.8f;
-
 					} else {
 						if(debug)
 							System.out.println("[vis] Quality "+quality+" < Min");
@@ -332,7 +328,7 @@ public class RealSensePositionEstimator {
 						speed.concat(visToNED, speed_ned);
 
 					} else {
-						init("Odomery speed");
+						init("Odometry speed");
 						return;
 					}
 
