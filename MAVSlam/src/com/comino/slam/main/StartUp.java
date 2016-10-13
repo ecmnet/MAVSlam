@@ -45,6 +45,7 @@ import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
+import com.comino.msp.model.segment.Status;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.MJPEGHandler;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
@@ -94,6 +95,14 @@ public class StartUp implements Runnable {
 		} catch(Exception e) {
 			System.out.println("[vis] Vision not available: "+e.getMessage());
 		}
+
+		// reset odometry to set initial heading properly
+		control.addStatusChangeListener((ov,nv) -> {
+			if(nv.isStatusChanged(ov,Status.MSP_ARMED)) {
+				if(vision!=null)
+					 vision.reset();
+			}
+		});
 
 
 		// register MSP commands here

@@ -89,9 +89,9 @@ public class RealSensePositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 15;
 
-	private static final int    MAXTRACKS   		= 130;
+	private static final int    MAXTRACKS   		= 140;
 	private static final int    RANSAC_ITERATIONS   = 250;
-	private static final int    RETIRE_THRESHOLD    = 40;
+	private static final int    RETIRE_THRESHOLD    = 50;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 90;
 
@@ -395,6 +395,11 @@ public class RealSensePositionEstimator {
 
 	public boolean isRunning() {
 		return isRunning;
+	}
+
+	public void reset() {
+		init_tms=0;
+		init("msp reset");
 	}
 
 	private void init(String reason) {
