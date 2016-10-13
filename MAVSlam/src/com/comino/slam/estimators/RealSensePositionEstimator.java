@@ -88,8 +88,12 @@ public class RealSensePositionEstimator {
 	private static final float  MAX_ROT_SPEED   	= 2f;
 
 	private static final int    MIN_QUALITY 		= 15;
+
 	private static final int    MAXTRACKS   		= 130;
 	private static final int    RANSAC_ITERATIONS   = 250;
+	private static final int    RETIRE_THRESHOLD    = 40;
+	private static final int    INLIER_THRESHOLD    = 120;
+	private static final int    REFINE_ITERATIONS   = 90;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
@@ -125,6 +129,7 @@ public class RealSensePositionEstimator {
 	private boolean debug = false;
 
 	private int quality=0;
+	private float fps = 0;
 
 	private boolean isRunning = false;
 	private IMAVMSPController control;
@@ -200,7 +205,8 @@ public class RealSensePositionEstimator {
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
-		visualOdometry = FactoryRealSenseOdometry.depthDepthPnP(1.2, 120, 2, RANSAC_ITERATIONS, 50, true,
+		visualOdometry = FactoryRealSenseOdometry.depthDepthPnP(1.2,
+				INLIER_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
@@ -215,7 +221,7 @@ public class RealSensePositionEstimator {
 
 		realsense.registerListener(new Listener() {
 
-			float fps; float dt; int mf=0; int fpm;
+			float dt; int mf=0; int fpm;
 			float ang_speed; float odo_speed;
 
 			@Override
@@ -277,9 +283,9 @@ public class RealSensePositionEstimator {
 				}
 
 				estTimeDepth_us = timeDepth*1000;
+				//	estTimeDepth_us = System.nanoTime()*1000;
 				if(oldTimeDepth_us>0)
 					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
-
 				oldTimeDepth_us = estTimeDepth_us;
 
 				pos_raw = visualOdometry.getCameraToWorld().getT();
@@ -334,31 +340,10 @@ public class RealSensePositionEstimator {
 				pos_raw_old.set(pos_raw);
 
 				if(control!=null) {
-
-					error_count=0;
-
-					if(do_position && do_odometry) {
-						msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
-						sms.usec = System.nanoTime()/1000; //(long)estTimeDepth_us;
-						sms.x = (float) pos_ned.T.z;
-						sms.y = (float) pos_ned.T.x;
-						sms.z = (float) pos_ned.T.y;
-						control.sendMAVLinkMessage(sms);
-					}
-
-					if(do_speed && do_odometry ) {
-						msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,1);
-						sse.usec =System.nanoTime()/1000;
-						sse.x = (float) speed_ned.T.z;
-						sse.y = (float) speed_ned.T.x;
-						sse.z = (float) speed_ned.T.y;
-						sse.isValid = true;
-						control.sendMAVLinkMessage(sse);
-					}
-
+					publishPX4Vision();
 					LockSupport.parkNanos(2000000);
-
-					publisMSPVision(fps);
+					error_count=0;
+					publisMSPVision();
 				}
 
 				if(detectors.size()>0 && detector_cycle_ms>0) {
@@ -403,7 +388,7 @@ public class RealSensePositionEstimator {
 	public void stop() {
 		if(isRunning) {
 			realsense.stop();
-			publisMSPVision(0);
+			publisMSPVision();
 		}
 		isRunning=false;
 	}
@@ -417,18 +402,40 @@ public class RealSensePositionEstimator {
 			if(do_odometry) {
 				error_count++;
 				if((error_count % MAX_ERRORS)==0)
-				control.writeLogMessage(new LogMessage("[vis] reset odometry: "+reason,
-						MAV_SEVERITY.MAV_SEVERITY_CRITICAL));
+					control.writeLogMessage(new LogMessage("[vis] reset odometry: "+reason,
+							MAV_SEVERITY.MAV_SEVERITY_CRITICAL));
 				visualOdometry.reset();
-				init_count = 0;
+				init_count = 0; fps=0; quality=0;
 				vis_init.reset();
 				init_tms = System.currentTimeMillis();
-				publisMSPVision(0);
+				publisMSPVision();
 			}
 		}
 	}
 
-	private void publisMSPVision(float fps) {
+	private void publishPX4Vision() {
+
+		if(do_position && do_odometry) {
+			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
+			sms.usec = System.nanoTime()/1000; //(long)estTimeDepth_us;
+			sms.x = (float) pos_ned.T.z;
+			sms.y = (float) pos_ned.T.x;
+			sms.z = (float) pos_ned.T.y;
+			control.sendMAVLinkMessage(sms);
+		}
+
+		if(do_speed && do_odometry ) {
+			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,1);
+			sse.usec =System.nanoTime()/1000;
+			sse.x = (float) speed_ned.T.z;
+			sse.y = (float) speed_ned.T.x;
+			sse.z = (float) speed_ned.T.y;
+			sse.isValid = true;
+			control.sendMAVLinkMessage(sse);
+		}
+	}
+
+	private void publisMSPVision() {
 		msg_msp_vision msg = new msg_msp_vision(1,2);
 		msg.x =  (float) pos_ned.T.z;
 		msg.y =  (float) pos_ned.T.x;
