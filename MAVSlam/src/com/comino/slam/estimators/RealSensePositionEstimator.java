@@ -75,13 +75,13 @@ import boofcv.struct.image.Planar;
 import georegression.geometry.ConvertRotation3D_F64;
 import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
-import georegression.struct.point.Point3D_F64;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 
 public class RealSensePositionEstimator {
 
-	private static final int    INIT_TIME_MS    	= 750;
+	private static final int    INIT_TIME_MS    	= 500;
+	private static final int    MAX_ERRORS    	    = 5;
 
 	private static final float  MAX_SPEED   		= 2;
 
@@ -263,11 +263,13 @@ public class RealSensePositionEstimator {
 
 					vis_init.getTranslation().scale(1d/(++init_count));
 
+					//	ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
 					ConvertRotation3D_F64.eulerToMatrix(EulerType.XYZ,
 							vis_init.getTranslation().x,
 							vis_init.getTranslation().y,
 							vis_init.getTranslation().z,
 							visToNED.getRotation());
+
 
 					pos_raw_old.set(0,0,0);
 					pos.reset();
@@ -304,7 +306,6 @@ public class RealSensePositionEstimator {
 						if(debug)
 							System.out.println("[vis] Quality "+quality+" < Min");
 						init("Quality");
-						error_count++;
 						return;
 					}
 
@@ -334,6 +335,8 @@ public class RealSensePositionEstimator {
 
 				if(control!=null) {
 
+					error_count=0;
+
 					if(do_position && do_odometry) {
 						msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
 						sms.usec = System.nanoTime()/1000; //(long)estTimeDepth_us;
@@ -355,23 +358,7 @@ public class RealSensePositionEstimator {
 
 					LockSupport.parkNanos(2000000);
 
-					msg_msp_vision msg = new msg_msp_vision(1,2);
-					msg.x =  (float) pos_ned.T.z;
-					msg.y =  (float) pos_ned.T.x;
-					msg.z =  (float) pos_ned.T.y;
-					msg.vx = (float) speed_ned.T.z;
-					msg.vy = (float) speed_ned.T.x;
-					msg.vz = (float) speed_ned.T.y;
-					msg.h = MSPMathUtils.fromRad((float)vis_init.getY());
-					msg.quality = quality;
-					msg.fps = fps;
-					msg.errors = error_count;
-					if(do_position && do_odometry)
-						msg.flags = msg.flags | 1;
-					if(do_speed && do_odometry)
-						msg.flags = msg.flags | 2;
-					msg.tms = (long)estTimeDepth_us;
-					control.sendMAVLinkMessage(msg);
+					publisMSPVision(fps);
 				}
 
 				if(detectors.size()>0 && detector_cycle_ms>0) {
@@ -416,18 +403,7 @@ public class RealSensePositionEstimator {
 	public void stop() {
 		if(isRunning) {
 			realsense.stop();
-
-			msg_msp_vision msg = new msg_msp_vision(1,2);
-			msg.x = Float.NaN;
-			msg.y = Float.NaN;
-			msg.z = Float.NaN;
-			msg.h = MSPMathUtils.fromRad((float)vis_init.getY());
-			msg.quality = 0;
-			msg.fps = 0;
-			msg.flags = 0;
-			msg.tms = System.nanoTime() / 1000;
-			control.sendMAVLinkMessage(msg);
-
+			publisMSPVision(0);
 		}
 		isRunning=false;
 	}
@@ -436,17 +412,40 @@ public class RealSensePositionEstimator {
 		return isRunning;
 	}
 
-	private void init(String msg) {
+	private void init(String reason) {
 		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS) {
-			if(do_odometry)
-			   control.writeLogMessage(new LogMessage("[vis] reset odometry: "+msg,
-					MAV_SEVERITY.MAV_SEVERITY_WARNING));
-			visualOdometry.reset();
-			init_count = 0;
-			error_count=0;
-			vis_init.reset();
-			init_tms = System.currentTimeMillis();
+			if(do_odometry) {
+				error_count++;
+				if((error_count % MAX_ERRORS)==0)
+				control.writeLogMessage(new LogMessage("[vis] reset odometry: "+reason,
+						MAV_SEVERITY.MAV_SEVERITY_CRITICAL));
+				visualOdometry.reset();
+				init_count = 0;
+				vis_init.reset();
+				init_tms = System.currentTimeMillis();
+				publisMSPVision(0);
+			}
 		}
+	}
+
+	private void publisMSPVision(float fps) {
+		msg_msp_vision msg = new msg_msp_vision(1,2);
+		msg.x =  (float) pos_ned.T.z;
+		msg.y =  (float) pos_ned.T.x;
+		msg.z =  (float) pos_ned.T.y;
+		msg.vx = (float) speed_ned.T.z;
+		msg.vy = (float) speed_ned.T.x;
+		msg.vz = (float) speed_ned.T.y;
+		msg.h = MSPMathUtils.fromRad((float)vis_init.getY());
+		msg.quality = quality;
+		msg.fps = fps;
+		msg.errors = error_count;
+		if(do_position && do_odometry)
+			msg.flags = msg.flags | 1;
+		if(do_speed && do_odometry)
+			msg.flags = msg.flags | 2;
+		msg.tms = (long)estTimeDepth_us;
+		control.sendMAVLinkMessage(msg);
 	}
 
 	public static void main(String[] args) {
