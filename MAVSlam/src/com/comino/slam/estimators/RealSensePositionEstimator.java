@@ -89,10 +89,10 @@ public class RealSensePositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 15;
 
-	private static final int    MAXTRACKS   		= 140;
+	private static final int    MAXTRACKS   		= 120;
 	private static final int    RANSAC_ITERATIONS   = 250;
-	private static final int    RETIRE_THRESHOLD    = 50;
-	private static final int    INLIER_THRESHOLD    = 120;
+	private static final int    RETIRE_THRESHOLD    = 40;
+	private static final int    INLIER_THRESHOLD    = 110;
 	private static final int    REFINE_ITERATIONS   = 90;
 
 	private StreamRealSenseVisDepth realsense;
@@ -196,7 +196,7 @@ public class RealSensePositionEstimator {
 		}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
+		configKlt.pyramidScaling = new int[]{1, 2, 4, 16};
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
@@ -422,7 +422,8 @@ public class RealSensePositionEstimator {
 
 		if(do_position && do_odometry) {
 			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
-			sms.usec = System.nanoTime()/1000; //(long)estTimeDepth_us;
+			sms.usec = System.nanoTime()/1000;
+			//sms.usec = (long)estTimeDepth_us;
 			sms.x = (float) pos_ned.T.z;
 			sms.y = (float) pos_ned.T.x;
 			sms.z = (float) pos_ned.T.y;
