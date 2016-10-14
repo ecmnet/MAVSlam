@@ -179,12 +179,15 @@ public class RealSensePositionEstimator {
 				msg_msp_command cmd = (msg_msp_command)o;
 				switch(cmd.command) {
 				case MSP_CMD.MSP_CMD_VISION:
-					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.ENABLE) {
+					switch((int)cmd.param1) {
+					case MSP_COMPONENT_CTRL.ENABLE:
 						do_odometry = true; init("Init"); break;
+					case MSP_COMPONENT_CTRL.DISABLE:
+						do_odometry = false; break;
+					case MSP_COMPONENT_CTRL.RESET:
+						reset(); break;
 					}
-					if((int)(cmd.param1)==MSP_COMPONENT_CTRL.DISABLE) {
-						do_odometry = false; break; };
-						break;
+
 				}
 			}
 		});
