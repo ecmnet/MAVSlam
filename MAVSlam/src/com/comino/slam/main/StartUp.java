@@ -38,6 +38,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
+import org.mavlink.messages.MAV_CMD;
 import org.mavlink.messages.lquac.msg_msp_status;
 
 import com.comino.mav.control.IMAVMSPController;
@@ -109,7 +110,6 @@ public class StartUp implements Runnable {
 
 		control.start();
 
-		control.connect();
 		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
 		Thread worker = new Thread(this);
 		worker.start();

@@ -199,7 +199,7 @@ public class RealSensePositionEstimator {
 		}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{1, 2, 4, 16};
+		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
@@ -301,7 +301,7 @@ public class RealSensePositionEstimator {
 
 				cam_offset.concat(bodyToNED, cam_offset_ned);
 
-				quality = visualOdometry.getInlierCount() *100 / MAXTRACKS ;
+				quality = visualOdometry.getInlierCount() * 100 / MAXTRACKS ;
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
@@ -343,7 +343,8 @@ public class RealSensePositionEstimator {
 				pos_raw_old.set(pos_raw);
 
 				if(control!=null) {
-					publishPX4Vision();
+					if(error_count < MAX_ERRORS)
+					    publishPX4Vision();
 					LockSupport.parkNanos(2000000);
 					error_count=0;
 					publisMSPVision();
