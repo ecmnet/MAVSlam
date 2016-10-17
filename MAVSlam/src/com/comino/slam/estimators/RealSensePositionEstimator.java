@@ -187,16 +187,13 @@ public class RealSensePositionEstimator {
 					case MSP_COMPONENT_CTRL.RESET:
 						reset(); break;
 					}
-
 				}
 			}
 		});
 
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
-		} catch(Exception e) {
-
-		}
+		} catch(Exception e) {	}
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
@@ -264,8 +261,11 @@ public class RealSensePositionEstimator {
 					return;
 				}
 
+				quality = visualOdometry.getInlierCount() * 100 / MAXTRACKS ;
+
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 
+					if( quality > MIN_QUALITY) {
 					vis_init.getTranslation().z = vis_init.getTranslation().z * init_count + model.attitude.r;
 					vis_init.getTranslation().x = vis_init.getTranslation().x * init_count + model.attitude.p;
 					vis_init.getTranslation().y = vis_init.getTranslation().y * init_count + model.attitude.y;
@@ -282,6 +282,8 @@ public class RealSensePositionEstimator {
 
 					pos_raw_old.set(0,0,0);
 					pos.reset();
+					} else
+						init_tms = System.currentTimeMillis();
 					return;
 				}
 
@@ -300,8 +302,6 @@ public class RealSensePositionEstimator {
 						bodyToNED.getRotation());
 
 				cam_offset.concat(bodyToNED, cam_offset_ned);
-
-				quality = visualOdometry.getInlierCount() * 100 / MAXTRACKS ;
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
@@ -355,7 +355,6 @@ public class RealSensePositionEstimator {
 						detector_tms = System.currentTimeMillis();
 						for(ISLAMDetector d : detectors)
 							d.process(visualOdometry, depth, rgb);
-
 					}
 				}
 			}
