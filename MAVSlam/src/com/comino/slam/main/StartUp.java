@@ -43,6 +43,7 @@ import org.mavlink.messages.lquac.msg_msp_status;
 
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.mav.control.impl.MAVProxyController;
+import com.comino.mav.control.impl.MAVProxyController2;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
@@ -71,9 +72,9 @@ public class StartUp implements Runnable {
 		System.out.println("MSPControlService version "+config.getVersion());
 
 		if(args.length>0)
-			control = new MAVProxyController(true);
+			control = new MAVProxyController2(true);
 		else
-			control = new MAVProxyController(false);
+			control = new MAVProxyController2(false);
 
 		osBean =  java.lang.management.ManagementFactory.getOperatingSystemMXBean();
 		mxBean = java.lang.management.ManagementFactory.getMemoryMXBean();
@@ -84,7 +85,7 @@ public class StartUp implements Runnable {
 
 		// Start services if required
 
-		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
+		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 
 		MJPEGHandler streamer = new MJPEGHandler(info, control.getCurrentModel());
 
@@ -99,11 +100,15 @@ public class StartUp implements Runnable {
 
 		// reset odometry to set initial heading properly
 		control.addStatusChangeListener((ov,nv) -> {
-			if(nv.isStatusChanged(ov,Status.MSP_ARMED)) {
+			if(nv.isStatusChanged(ov,Status.MSP_MODE_POSITION)) {
 				if(vision!=null)
 					 vision.reset();
 			}
 		});
+
+
+		if(vision!=null && !vision.isRunning())
+			vision.start();
 
 
 		// register MSP commands here
@@ -142,9 +147,6 @@ public class StartUp implements Runnable {
 	public void run() {
 		long tms = System.currentTimeMillis();
 
-		if(vision!=null && !vision.isRunning())
-			vision.start();
-
 		while(true) {
 			try {
 				Thread.sleep(500);
@@ -155,7 +157,7 @@ public class StartUp implements Runnable {
 					continue;
 				}
 
-				msg_msp_status msg = new msg_msp_status(1,2);
+				msg_msp_status msg = new msg_msp_status(2,1);
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
 				msg.com_error = control.getErrorCount();

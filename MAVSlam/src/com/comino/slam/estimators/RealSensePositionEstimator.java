@@ -80,20 +80,22 @@ import georegression.struct.se.Se3_F64;
 
 public class RealSensePositionEstimator {
 
+	private static final int    PUBLISH_CYCLE       = 33000;
+
 	private static final int    INIT_TIME_MS    	= 500;
 	private static final int    MAX_ERRORS    	    = 5;
 
-	private static final float  MAX_SPEED   		= 2;
+	private static final float  MAX_SPEED   		= 5;
 
-	private static final float  MAX_ROT_SPEED   	= 2f;
+	private static final float  MAX_ROT_SPEED   	= 3f;
 
 	private static final int    MIN_QUALITY 		= 15;
 
-	private static final int    MAXTRACKS   		= 120;
-	private static final int    RANSAC_ITERATIONS   = 250;
-	private static final int    RETIRE_THRESHOLD    = 40;
+	private static final int    MAXTRACKS   		= 80;
+	private static final int    RANSAC_ITERATIONS   = 150;
+	private static final int    RETIRE_THRESHOLD    = 70;
 	private static final int    INLIER_THRESHOLD    = 110;
-	private static final int    REFINE_ITERATIONS   = 90;
+	private static final int    REFINE_ITERATIONS   = 50;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
@@ -143,6 +145,9 @@ public class RealSensePositionEstimator {
 
 	private long detector_tms = 0;
 	private int  detector_cycle_ms = 250;
+
+	private long last_measurement_pos=0;
+	private long last_measurement_speed=0;
 
 	private List<ISLAMDetector> detectors = null;
 
@@ -423,9 +428,10 @@ public class RealSensePositionEstimator {
 
 	private void publishPX4Vision() {
 
-		if(do_position && do_odometry) {
-			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,1);
-			sms.usec = System.nanoTime()/1000;
+		if(do_position && do_odometry && (System.nanoTime()/1000 - last_measurement_pos) > PUBLISH_CYCLE) {
+			last_measurement_pos = System.nanoTime()/1000;
+			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+			sms.usec = last_measurement_pos;
 			//sms.usec = (long)estTimeDepth_us;
 			sms.x = (float) pos_ned.T.z;
 			sms.y = (float) pos_ned.T.x;
@@ -433,8 +439,9 @@ public class RealSensePositionEstimator {
 			control.sendMAVLinkMessage(sms);
 		}
 
-		if(do_speed && do_odometry ) {
-			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,1);
+		if(do_speed && do_odometry && (System.nanoTime()/1000 - last_measurement_speed) > PUBLISH_CYCLE) {
+			last_measurement_speed = last_measurement_speed;
+			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
 			sse.usec =System.nanoTime()/1000;
 			sse.x = (float) speed_ned.T.z;
 			sse.y = (float) speed_ned.T.x;
@@ -445,7 +452,7 @@ public class RealSensePositionEstimator {
 	}
 
 	private void publisMSPVision() {
-		msg_msp_vision msg = new msg_msp_vision(1,2);
+		msg_msp_vision msg = new msg_msp_vision(2,1);
 		msg.x =  (float) pos_ned.T.z;
 		msg.y =  (float) pos_ned.T.x;
 		msg.z =  (float) pos_ned.T.y;
