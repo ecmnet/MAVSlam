@@ -91,11 +91,11 @@ public class RealSensePositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 15;
 
-	private static final int    MAXTRACKS   		= 80;
-	private static final int    RANSAC_ITERATIONS   = 150;
+	private static final int    MAXTRACKS   		= 60;
+	private static final int    RANSAC_ITERATIONS   = 120;
 	private static final int    RETIRE_THRESHOLD    = 70;
 	private static final int    INLIER_THRESHOLD    = 110;
-	private static final int    REFINE_ITERATIONS   = 50;
+	private static final int    REFINE_ITERATIONS   = 40;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
@@ -201,7 +201,7 @@ public class RealSensePositionEstimator {
 		} catch(Exception e) {	}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{1, 2, 4, 8};
+		configKlt.pyramidScaling = new int[]{1, 4, 8, 16};
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
