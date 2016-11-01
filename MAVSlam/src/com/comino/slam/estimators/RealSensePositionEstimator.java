@@ -89,13 +89,13 @@ public class RealSensePositionEstimator {
 
 	private static final float  MAX_ROT_SPEED   	= 3f;
 
-	private static final int    MIN_QUALITY 		= 15;
+	private static final int    MIN_QUALITY 		= 10;
 
-	private static final int    MAXTRACKS   		= 140;
-	private static final int    RANSAC_ITERATIONS   = 250;
+	private static final int    MAXTRACKS   		= 100;
+	private static final int    RANSAC_ITERATIONS   = 350;
 	private static final int    RETIRE_THRESHOLD    = 30;
-	private static final int    INLIER_THRESHOLD    = 110;
-	private static final int    REFINE_ITERATIONS   = 90;
+	private static final int    INLIER_THRESHOLD    = 70;
+	private static final int    REFINE_ITERATIONS   = 150;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
@@ -244,7 +244,7 @@ public class RealSensePositionEstimator {
 				}
 
 				if(streamer!=null)
-					streamer.addImage(rgb.bands[0]);
+					streamer.addImage(rgb.bands[2]);
 
 				// Check PX4 rotation and reset odometry if rotating too fast
 				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
@@ -259,14 +259,15 @@ public class RealSensePositionEstimator {
 				}
 
 
-				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
+				if( !visualOdometry.process(rgb.getBand(2),depth) ) {
 					if(debug)
 						System.out.println("[vis] Odometry failure");
 					init("odometry");
 					return;
 				}
 
-				quality = visualOdometry.getInlierCount() * 100 / MAXTRACKS ;
+				quality = visualOdometry.getInlierCount() ;
+				if(quality>100) quality = 100;
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 
