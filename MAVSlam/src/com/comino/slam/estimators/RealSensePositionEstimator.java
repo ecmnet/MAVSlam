@@ -293,14 +293,13 @@ public class RealSensePositionEstimator {
 								vis_init.getTranslation().z,
 								visToNED.getRotation());
 
-
+                        pos.reset();
 						pos_raw_old.set(0,0,0);
-						pos.reset();
 					} else
 						init_tms = System.currentTimeMillis();
 					return;
 				}
-
+//
 				estTimeDepth_us = timeDepth*1000;
 				//	estTimeDepth_us = System.nanoTime()*1000;
 				if(oldTimeDepth_us>0)
