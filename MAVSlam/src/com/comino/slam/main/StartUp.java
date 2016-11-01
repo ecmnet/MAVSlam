@@ -100,14 +100,6 @@ public class StartUp implements Runnable {
 			System.out.println("[vis] Vision not available: "+e.getMessage());
 		}
 
-		// reset odometry to set initial heading properly
-		control.addStatusChangeListener((ov,nv) -> {
-			if(nv.isStatusChanged(ov,Status.MSP_MODE_POSITION)) {
-				if(vision!=null)
-					 vision.reset();
-			}
-		});
-
 
 		if(vision!=null && !vision.isRunning())
 			vision.start();

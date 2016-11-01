@@ -52,6 +52,7 @@ import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
+import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
@@ -196,6 +197,13 @@ public class RealSensePositionEstimator {
 			}
 		});
 
+		// reset odometry at position hold to set initial heading properly
+		control.addStatusChangeListener((ov,nv) -> {
+			if(nv.isStatusChanged(ov,Status.MSP_MODE_POSITION)) {
+				reset();
+			}
+		});
+
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
 		} catch(Exception e) {	}
@@ -272,22 +280,22 @@ public class RealSensePositionEstimator {
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 
 					if( quality > MIN_QUALITY) {
-					vis_init.getTranslation().z = vis_init.getTranslation().z * init_count + model.attitude.r;
-					vis_init.getTranslation().x = vis_init.getTranslation().x * init_count + model.attitude.p;
-					vis_init.getTranslation().y = vis_init.getTranslation().y * init_count + model.attitude.y;
+						vis_init.getTranslation().z = vis_init.getTranslation().z * init_count + model.attitude.r;
+						vis_init.getTranslation().x = vis_init.getTranslation().x * init_count + model.attitude.p;
+						vis_init.getTranslation().y = vis_init.getTranslation().y * init_count + model.attitude.y;
 
-					vis_init.getTranslation().scale(1d/(++init_count));
+						vis_init.getTranslation().scale(1d/(++init_count));
 
-					//	ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-					ConvertRotation3D_F64.eulerToMatrix(EulerType.XYZ,
-							vis_init.getTranslation().x,
-							vis_init.getTranslation().y,
-							vis_init.getTranslation().z,
-							visToNED.getRotation());
+						//	ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+						ConvertRotation3D_F64.eulerToMatrix(EulerType.XYZ,
+								vis_init.getTranslation().x,
+								vis_init.getTranslation().y,
+								vis_init.getTranslation().z,
+								visToNED.getRotation());
 
 
-					pos_raw_old.set(0,0,0);
-					pos.reset();
+						pos_raw_old.set(0,0,0);
+						pos.reset();
 					} else
 						init_tms = System.currentTimeMillis();
 					return;
@@ -350,7 +358,7 @@ public class RealSensePositionEstimator {
 
 				if(control!=null) {
 					if(error_count < MAX_ERRORS)
-					    publishPX4Vision();
+						publishPX4Vision();
 					LockSupport.parkNanos(2000000);
 					error_count=0;
 					publisMSPVision();
