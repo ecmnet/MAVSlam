@@ -289,6 +289,7 @@ public class RealSensePositionEstimator {
 								visToNED.getRotation());
 
                         pos.reset();
+                        pos_ned.reset();
 						pos_raw_old.set(0,0,0);
 					} else
 						init_tms = System.currentTimeMillis();
