@@ -90,11 +90,11 @@ public class RealSensePositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 10;
 
-	private static final int    MAXTRACKS   		= 100;
-	private static final int    RANSAC_ITERATIONS   = 250;
-	private static final int    RETIRE_THRESHOLD    = 30;
-	private static final int    INLIER_THRESHOLD    = 70;
-	private static final int    REFINE_ITERATIONS   = 100;
+	private static final int    MAXTRACKS   		= 80;
+	private static final int    RANSAC_ITERATIONS   = 75;
+	private static final int    RETIRE_THRESHOLD    = 60;
+	private static final int    INLIER_THRESHOLD    = 120;
+	private static final int    REFINE_ITERATIONS   = 50;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
@@ -132,6 +132,8 @@ public class RealSensePositionEstimator {
 	private int quality=0;
 	private float fps = 0;
 
+	private float low_pass = 0;
+
 	private boolean isRunning = false;
 	private IMAVMSPController control;
 
@@ -161,6 +163,8 @@ public class RealSensePositionEstimator {
 		System.out.println("Vision publishes speed: "+do_speed);
 		this.do_position = config.getBoolProperty("vision_pub_pos", "true");
 		System.out.println("Vision publishes position: "+do_position);
+		this.low_pass = config.getFloatProperty("vision_speed_lowpass", "0");
+		System.out.println("Vision speed lowpass factor: "+low_pass);
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "250");
 		if(this.detector_cycle_ms>0)
@@ -256,7 +260,7 @@ public class RealSensePositionEstimator {
 
 				if(ang_speed > MAX_ROT_SPEED) {
 					if(debug)
-						System.out.println("[vis] Rotation "+ang_speed+" > MAX");
+						System.out.println("[vis] Rotation speed "+ang_speed+" > MAX");
 					init("IMU.Rot.speed");
 					return;
 				}
@@ -288,6 +292,7 @@ public class RealSensePositionEstimator {
 								vis_init.getTranslation().z,
 								visToNED.getRotation());
 
+						speed_old.reset();
                         pos.reset();
                         pos_ned.reset();
 						pos_raw_old.set(0,0,0);
@@ -296,6 +301,14 @@ public class RealSensePositionEstimator {
 					return;
 				}
 //
+
+				if(Math.abs(vis_init.getY() - model.attitude.y)> 0.1 && model.sys.isStatus(Status.MSP_LANDED)) {
+					if(debug)
+						System.out.println("[vis] Initial rotation not valid");
+					init("IMU.Rotation");
+					return;
+				}
+
 				estTimeDepth_us = timeDepth*1000;
 				//	estTimeDepth_us = System.nanoTime()*1000;
 				if(oldTimeDepth_us>0)
@@ -315,7 +328,7 @@ public class RealSensePositionEstimator {
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
 					if(quality > MIN_QUALITY ) {
-
+                        speed.reset();
 						// speed.T = (pos_raw - pos_raw_old ) / dt
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed.T);
 						speed.T.scale(1d/dt);
@@ -327,10 +340,15 @@ public class RealSensePositionEstimator {
 						return;
 					}
 
+					// Low pass speed.T = speed.T * (1 - low_pass) + old_speed.T * low_pass
+					speed.T.scale(1-low_pass); speed_old.T.scale(low_pass);
+					speed.T.plusIP(speed_old.T);
+
 					odo_speed = (float) speed.T.norm();
 					speed_old.T.set(speed.T);
 
 					if(odo_speed < MAX_SPEED) {
+
 
 						// pos_delta.T = speed.T * dt
 						pos_delta.T.set(speed.T); pos_delta.T.scale(dt);
@@ -372,7 +390,9 @@ public class RealSensePositionEstimator {
 	}
 
 	private void overlayFeatures(Graphics ctx) {
+
 		AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
+		ctx.drawString("FPS: "+fps, 10, 40);
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i))
 				ctx.drawRect((int)points.getAllTracks().get(i).x,(int)points.getAllTracks().get(i).y, 1, 1);
@@ -420,7 +440,7 @@ public class RealSensePositionEstimator {
 				error_count++;
 				if((error_count % MAX_ERRORS)==0)
 					control.writeLogMessage(new LogMessage("[vis] reset odometry: "+reason,
-							MAV_SEVERITY.MAV_SEVERITY_CRITICAL));
+							MAV_SEVERITY.MAV_SEVERITY_NOTICE));
 				visualOdometry.reset();
 				init_count = 0; fps=0; quality=0;
 				vis_init.reset();
