@@ -34,6 +34,7 @@
 package com.comino.slam.estimators;
 
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
@@ -92,9 +93,9 @@ public class RealSensePositionEstimator {
 
 	private static final int    MAXTRACKS   		= 80;
 	private static final int    RANSAC_ITERATIONS   = 75;
-	private static final int    RETIRE_THRESHOLD    = 60;
+	private static final int    RETIRE_THRESHOLD    = 50;
 	private static final int    INLIER_THRESHOLD    = 120;
-	private static final int    REFINE_ITERATIONS   = 50;
+	private static final int    REFINE_ITERATIONS   = 60;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
@@ -148,9 +149,11 @@ public class RealSensePositionEstimator {
 	private int  detector_cycle_ms = 250;
 
 	private List<ISLAMDetector> detectors = null;
+	private RealSenseInfo info;
 
 	public RealSensePositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, MJPEGHandler streamer ) {
 
+		this.info    = info;
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
 
@@ -163,7 +166,7 @@ public class RealSensePositionEstimator {
 		System.out.println("Vision publishes speed: "+do_speed);
 		this.do_position = config.getBoolProperty("vision_pub_pos", "true");
 		System.out.println("Vision publishes position: "+do_position);
-		this.low_pass = config.getFloatProperty("vision_speed_lowpass", "0");
+		this.low_pass = config.getFloatProperty("vision_speed_lowpass", "0.0");
 		System.out.println("Vision speed lowpass factor: "+low_pass);
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "250");
@@ -293,14 +296,14 @@ public class RealSensePositionEstimator {
 								visToNED.getRotation());
 
 						speed_old.reset();
-                        pos.reset();
-                        pos_ned.reset();
+						pos.reset();
+						pos_ned.reset();
 						pos_raw_old.set(0,0,0);
 					} else
 						init_tms = System.currentTimeMillis();
 					return;
 				}
-//
+				//
 
 				if(Math.abs(vis_init.getY() - model.attitude.y)> 0.1 && model.sys.isStatus(Status.MSP_LANDED)) {
 					if(debug)
@@ -328,7 +331,7 @@ public class RealSensePositionEstimator {
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
 					if(quality > MIN_QUALITY ) {
-                        speed.reset();
+						speed.reset();
 						// speed.T = (pos_raw - pos_raw_old ) / dt
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed.T);
 						speed.T.scale(1d/dt);
@@ -340,9 +343,11 @@ public class RealSensePositionEstimator {
 						return;
 					}
 
-					// Low pass speed.T = speed.T * (1 - low_pass) + old_speed.T * low_pass
-					speed.T.scale(1-low_pass); speed_old.T.scale(low_pass);
-					speed.T.plusIP(speed_old.T);
+					if(low_pass > 0) {
+						// Low pass speed.T = speed.T * (1 - low_pass) + old_speed.T * low_pass
+						speed.T.scale(1-low_pass); speed_old.T.scale(low_pass);
+						speed.T.plusIP(speed_old.T);
+					}
 
 					odo_speed = (float) speed.T.norm();
 					speed_old.T.set(speed.T);
@@ -392,11 +397,11 @@ public class RealSensePositionEstimator {
 	private void overlayFeatures(Graphics ctx) {
 
 		AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
-		ctx.drawString("FPS: "+fps, 10, 40);
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i))
 				ctx.drawRect((int)points.getAllTracks().get(i).x,(int)points.getAllTracks().get(i).y, 1, 1);
 		}
+		ctx.drawString((int)fps+" fps", info.width-50, 20);
 	}
 
 	public RealSensePositionEstimator() {
