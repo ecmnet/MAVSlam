@@ -34,7 +34,6 @@
 package com.comino.slam.estimators;
 
 
-import java.awt.Color;
 import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
@@ -91,18 +90,17 @@ public class RealSensePositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 10;
 
-	private static final int    MAXTRACKS   		= 80;
-	private static final int    RANSAC_ITERATIONS   = 75;
-	private static final int    RETIRE_THRESHOLD    = 50;
+	private static final int    MAXTRACKS   		= 200;
+	private static final int    RANSAC_ITERATIONS   = 80;
+	private static final int    RETIRE_THRESHOLD    = 75;
 	private static final int    INLIER_THRESHOLD    = 120;
-	private static final int    REFINE_ITERATIONS   = 60;
+	private static final int    REFINE_ITERATIONS   = 50;
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
 
 	private float oldTimeDepth_us=0;
 	private float estTimeDepth_us=0;
-
 
 	private Vector3D_F64 pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
@@ -113,15 +111,12 @@ public class RealSensePositionEstimator {
 	private Se3_F64 pos_delta_ned    = new Se3_F64();
 	private Se3_F64 pos_delta        = new Se3_F64();
 	private Se3_F64 pos_ned          = new Se3_F64();
-	private Se3_F64 pos              = new Se3_F64();
 
 	private Se3_F64 vis_init         = new Se3_F64();
 
 	private Se3_F64 cam_offset       = new Se3_F64();
-	private Se3_F64 cam_offset_ned   = new Se3_F64();
 
 	private Se3_F64 visToNED         = new Se3_F64();
-	private Se3_F64 bodyToNED        = new Se3_F64();
 
 	private long fps_tms   =0;
 	private long init_tms  =0;
@@ -150,6 +145,7 @@ public class RealSensePositionEstimator {
 
 	private List<ISLAMDetector> detectors = null;
 	private RealSenseInfo info;
+
 
 	public RealSensePositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, MJPEGHandler streamer ) {
 
@@ -243,6 +239,7 @@ public class RealSensePositionEstimator {
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
+
 				if(dt >0) {
 					fpm += (int)(1f/dt+0.5f);
 					if((System.currentTimeMillis() - fps_tms) > 500) {
@@ -254,8 +251,10 @@ public class RealSensePositionEstimator {
 					mf++;
 				}
 
+
 				if(streamer!=null)
-					streamer.addImage(rgb.bands[2]);
+					streamer.addImage(rgb.getBand(2));
+
 
 				// Check PX4 rotation and reset odometry if rotating too fast
 				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
@@ -297,7 +296,6 @@ public class RealSensePositionEstimator {
 								visToNED.getRotation());
 
 						speed_old.reset();
-						pos.reset();
 						pos_ned.reset();
 						pos_raw_old.set(0,0,0);
 					} else
@@ -321,18 +319,13 @@ public class RealSensePositionEstimator {
 
 				pos_raw = visualOdometry.getCameraToWorld().getT();
 
-				ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-						model.attitude.r,
-						model.attitude.p,
-						model.attitude.y,
-						bodyToNED.getRotation());
-
-				cam_offset.concat(bodyToNED, cam_offset_ned);
-
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
 					if(quality > MIN_QUALITY ) {
 						speed.reset();
+						// Add camera offset to pos_raw
+						pos_raw = pos_raw.plus(cam_offset.T);
+
 						// speed.T = (pos_raw - pos_raw_old ) / dt
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed.T);
 						speed.T.scale(1d/dt);
@@ -368,10 +361,8 @@ public class RealSensePositionEstimator {
 					}
 
 					// pos.T = pos.T + pos_delta.T
-					pos.T.plusIP(pos_delta_ned.T);
+					pos_ned.T.plusIP(pos_delta_ned.T);
 
-					// pos_ned.T = pos.T + camm_offset_ned.T
-					pos_ned.T.set(pos.T); pos_ned.T.plusIP(cam_offset_ned.T);
 				}
 				pos_raw_old.set(pos_raw);
 
