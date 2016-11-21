@@ -178,6 +178,7 @@ public class RealSensePositionEstimator {
 		this.cam_offset.T.y = -config.getFloatProperty("vision_z_offset", "0.0");
 
 		System.out.printf("Vision position offset: %s\n\n",this.cam_offset.T);
+		System.out.println("Resolution: "+info.width+"x"+info.height);
 
 		this.model = control.getCurrentModel();
 
@@ -305,7 +306,7 @@ public class RealSensePositionEstimator {
 				}
 				//
 
-				if(Math.abs(vis_init.getY() - model.attitude.y)> 0.1 && model.sys.isStatus(Status.MSP_LANDED)) {
+				if(Math.abs(vis_init.getY() - model.attitude.y)> 0.3 && model.sys.isStatus(Status.MSP_LANDED)) {
 					if(debug)
 						System.out.println("[vis] Initial rotation not valid");
 					init("IMU.Rotation");
