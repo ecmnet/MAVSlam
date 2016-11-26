@@ -49,6 +49,7 @@ import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
 import com.comino.msp.model.segment.Status;
 import com.comino.realsense.boofcv.RealSenseInfo;
+import com.comino.server.mjpeg.impl.CombinedFileStreamHandler;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
 import com.comino.slam.estimators.RealSensePositionEstimator;
@@ -101,6 +102,9 @@ public class StartUp implements Runnable {
 		} catch(Exception e) {
 			System.out.println("[vis] Vision not available: "+e.getMessage());
 		}
+
+		if(config.getBoolProperty("file_stream_enabled", "false"))
+			vision.registerStreams(new CombinedFileStreamHandler(info));
 
 
 		if(vision!=null && !vision.isRunning())

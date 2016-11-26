@@ -31,19 +31,66 @@
  *
  ****************************************************************************/
 
-package com.comino.server.mjpeg;
+package com.comino.server.mjpeg.impl;
+
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.comino.msp.model.DataModel;
+import com.comino.realsense.boofcv.RealSenseInfo;
+import com.comino.server.mjpeg.IMJPEGOverlayListener;
+import com.comino.server.mjpeg.IVisualStreamHandler;
 
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 
-public interface IVisualStreamHandler {
+public class CombinedFileStreamHandler implements IVisualStreamHandler, Runnable {
 
-	public final static int HTTPVIDEO = 0;
-	public final static int FILE = 1;
+	private Map<Long,StreamDataSet> dataSetStream = null;
 
-	public void addToStream(GrayU8 grayImage, GrayU16 depth, DataModel model, long tms_us);
-	public void registerOverlayListener(IMJPEGOverlayListener listener);
+
+	public CombinedFileStreamHandler(RealSenseInfo info) {
+		dataSetStream = new HashMap<Long,StreamDataSet>();
+	}
+
+	@Override
+	public void addToStream(GrayU8 grayImage, GrayU16 depth, DataModel model, long tms_us) {
+		long t = System.currentTimeMillis();
+		dataSetStream.put(tms_us,new StreamDataSet(grayImage,depth,model,tms_us));
+		System.out.println(dataSetStream.size()+": "+tms_us+" - "+(System.currentTimeMillis()-t));
+
+	}
+
+	@Override
+	public void registerOverlayListener(IMJPEGOverlayListener listener) {
+
+	}
+
+
+	private class StreamDataSet implements Serializable {
+
+		private static final long serialVersionUID = -4516830726585551719L;
+
+		private GrayU8 		grayImage;
+		private GrayU16 	depthImage;
+		private DataModel 	model;
+		private  long 		tms_us;
+
+		public StreamDataSet(GrayU8 g, GrayU16 d, DataModel m, long t) {
+			this.grayImage  = g.clone();
+			this.depthImage = d.clone();
+			this.model      = m.clone();
+			this.tms_us     = t;
+		}
+
+	}
+
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+
+	}
 
 }
