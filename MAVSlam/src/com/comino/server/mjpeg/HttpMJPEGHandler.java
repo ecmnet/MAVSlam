@@ -50,9 +50,10 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import boofcv.io.image.ConvertBufferedImage;
+import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 
-public class MJPEGHandler implements HttpHandler  {
+public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 
 	private static final int MAX_VIDEO_RATE_MS = 50;
 
@@ -64,7 +65,7 @@ public class MJPEGHandler implements HttpHandler  {
 	private Graphics gr;
 	private long last_image_tms = 0;
 
-	public MJPEGHandler(RealSenseInfo info, DataModel model) {
+	public HttpMJPEGHandler(RealSenseInfo info, DataModel model) {
 		this.model = model;
 		this.imageByteList = new ArrayList<BufferedImage>(0);
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
@@ -95,11 +96,13 @@ public class MJPEGHandler implements HttpHandler  {
 		}
 	}
 
+	@Override
 	public void registerOverlayListener(IMJPEGOverlayListener listener) {
 		this.listeners.add(listener);
 	}
 
-	public void addImage(GrayU8 bands) {
+	@Override
+	public void addToStream(GrayU8 grayImage, GrayU16 depth, DataModel model, long tms_us) {
 
 		if((System.currentTimeMillis()-last_image_tms)<MAX_VIDEO_RATE_MS)
 			return;
@@ -108,7 +111,7 @@ public class MJPEGHandler implements HttpHandler  {
 		if(imageByteList.size()>10)
 			imageByteList.remove(0);
 
-		ConvertBufferedImage.convertTo(bands, image);
+		ConvertBufferedImage.convertTo(grayImage, image);
 		if(listeners.size()>0) {
 			for(IMJPEGOverlayListener listener : listeners)
 				listener.processOverlay(gr);
