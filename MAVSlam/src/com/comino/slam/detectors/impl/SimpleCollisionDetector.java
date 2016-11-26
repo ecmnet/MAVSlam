@@ -36,7 +36,7 @@ package com.comino.slam.detectors.impl;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.model.DataModel;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
-import com.comino.server.mjpeg.MJPEGHandler;
+import com.comino.server.mjpeg.HttpMJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
@@ -55,7 +55,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	private int center_y=0;
 	private DataModel model;
 
-	public SimpleCollisionDetector(IMAVMSPController control, MJPEGHandler streamer) {
+	public SimpleCollisionDetector(IMAVMSPController control, HttpMJPEGHandler streamer) {
 		this.control = control;
 		this.model   = control.getCurrentModel();
 		streamer.registerOverlayListener(ctx -> {

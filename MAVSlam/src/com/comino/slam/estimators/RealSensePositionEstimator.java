@@ -59,7 +59,8 @@ import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
-import com.comino.server.mjpeg.MJPEGHandler;
+import com.comino.server.mjpeg.HttpMJPEGHandler;
+import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
@@ -143,15 +144,17 @@ public class RealSensePositionEstimator {
 	private long detector_tms = 0;
 	private int  detector_cycle_ms = 250;
 
-	private List<ISLAMDetector> detectors = null;
+	private List<ISLAMDetector> 		detectors = null;
+	private List<IVisualStreamHandler>	streams = null;
 	private RealSenseInfo info;
 
 
-	public RealSensePositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, MJPEGHandler streamer ) {
+	public RealSensePositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config) {
 
 		this.info    = info;
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
+		this.streams   = new ArrayList<IVisualStreamHandler>();
 
 		this.debug = config.getBoolProperty("vision_debug", "false");
 		System.out.println("Vision debugging: "+debug);
@@ -223,8 +226,8 @@ public class RealSensePositionEstimator {
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
 
-		if(debug) {
-			streamer.registerOverlayListener(ctx -> {
+		if(debug && streams.get(0) !=null) {
+			streams.get(0).registerOverlayListener(ctx -> {
 				overlayFeatures(ctx);
 			});
 		}
@@ -252,8 +255,8 @@ public class RealSensePositionEstimator {
 				}
 
 
-				if(streamer!=null)
-					streamer.addImage(rgb.getBand(2));
+				for(IVisualStreamHandler stream : streams)
+					stream.addToStream(rgb.getBand(2), depth, model, System.nanoTime()/1000);
 
 
 				// Check PX4 rotation and reset odometry if rotating too fast
@@ -397,7 +400,7 @@ public class RealSensePositionEstimator {
 	}
 
 	public RealSensePositionEstimator() {
-		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance("msp.properties"),null);
+		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance("msp.properties"));
 	}
 
 	public void registerDetector(ISLAMDetector detector) {
@@ -405,6 +408,11 @@ public class RealSensePositionEstimator {
 			System.out.println("[vis] Vision detector registered: "+detector.getClass().getSimpleName());
 			detectors.add(detector);
 		}
+	}
+
+	public void registerStreams(IVisualStreamHandler stream) {
+			System.out.println("[vis] Vision stream registered: "+stream.getClass().getSimpleName());
+			streams.add(stream);
 	}
 
 	public void start() {

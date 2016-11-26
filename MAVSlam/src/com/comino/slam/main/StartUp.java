@@ -49,7 +49,7 @@ import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
 import com.comino.msp.model.segment.Status;
 import com.comino.realsense.boofcv.RealSenseInfo;
-import com.comino.server.mjpeg.MJPEGHandler;
+import com.comino.server.mjpeg.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
 import com.comino.slam.estimators.RealSensePositionEstimator;
 import com.sun.net.httpserver.HttpServer;
@@ -90,11 +90,12 @@ public class StartUp implements Runnable {
 //		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_INFRARED);
 		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 
-		MJPEGHandler streamer = new MJPEGHandler(info, control.getCurrentModel());
+		HttpMJPEGHandler streamer = new HttpMJPEGHandler(info, control.getCurrentModel());
 
 		try {
 			if(config.getBoolProperty("vision_enabled", "true")) {
-				vision = new RealSensePositionEstimator(info, control, config,streamer);
+				vision = new RealSensePositionEstimator(info, control, config);
+			vision.registerStreams(streamer);
 			vision.registerDetector(new SimpleCollisionDetector(control,streamer));
 			}
 		} catch(Exception e) {
