@@ -36,7 +36,7 @@ package com.comino.slam.detectors.impl;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.model.DataModel;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
-import com.comino.server.mjpeg.HttpMJPEGHandler;
+import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.sfm.AccessPointTracks3D;

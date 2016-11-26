@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 
-package com.comino.server.mjpeg;
+package com.comino.server.mjpeg.impl;
 
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -46,6 +46,8 @@ import javax.imageio.ImageIO;
 
 import com.comino.msp.model.DataModel;
 import com.comino.realsense.boofcv.RealSenseInfo;
+import com.comino.server.mjpeg.IMJPEGOverlayListener;
+import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
