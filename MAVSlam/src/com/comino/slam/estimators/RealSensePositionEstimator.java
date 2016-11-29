@@ -149,7 +149,7 @@ public class RealSensePositionEstimator {
 	private RealSenseInfo info;
 
 
-	public RealSensePositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config) {
+	public RealSensePositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
 
 		this.info    = info;
 		this.control = control;
@@ -226,10 +226,14 @@ public class RealSensePositionEstimator {
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
 
-		if(debug && streams.get(0) !=null) {
-			streams.get(0).registerOverlayListener(ctx -> {
-				overlayFeatures(ctx);
-			});
+		if(stream!=null) {
+			registerStreams(stream);
+
+			if(debug && streams.get(0) !=null) {
+				streams.get(0).registerOverlayListener(ctx -> {
+					overlayFeatures(ctx);
+				});
+			}
 		}
 
 		init_count = 0;
@@ -400,7 +404,7 @@ public class RealSensePositionEstimator {
 	}
 
 	public RealSensePositionEstimator() {
-		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance("msp.properties"));
+		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance("msp.properties"),null);
 	}
 
 	public void registerDetector(ISLAMDetector detector) {
@@ -411,8 +415,8 @@ public class RealSensePositionEstimator {
 	}
 
 	public void registerStreams(IVisualStreamHandler stream) {
-			System.out.println("[vis] Vision stream registered: "+stream.getClass().getSimpleName());
-			streams.add(stream);
+		System.out.println("[vis] Vision stream registered: "+stream.getClass().getSimpleName());
+		streams.add(stream);
 	}
 
 	public void start() {

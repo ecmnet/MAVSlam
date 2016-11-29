@@ -248,22 +248,16 @@ public class StreamRealSenseVisDepth {
 
 
 	public void bufferDepthToU16(Pointer input , GrayU16 output ) {
-		short[] inp = input.getShortArray(0, output.width * output.height);
-
-//		int indexOut = 0;
-//		for( int y = 0; y < output.height; y++ ) {
-//			for( int x = 0; x < output.width; x++) {
-//				if(inp[indexOut]<4000)
-//				  output.set(x, y, inp[indexOut]);
-//				indexOut++;
-//			}
-//		}
-		output.setData(inp);
+		int indexOut = 0;
+		for( int y = 0; y < output.height; y++ ) {
+			for( int x = 0; x < output.width; x++) {
+				output.data[output.startIndex+indexOut] = input.getShort(indexOut++);
+			}
+		}
 	}
 
 	public void bufferRgbToMsU8( Pointer inp , Planar<GrayU8> output ) {
 
-		byte[] input = inp.getByteArray(0, output.width * output.height * 3);
 		GrayU8 band0 = output.getBand(0);
 		GrayU8 band1 = output.getBand(1);
 		GrayU8 band2 = output.getBand(2);
@@ -272,9 +266,9 @@ public class StreamRealSenseVisDepth {
 		for( int y = 0; y < output.height; y++ ) {
 			int indexOut = output.startIndex + y*output.stride;
 			for( int x = 0; x < output.width; x++ , indexOut++ ) {
-				band0.data[indexOut] = input[indexIn++];
-				band1.data[indexOut] = input[indexIn++];
-				band2.data[indexOut] = input[indexIn++];
+				band0.data[indexOut] = inp.getByte(indexIn++);
+				band1.data[indexOut] = inp.getByte(indexIn++);
+				band2.data[indexOut] = inp.getByte(indexIn++);
 			}
 		}
 
@@ -282,14 +276,20 @@ public class StreamRealSenseVisDepth {
 
 	public void bufferGrayToMsU8( Pointer inp , Planar<GrayU8> output ) {
 
-		byte[] input = inp.getByteArray(0, output.width * output.height);
 		GrayU8 band0 = output.getBand(0);
 		GrayU8 band1 = output.getBand(1);
 		GrayU8 band2 = output.getBand(2);
 
-		band0.setData(input);
-		band1.setData(input);
-		band2.setData(input);
+		int indexIn = 0;
+		for( int y = 0; y < output.height; y++ ) {
+			int indexOut = output.startIndex + y*output.stride;
+			for( int x = 0; x < output.width; x++ , indexOut++ ) {
+				band0.data[indexOut] = inp.getByte(indexIn);
+				band1.data[indexOut] = inp.getByte(indexIn);
+				band2.data[indexOut] = inp.getByte(indexIn);
+				indexIn++;
+			}
+		}
 
 
 

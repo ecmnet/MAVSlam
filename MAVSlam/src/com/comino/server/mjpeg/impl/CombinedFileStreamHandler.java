@@ -33,33 +33,78 @@
 
 package com.comino.server.mjpeg.impl;
 
+import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import javax.imageio.ImageIO;
+
+import org.mavlink.messages.MSP_CMD;
+import org.mavlink.messages.lquac.msg_msp_command;
+
+import com.comino.mav.control.IMAVMSPController;
+import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.IMJPEGOverlayListener;
 import com.comino.server.mjpeg.IVisualStreamHandler;
 
+import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 
-public class CombinedFileStreamHandler implements IVisualStreamHandler, Runnable {
+public class CombinedFileStreamHandler implements IVisualStreamHandler {
 
-	private Map<Long,StreamDataSet> dataSetStream = null;
+	private boolean isRecording     = false;
+	private long    count           = 0;
+
+	private OutputStream out  = null;
 
 
-	public CombinedFileStreamHandler(RealSenseInfo info) {
-		dataSetStream = new HashMap<Long,StreamDataSet>();
+	public CombinedFileStreamHandler(RealSenseInfo info, IMAVMSPController control) {
+		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
+			@Override
+			public void received(Object o) {
+				msg_msp_command cmd = (msg_msp_command)o;
+				switch(cmd.command) {
+				case MSP_CMD.MSP_CMD_COMBINEDFILESTREAM:
+					switch((int)cmd.param1) {
+					case 0:
+						enableRecording(false);
+						break;
+					case 1:
+						enableRecording(true);
+						break;
+					}
+				}
+			}
+		});
 	}
 
 	@Override
-	public void addToStream(GrayU8 grayImage, GrayU16 depth, DataModel model, long tms_us) {
-		long t = System.currentTimeMillis();
-		dataSetStream.put(tms_us,new StreamDataSet(grayImage,depth,model,tms_us));
-		System.out.println(dataSetStream.size()+": "+tms_us+" - "+(System.currentTimeMillis()-t));
-
+	public void addToStream(GrayU8 grayImage, GrayU16 depthImage, DataModel model, long tms_us) {
+		if(isRecording) {
+              try {
+            	CombinedDataSet c = new CombinedDataSet(grayImage,depthImage,model,tms_us);
+            	c.write(out);
+            	System.out.println(count++);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	@Override
@@ -67,30 +112,34 @@ public class CombinedFileStreamHandler implements IVisualStreamHandler, Runnable
 
 	}
 
-
-	private class StreamDataSet implements Serializable {
-
-		private static final long serialVersionUID = -4516830726585551719L;
-
-		private GrayU8 		grayImage;
-		private GrayU16 	depthImage;
-		private DataModel 	model;
-		private  long 		tms_us;
-
-		public StreamDataSet(GrayU8 g, GrayU16 d, DataModel m, long t) {
-			this.grayImage  = g.clone();
-			this.depthImage = d.clone();
-			this.model      = m.clone();
-			this.tms_us     = t;
+	private void enableRecording(boolean enable) {
+		if(enable) {
+			try {
+				out = createOutputStream();
+				count = 0;
+				isRecording = true;
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+		} else {
+			isRecording = false;
+			try {
+				if(out!=null) {
+					out.flush();
+					out.close();
+				}
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
 		}
-
 	}
 
-
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-
+	private OutputStream createOutputStream() throws IOException {
+		File f = new File("DataStream");
+		if(f.exists())
+			f.delete();
+		f.createNewFile();
+		return new BufferedOutputStream(new FileOutputStream(f));
 	}
 
 }

@@ -95,8 +95,7 @@ public class StartUp implements Runnable {
 
 		try {
 			if(config.getBoolProperty("vision_enabled", "true")) {
-				vision = new RealSensePositionEstimator(info, control, config);
-			vision.registerStreams(streamer);
+				vision = new RealSensePositionEstimator(info, control, config, streamer);
 			vision.registerDetector(new SimpleCollisionDetector(control,streamer));
 			}
 		} catch(Exception e) {
@@ -104,7 +103,7 @@ public class StartUp implements Runnable {
 		}
 
 		if(config.getBoolProperty("file_stream_enabled", "false"))
-			vision.registerStreams(new CombinedFileStreamHandler(info));
+			vision.registerStreams(new CombinedFileStreamHandler(info, control));
 
 
 		if(vision!=null && !vision.isRunning())
