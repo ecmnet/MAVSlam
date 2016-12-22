@@ -102,8 +102,8 @@ public class StartUp implements Runnable {
 			System.out.println("[vis] Vision not available: "+e.getMessage());
 		}
 
-		if(config.getBoolProperty("file_stream_enabled", "false"))
-			vision.registerStreams(new CombinedFileStreamHandler(info, control));
+//		if(config.getBoolProperty("file_stream_enabled", "false"))
+//			vision.registerStreams(new CombinedFileStreamHandler(info, control));
 
 
 		if(vision!=null && !vision.isRunning())
@@ -148,7 +148,7 @@ public class StartUp implements Runnable {
 
 		while(true) {
 			try {
-				Thread.sleep(500);
+				Thread.sleep(333);
 
 
 				if(!control.isConnected()) {
