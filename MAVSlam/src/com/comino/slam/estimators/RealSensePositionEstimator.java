@@ -507,8 +507,8 @@ public class RealSensePositionEstimator {
 		msg.vy = (float) speed_ned.T.x;
 		msg.vz = (float) speed_ned.T.y;
 		msg.h = MSPMathUtils.fromRad((float)visAttitude[2]);   //MSPMathUtils.fromRad((float)vis_init.getY());
-		msg.p = MSPMathUtils.fromRad((float)visAttitude[1]);
-		msg.r = MSPMathUtils.fromRad((float)visAttitude[0]);
+		msg.p = (float)visAttitude[1];
+		msg.r = (float)visAttitude[0];
 		msg.quality = quality;
 		msg.fps = fps;
 		msg.errors = error_count;
