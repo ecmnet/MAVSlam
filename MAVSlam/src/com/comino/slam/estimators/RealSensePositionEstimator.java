@@ -123,7 +123,8 @@ public class RealSensePositionEstimator {
 
 	private Se3_F64 visToNED         = new Se3_F64();
 
-	private double[]  visAttitude    = new double[3];
+	private double[] visAttitude     = new double[3];
+	private double[] visAttitude_old = new double[3];
 
 	private long fps_tms   =0;
 	private long init_tms  =0;
@@ -135,7 +136,8 @@ public class RealSensePositionEstimator {
 	private int quality=0;
 	private float fps = 0;
 
-	private float low_pass = 0;
+	private float low_pass   = 0;
+	private float low_pass_a = 0;
 
 	private boolean isRunning = false;
 	private IMAVMSPController control;
@@ -173,6 +175,8 @@ public class RealSensePositionEstimator {
 		System.out.println("Vision publishes position: "+do_position);
 		this.low_pass = config.getFloatProperty("vision_speed_lowpass", "0.0");
 		System.out.println("Vision speed lowpass factor: "+low_pass);
+		this.low_pass_a = config.getFloatProperty("vision_attitude_lowpass", "0.0");
+		System.out.println("Vision attitude lowpass factor: "+low_pass_a);
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
 		if(this.detector_cycle_ms>0)
@@ -317,13 +321,6 @@ public class RealSensePositionEstimator {
 				}
 				//
 
-//				if(Math.abs(vis_init.getY() - model.attitude.y)> 0.3 && model.sys.isStatus(Status.MSP_LANDED)) {
-//					if(debug)
-//						System.out.println("[vis] Initial rotation not valid");
-//					init("IMU.Rotation");
-//					return;
-//				}
-
 				estTimeDepth_us = timeDepth*1000;
 				//	estTimeDepth_us = System.nanoTime()*1000;
 				if(oldTimeDepth_us>0)
@@ -380,7 +377,24 @@ public class RealSensePositionEstimator {
 
 					// Get rotations based on vision 0=roll,1=pitch,2=yaw
 					rot_raw.concat(visToNED, rot_ned);
+
 					ConvertRotation3D_F64.matrixToEuler(rot_ned.R, EulerType.ZXY, visAttitude);
+
+					// Attitude low pass
+                    if(low_pass_a > 0) {
+						for(int i=0;i<3;i++) {
+							visAttitude[i] = visAttitude[i] * (1 - low_pass_a) + visAttitude_old[i] * (low_pass_a);
+							visAttitude_old[i] = visAttitude[i];
+						}
+					}
+
+
+					if(Math.abs(visAttitude[2] - model.attitude.y)> 0.1) {
+					if(debug)
+						System.out.println("[vis] Heading not valid");
+					init("IMU.Rotation");
+					return;
+				}
 
 
 				}

@@ -93,7 +93,7 @@ public class StreamRealSenseVisDepth {
 			throw new IllegalArgumentException("No device connected: ");
 		}
 
-        this.listeners = new ArrayList<Listener>();
+        this.listeners = new ArrayList();
 
 		this.info = info;
 
@@ -107,14 +107,14 @@ public class StreamRealSenseVisDepth {
 //		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED, 0, error);
 //		LibRealSenseUtils.rs_apply_depth_control_preset(dev, LibRealSenseUtils.PRESET_DEPTH_LOW);
 
-		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED, 1, error);
+		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED, 0, error);
 		LibRealSenseUtils.rs_apply_depth_control_preset(dev, LibRealSenseUtils.PRESET_DEPTH_HIGH);
 
 		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_COLOR,
 				info.width,info.height,rs_format.RS_FORMAT_RGB8, info.framerate, error);
 
 		if(info.mode==RealSenseInfo.MODE_INFRARED) {
-		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_INFRARED,
+		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH,
 				info.width,info.height,rs_format.RS_FORMAT_ANY, info.framerate, error);
 		}
 
@@ -213,15 +213,14 @@ public class StreamRealSenseVisDepth {
 					case RealSenseInfo.MODE_INFRARED:
 						synchronized ( this ) {
 							timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-									rs_stream.RS_STREAM_INFRARED, error);
+									rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
 							rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-									rs_stream.RS_STREAM_INFRARED, error);
+									rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
 							if(rgbData!=null)
 								bufferGrayToMsU8(rgbData,rgb);
 						}
 						break;
 					}
-
 
 					timeOld = time;
 					if(listeners.size()>0) {
@@ -248,16 +247,22 @@ public class StreamRealSenseVisDepth {
 
 
 	public void bufferDepthToU16(Pointer input , GrayU16 output ) {
-		int indexOut = 0;
-		for( int y = 0; y < output.height; y++ ) {
-			for( int x = 0; x < output.width; x++) {
-				output.data[output.startIndex+indexOut] = input.getShort(indexOut++);
-			}
-		}
+		short[] inp = input.getShortArray(0, output.width * output.height);
+
+//		int indexOut = 0;
+//		for( int y = 0; y < output.height; y++ ) {
+//			for( int x = 0; x < output.width; x++) {
+//				if(inp[indexOut]<4000)
+//				  output.set(x, y, inp[indexOut]);
+//				indexOut++;
+//			}
+//		}
+		output.setData(inp);
 	}
 
 	public void bufferRgbToMsU8( Pointer inp , Planar<GrayU8> output ) {
 
+		byte[] input = inp.getByteArray(0, output.width * output.height * 3);
 		GrayU8 band0 = output.getBand(0);
 		GrayU8 band1 = output.getBand(1);
 		GrayU8 band2 = output.getBand(2);
@@ -266,28 +271,32 @@ public class StreamRealSenseVisDepth {
 		for( int y = 0; y < output.height; y++ ) {
 			int indexOut = output.startIndex + y*output.stride;
 			for( int x = 0; x < output.width; x++ , indexOut++ ) {
-				band0.data[indexOut] = inp.getByte(indexIn++);
-				band1.data[indexOut] = inp.getByte(indexIn++);
-				band2.data[indexOut] = inp.getByte(indexIn++);
+				band0.data[indexOut] = input[indexIn++];
+				band1.data[indexOut] = input[indexIn++];
+				band2.data[indexOut] = input[indexIn++];
 			}
 		}
-
 	}
 
 	public void bufferGrayToMsU8( Pointer inp , Planar<GrayU8> output ) {
 
+		byte[] input = inp.getByteArray(0, output.width * output.height);
 		GrayU8 band0 = output.getBand(0);
 		GrayU8 band1 = output.getBand(1);
 		GrayU8 band2 = output.getBand(2);
+
+//		band0.setData(input);
+//		band1.setData(input);
+//		band2.setData(input);
+
 
 		int indexIn = 0;
 		for( int y = 0; y < output.height; y++ ) {
 			int indexOut = output.startIndex + y*output.stride;
 			for( int x = 0; x < output.width; x++ , indexOut++ ) {
-				band0.data[indexOut] = inp.getByte(indexIn);
-				band1.data[indexOut] = inp.getByte(indexIn);
-				band2.data[indexOut] = inp.getByte(indexIn);
-				indexIn++;
+				band0.data[indexOut] = input[indexIn];
+				band1.data[indexOut] = input[indexIn];
+				band2.data[indexOut] = input[indexIn++];
 			}
 		}
 
