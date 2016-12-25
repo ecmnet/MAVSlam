@@ -16,9 +16,16 @@ Prerequisites:
 
 - Intel® RealSense™ R200 (connected with external power supply)
 
-  ​
 
-  ![https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/screenshot6.png](https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/screenshot6.png)
+Heading estimation:
+
+![https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/heading.png](https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/heading.png)
+
+
+
+XY Estimation:
+
+![https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/screenshot6.png](https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/screenshot6.png)
 
 #### Desktop odometry demo 
 
