@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.LockSupport;
 
+import org.ejml.data.DenseMatrix64F;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
@@ -91,7 +92,7 @@ public class RealSensePositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 10;
 
-	private static final int    MAXTRACKS   		= 200;
+	private static final int    MAXTRACKS   		= 100;
 	private static final int    RANSAC_ITERATIONS   = 80;
 	private static final int    RETIRE_THRESHOLD    = 75;
 	private static final int    INLIER_THRESHOLD    = 120;
@@ -103,7 +104,7 @@ public class RealSensePositionEstimator {
 	private float oldTimeDepth_us=0;
 	private float estTimeDepth_us=0;
 
-	private Vector3D_F64 pos_raw;
+	private Vector3D_F64 	pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
 
 	private Se3_F64 speed       	 = new Se3_F64();
@@ -113,11 +114,16 @@ public class RealSensePositionEstimator {
 	private Se3_F64 pos_delta        = new Se3_F64();
 	private Se3_F64 pos_ned          = new Se3_F64();
 
+	private Se3_F64 rot_raw          = new Se3_F64();
+	private Se3_F64 rot_ned          = new Se3_F64();
+
 	private Se3_F64 vis_init         = new Se3_F64();
 
 	private Se3_F64 cam_offset       = new Se3_F64();
 
 	private Se3_F64 visToNED         = new Se3_F64();
+
+	private double[]  visAttitude    = new double[3];
 
 	private long fps_tms   =0;
 	private long init_tms  =0;
@@ -168,7 +174,7 @@ public class RealSensePositionEstimator {
 		this.low_pass = config.getFloatProperty("vision_speed_lowpass", "0.0");
 		System.out.println("Vision speed lowpass factor: "+low_pass);
 
-		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "250");
+		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
 		if(this.detector_cycle_ms>0)
 			System.out.printf("Vision detectors enablied with %2 [ms] cycle \n",detector_cycle_ms);
 
@@ -311,12 +317,12 @@ public class RealSensePositionEstimator {
 				}
 				//
 
-				if(Math.abs(vis_init.getY() - model.attitude.y)> 0.3 && model.sys.isStatus(Status.MSP_LANDED)) {
-					if(debug)
-						System.out.println("[vis] Initial rotation not valid");
-					init("IMU.Rotation");
-					return;
-				}
+//				if(Math.abs(vis_init.getY() - model.attitude.y)> 0.3 && model.sys.isStatus(Status.MSP_LANDED)) {
+//					if(debug)
+//						System.out.println("[vis] Initial rotation not valid");
+//					init("IMU.Rotation");
+//					return;
+//				}
 
 				estTimeDepth_us = timeDepth*1000;
 				//	estTimeDepth_us = System.nanoTime()*1000;
@@ -325,6 +331,7 @@ public class RealSensePositionEstimator {
 				oldTimeDepth_us = estTimeDepth_us;
 
 				pos_raw = visualOdometry.getCameraToWorld().getT();
+				rot_raw.setRotation(visualOdometry.getCameraToWorld().getR());
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
@@ -362,6 +369,7 @@ public class RealSensePositionEstimator {
 						pos_delta.concat(visToNED, pos_delta_ned);
 						speed.concat(visToNED, speed_ned);
 
+
 					} else {
 						init("Odometry speed");
 						return;
@@ -369,6 +377,11 @@ public class RealSensePositionEstimator {
 
 					// pos.T = pos.T + pos_delta.T
 					pos_ned.T.plusIP(pos_delta_ned.T);
+
+					// Get rotations based on vision 0=roll,1=pitch,2=yaw
+					rot_raw.concat(visToNED, rot_ned);
+					ConvertRotation3D_F64.matrixToEuler(rot_ned.R, EulerType.ZXY, visAttitude);
+
 
 				}
 				pos_raw_old.set(pos_raw);
@@ -468,6 +481,9 @@ public class RealSensePositionEstimator {
 			sms.x = (float) pos_ned.T.z;
 			sms.y = (float) pos_ned.T.x;
 			sms.z = (float) pos_ned.T.y;
+			sms.roll  = (float)visAttitude[0];
+			sms.pitch = (float)visAttitude[1];
+			sms.yaw   = (float)visAttitude[2];
 			control.sendMAVLinkMessage(sms);
 		}
 
@@ -490,7 +506,9 @@ public class RealSensePositionEstimator {
 		msg.vx = (float) speed_ned.T.z;
 		msg.vy = (float) speed_ned.T.x;
 		msg.vz = (float) speed_ned.T.y;
-		msg.h = MSPMathUtils.fromRad((float)vis_init.getY());
+		msg.h = MSPMathUtils.fromRad((float)visAttitude[2]);   //MSPMathUtils.fromRad((float)vis_init.getY());
+		msg.p = MSPMathUtils.fromRad((float)visAttitude[1]);
+		msg.r = MSPMathUtils.fromRad((float)visAttitude[0]);
 		msg.quality = quality;
 		msg.fps = fps;
 		msg.errors = error_count;
