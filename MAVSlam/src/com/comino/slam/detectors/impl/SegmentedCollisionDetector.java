@@ -72,13 +72,13 @@ public class SegmentedCollisionDetector implements ISLAMDetector {
 		obstacles.clear();
 		obstacles.setOrigin(model.state.l_x, model.state.l_y, model.state.l_z);
 
-		for( int i = 0; i < odometry.getInlierCount(); i++ ) {
-
-				Point3D_F64 point = odometry.getTrackLocation(i);
-				obstacles.addFeature(new Feature(point.x,point.y,point.z));
-
-
-		}
+//		for( int i = 0; i < odometry.getInlierCount(); i++ ) {
+//
+//				Point3D_F64 point = odometry.getTrackLocation(i);
+//				obstacles.addFeature(new Feature(point.x,point.y,point.z));
+//
+//
+//		}
 
 	   Point3D_F32 obstacle_pos = obstacles.getMaxFeaturesPositionWorld();
 	   if(obstacle_pos!=null)

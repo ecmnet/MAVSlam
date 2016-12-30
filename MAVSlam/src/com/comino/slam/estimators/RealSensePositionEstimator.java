@@ -86,17 +86,18 @@ public class RealSensePositionEstimator {
 	private static final int    INIT_TIME_MS    	= 500;
 	private static final int    MAX_ERRORS    	    = 5;
 
-	private static final float  MAX_SPEED   		= 5;
+	private static final float  MAX_SPEED   		= 15;
 
-	private static final float  MAX_ROT_SPEED   	= 3f;
+	private static final float  MAX_ROT_SPEED   	= 4f;
 
 	private static final int    MIN_QUALITY 		= 10;
 
 	private static final int    MAXTRACKS   		= 100;
 	private static final int    RANSAC_ITERATIONS   = 80;
-	private static final int    RETIRE_THRESHOLD    = 75;
+	private static final int    RETIRE_THRESHOLD    = 60;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 50;
+
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
@@ -132,6 +133,7 @@ public class RealSensePositionEstimator {
 	private DataModel model;
 
 	private boolean debug = false;
+
 
 	private int quality=0;
 	private float fps = 0;
@@ -179,8 +181,8 @@ public class RealSensePositionEstimator {
 		System.out.println("Vision attitude lowpass factor: "+low_pass_a);
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
-		if(this.detector_cycle_ms>0)
-			System.out.printf("Vision detectors enablied with %2 [ms] cycle \n",detector_cycle_ms);
+		if(this.detector_cycle_ms > 0)
+			System.out.printf("Vision detectors enablied with %d [ms] cycle \n",detector_cycle_ms);
 
 		this.cam_offset.T.z = -config.getFloatProperty("vision_x_offset", "0.0");
 		this.cam_offset.T.x = -config.getFloatProperty("vision_y_offset", "0.0");
@@ -281,15 +283,15 @@ public class RealSensePositionEstimator {
 				if(ang_speed > MAX_ROT_SPEED) {
 					if(debug)
 						System.out.println("[vis] Rotation speed "+ang_speed+" > MAX");
-					init("IMU.Rot.speed");
+					init("Rotation speed");
 					return;
 				}
 
 
-				if( !visualOdometry.process(rgb.getBand(2),depth) ) {
+				if( !visualOdometry.process(rgb.getBand(2),depth)) {
 					if(debug)
 						System.out.println("[vis] Odometry failure");
-					init("odometry");
+					init("Odometry");
 					return;
 				}
 
@@ -389,10 +391,10 @@ public class RealSensePositionEstimator {
 					}
 
 
-					if(Math.abs(visAttitude[2] - model.attitude.y)> 0.1) {
+					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1) {
 					if(debug)
 						System.out.println("[vis] Heading not valid");
-					init("IMU.Rotation");
+					init("Heading div.");
 					return;
 				}
 

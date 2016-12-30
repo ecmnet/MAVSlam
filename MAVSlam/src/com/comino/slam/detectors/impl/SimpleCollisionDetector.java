@@ -33,8 +33,10 @@
 
 package com.comino.slam.detectors.impl;
 
+import org.mavlink.messages.MAV_SEVERITY;
+
 import com.comino.mav.control.IMAVMSPController;
-import com.comino.msp.model.DataModel;
+import com.comino.msp.model.segment.LogMessage;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
@@ -43,65 +45,58 @@ import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
+import georegression.struct.point.Point3D_F64;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 
 public class SimpleCollisionDetector implements ISLAMDetector {
 
 	private static final float     MIN_DISTANCE_M         = 0.75f;
-	private static final int       COLLISION_FACTOR       = 20;
-
-	private IMAVMSPController control;
 
 	private int center_x=0;
 	private int center_y=0;
-	private DataModel model;
+
+	private BooleanProperty collision = new SimpleBooleanProperty(false);
+
+	private Point3D_F64 nearestPoint = new Point3D_F64();
 
 	public SimpleCollisionDetector(IMAVMSPController control, HttpMJPEGHandler streamer) {
-		this.control = control;
-		this.model   = control.getCurrentModel();
 		streamer.registerOverlayListener(ctx -> {
-           if(center_x > 0 && center_y > 0)
-        	   ctx.drawRect(center_x-20, center_y-20, 40, 40);
+			if(collision.get())
+				ctx.fillOval(center_x-10, center_y-10, 20, 20);
+		});
+
+		collision.addListener((l,o,n) -> {
+			if(n.booleanValue())
+				control.writeLogMessage(new LogMessage("[vis] collision warning",
+						MAV_SEVERITY.MAV_SEVERITY_WARNING));
+			else
+				control.writeLogMessage(new LogMessage("[vis] collision warning cleared",
+						MAV_SEVERITY.MAV_SEVERITY_NOTICE));
+
 		});
 	}
 
 	@Override
 	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, Planar<GrayU8> rgb) {
-	int count=0; int x = 0; int y = 0; int cx=0; int cy=0; float distance=0; double dx,dy,dz;
-
-
+		int x = 0; int y = 0; float distance=Float.MAX_VALUE;
 
 		AccessPointTracks3D points = (AccessPointTracks3D)odometry;
 
-		count = 0; cx = 0; cy = 0;
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i)) {
 				x = (int)points.getAllTracks().get(i).x;
 				y = (int)points.getAllTracks().get(i).y;
 
-				// TODO: Distance determination not working (rotate into bodyframe)
-				// Problem: get Trackposition in NED Frame => rotate with RoTMatrix
+				Point3D_F64 p = odometry.getTrackLocation(i);
 
-				if(y < depth.height/2) {
-
-					dx = odometry.getTrackLocation(i).x - model.state.l_x;
-					dy = odometry.getTrackLocation(i).y - model.state.l_y;
-					dz = odometry.getTrackLocation(i).z - model.state.l_z;
-
-					distance = (float)Math.sqrt(dx*dx + dy*dy + dz*dz);
-
-					if(distance<MIN_DISTANCE_M) {
-						cx += x; cy +=y;
-						count++;
-					}
+				if(distance >  Math.abs(p.z)) {
+					distance = (float)Math.abs(p.z);
+					center_x = x; center_y = y;
+					nearestPoint.set(p);
 				}
 			}
 		}
-
-		if(count>COLLISION_FACTOR) {
-			center_x = cx / count; center_y = cy / count;
-
-		} else {
-			center_x = 0; center_y = 0;
-		}
+		collision.set(nearestPoint.z <MIN_DISTANCE_M);
 	}
 }
