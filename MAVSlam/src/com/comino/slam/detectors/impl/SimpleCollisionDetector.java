@@ -62,8 +62,10 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 	public SimpleCollisionDetector(IMAVMSPController control, HttpMJPEGHandler streamer) {
 		streamer.registerOverlayListener(ctx -> {
-			if(collision.get())
-				ctx.fillOval(center_x-10, center_y-10, 20, 20);
+			if(collision.get()) {
+				ctx.drawString(String.format("Distance: %#.2fm", nearestPoint.z), 5, 20);
+				ctx.fillOval(center_x-15, center_y-15, 30, 30);
+			}
 		});
 
 		collision.addListener((l,o,n) -> {
@@ -76,6 +78,11 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		});
 	}
+
+	/*
+	 * This is a simple collision warner. It searches the closest inliner and presents a warning if the distance of this
+	 * inline is < MIN_DISTANCE_M
+	 */
 
 	@Override
 	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, Planar<GrayU8> rgb) {
