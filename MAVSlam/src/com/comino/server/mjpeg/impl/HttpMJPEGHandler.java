@@ -73,11 +73,6 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
 		this.image = new BufferedImage(info.width, info.height, BufferedImage.TYPE_BYTE_GRAY);
 		this.gr =  image.getGraphics();
-
-		this.registerOverlayListener(ctx -> {
-			if(!Float.isNaN(model.sys.t_armed_ms))
-				ctx.drawString("Time:"+(int)model.sys.t_armed_ms+"ms", 10, 20);
-		});
 	}
 
 	@Override

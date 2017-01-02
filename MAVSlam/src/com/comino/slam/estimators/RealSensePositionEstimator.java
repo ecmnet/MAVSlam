@@ -84,7 +84,7 @@ import georegression.struct.se.Se3_F64;
 public class RealSensePositionEstimator {
 
 	private static final int    INIT_TIME_MS    	= 500;
-	private static final int    MAX_ERRORS    	    = 5;
+	private static final int    MAX_ERRORS    	    = 1;
 
 	private static final float  MAX_SPEED   		= 15;
 
@@ -92,9 +92,9 @@ public class RealSensePositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 10;
 
-	private static final int    MAXTRACKS   		= 100;
+	private static final int    MAXTRACKS   		= 150;
 	private static final int    RANSAC_ITERATIONS   = 80;
-	private static final int    RETIRE_THRESHOLD    = 60;
+	private static final int    RETIRE_THRESHOLD    = 40;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 50;
 

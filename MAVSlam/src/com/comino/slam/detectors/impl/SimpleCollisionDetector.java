@@ -33,10 +33,16 @@
 
 package com.comino.slam.detectors.impl;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.mavlink.messages.MAV_SEVERITY;
 
 import com.comino.mav.control.IMAVMSPController;
+import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
+import com.comino.msp.model.segment.Status;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
@@ -56,22 +62,38 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	private int center_x=0;
 	private int center_y=0;
 
+	private DataModel model = null;
+
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
-	private Point3D_F64 nearestPoint = new Point3D_F64();
+	private List<NearestPoint> nearestPoints =  new ArrayList<NearestPoint>();
 
 	public SimpleCollisionDetector(IMAVMSPController control, HttpMJPEGHandler streamer) {
+
+		this.model = control.getCurrentModel();
+
 		streamer.registerOverlayListener(ctx -> {
 			if(collision.get()) {
-				ctx.drawString(String.format("Distance: %#.2fm", nearestPoint.z), 5, 20);
-				ctx.fillOval(center_x-15, center_y-15, 30, 30);
+				for(NearestPoint n : nearestPoints) {
+					ctx.drawRect(n.plane_x-10, n.plane_y-10, 20, 20);
+				}
+
+				NearestPoint n = nearestPoints.get(0);
+				ctx.drawString(String.format("Min.Distance: %#.2fm", n.p.z), 5, 20);
+
+				ctx.drawOval(center_x-10, center_y-10, 20, 20);
+				ctx.drawOval(center_x-15, center_y-15, 30, 30);
 			}
 		});
 
 		collision.addListener((l,o,n) -> {
-			if(n.booleanValue())
+			if(n.booleanValue()) {
 				control.writeLogMessage(new LogMessage("[vis] collision warning",
 						MAV_SEVERITY.MAV_SEVERITY_WARNING));
+
+				// Determine position in NED of nearest Point and propose avoidance direction
+
+			}
 			else
 				control.writeLogMessage(new LogMessage("[vis] collision warning cleared",
 						MAV_SEVERITY.MAV_SEVERITY_NOTICE));
@@ -86,9 +108,18 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 	@Override
 	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, Planar<GrayU8> rgb) {
-		int x = 0; int y = 0; float distance=Float.MAX_VALUE;
+		int x = 0; int y = 0;
 
 		AccessPointTracks3D points = (AccessPointTracks3D)odometry;
+
+		nearestPoints.clear();
+
+		if(points.getAllTracks().size()==0 || model.hud.ag <0.1) {
+			collision.set(false);
+			return;
+		}
+
+		center_x = 0; center_y = 0;
 
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i)) {
@@ -97,13 +128,33 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 				Point3D_F64 p = odometry.getTrackLocation(i);
 
-				if(distance >  Math.abs(p.z)) {
-					distance = (float)Math.abs(p.z);
-					center_x = x; center_y = y;
-					nearestPoint.set(p);
+				if(p.z < MIN_DISTANCE_M) {
+					NearestPoint n = new NearestPoint();
+					n.p = p;
+					n.plane_x = x;
+					n.plane_y = y;
+					center_x = center_x + x;
+					center_y = center_y + y;
+					nearestPoints.add(n);
 				}
 			}
 		}
-		collision.set(nearestPoint.z <MIN_DISTANCE_M);
+		if(nearestPoints.size()>1) {
+			center_x = center_x / nearestPoints.size();
+			center_y = center_y / nearestPoints.size();
+			Collections.sort(nearestPoints, (a, b) -> {
+				return Double.compare(a.p.z,b.p.z);
+			});
+			collision.set(true);
+		} else
+			collision.set(false);
+
+	}
+
+	private class NearestPoint {
+
+		public Point3D_F64 p;
+		public int plane_x;
+		public int plane_y;
 	}
 }
