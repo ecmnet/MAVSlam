@@ -383,20 +383,22 @@ public class RealSensePositionEstimator {
 					ConvertRotation3D_F64.matrixToEuler(rot_ned.R, EulerType.ZXY, visAttitude);
 
 					// Attitude low pass
-                    if(low_pass_a > 0) {
+					if(low_pass_a > 0) {
 						for(int i=0;i<3;i++) {
 							visAttitude[i] = visAttitude[i] * (1 - low_pass_a) + visAttitude_old[i] * (low_pass_a);
 							visAttitude_old[i] = visAttitude[i];
 						}
 					}
 
+					// In landed state be more accurate
+					float div = model.sys.isStatus(Status.MSP_LANDED) ? 0.05f : 0.2f;
 
-					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1) {
-					if(debug)
-						System.out.println("[vis] Heading not valid");
-					init("Heading div.");
-					return;
-				}
+					if(Math.abs(visAttitude[2] - model.attitude.y) > div) {
+						if(debug)
+							System.out.println("[vis] Heading not valid");
+						init("Heading div.");
+						return;
+					}
 
 
 				}

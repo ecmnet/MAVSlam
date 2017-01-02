@@ -52,6 +52,8 @@ import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
 import georegression.struct.point.Point3D_F64;
+import georegression.struct.se.Se3_F64;
+import georegression.transform.se.SePointOps_F64;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 
@@ -63,6 +65,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	private int center_y=0;
 
 	private DataModel model = null;
+	private Point3D_F64   pos   = new Point3D_F64();
 
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
@@ -79,7 +82,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				}
 
 				NearestPoint n = nearestPoints.get(0);
-				ctx.drawString(String.format("Min.Distance: %#.2fm", n.p.z), 5, 20);
+				ctx.drawString(String.format("Min.Distance: %#.2fm", n.p_body.z), 5, 20);
 
 				ctx.drawOval(center_x-10, center_y-10, 20, 20);
 				ctx.drawOval(center_x-15, center_y-15, 30, 30);
@@ -90,8 +93,6 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			if(n.booleanValue()) {
 				control.writeLogMessage(new LogMessage("[vis] collision warning",
 						MAV_SEVERITY.MAV_SEVERITY_WARNING));
-
-				// Determine position in NED of nearest Point and propose avoidance direction
 
 			}
 			else
@@ -126,16 +127,26 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				x = (int)points.getAllTracks().get(i).x;
 				y = (int)points.getAllTracks().get(i).y;
 
+				// p is the obstacle ccordinates in body-frame
 				Point3D_F64 p = odometry.getTrackLocation(i);
 
 				if(p.z < MIN_DISTANCE_M) {
 					NearestPoint n = new NearestPoint();
-					n.p = p;
+					n.p_body = p;
 					n.plane_x = x;
 					n.plane_y = y;
 					center_x = center_x + x;
 					center_y = center_y + y;
 					nearestPoints.add(n);
+
+					// to get getWorld coordinates of p
+					// SePointOps_F64.transform(odometry.getCameraToWorld(), p, pos);
+
+					// TODO: get a 3D avoidance vector based on the obstacle points
+					// TODO: Project to display frame and visualize the avoidance vector
+					// TODO: Take over control of the vehicle and perform avoidance maneuver
+
+
 				}
 			}
 		}
@@ -143,7 +154,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			center_x = center_x / nearestPoints.size();
 			center_y = center_y / nearestPoints.size();
 			Collections.sort(nearestPoints, (a, b) -> {
-				return Double.compare(a.p.z,b.p.z);
+				return Double.compare(a.p_body.z,b.p_body.z);
 			});
 			collision.set(true);
 		} else
@@ -152,8 +163,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	}
 
 	private class NearestPoint {
-
-		public Point3D_F64 p;
+		public Point3D_F64 p_body;
 		public int plane_x;
 		public int plane_y;
 	}
