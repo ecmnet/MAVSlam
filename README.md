@@ -28,6 +28,12 @@ XY Estimation:
 
 ![https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/screenshot6.png](https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/screenshot6.png)
 
+Obstacle detection:
+
+![https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/obstacle.png](https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/obstacle.png)
+
+
+
 #### Desktop odometry demo 
 
 A first implementation using Intel® RealSense™ R200 with boofcv on OSX/Linux platforms. Based on https://github.com/IntelRealSense/librealsense and http://boofcv.org/index.php?title=Main_Page.
