@@ -33,6 +33,7 @@
 
 package com.comino.slam.detectors.impl;
 
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -59,7 +60,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 
 public class SimpleCollisionDetector implements ISLAMDetector {
 
-	private static final float     MIN_DISTANCE_M         = 0.75f;
+	private static final float     MIN_DISTANCE_M         = 1.25f;
 
 	private int center_x=0;
 	private int center_y=0;
@@ -115,7 +116,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		nearestPoints.clear();
 
-		if(points.getAllTracks().size()==0 || model.hud.ag <0.1) {
+		if(points.getAllTracks().size()==0 || model.sys.isStatus(Status.MSP_LANDED)) {
 			collision.set(false);
 			return;
 		}

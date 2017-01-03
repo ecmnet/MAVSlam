@@ -252,7 +252,7 @@ public class RealSensePositionEstimator {
 
 		realsense.registerListener(new Listener() {
 
-			float dt; int mf=0; int fpm;
+			float dt; int mf=0; int fpm; float head_div;
 			float ang_speed; float odo_speed;
 
 			@Override
@@ -391,9 +391,9 @@ public class RealSensePositionEstimator {
 					}
 
 					// In landed state be more accurate
-					float div = model.sys.isStatus(Status.MSP_LANDED) ? 0.05f : 0.2f;
+					head_div = model.sys.isStatus(Status.MSP_LANDED) ? 0.1f : 0.2f;
 
-					if(Math.abs(visAttitude[2] - model.attitude.y) > div) {
+					if(Math.abs(visAttitude[2] - model.attitude.y) > head_div) {
 						if(debug)
 							System.out.println("[vis] Heading not valid");
 						init("Heading div.");
