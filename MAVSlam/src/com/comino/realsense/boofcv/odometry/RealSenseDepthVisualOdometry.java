@@ -17,5 +17,7 @@ public interface RealSenseDepthVisualOdometry<Vis extends ImageBase, Depth exten
 
 	public Point3D_F64 getTrackLocation(int index);
 
+	public double getQuality();
+
 
 }

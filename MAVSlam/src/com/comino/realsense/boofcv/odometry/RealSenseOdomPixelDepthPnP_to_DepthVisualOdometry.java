@@ -78,6 +78,11 @@ public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends Image
 	}
 
 	@Override
+	public double getQuality() {
+		return alg.getQuality();
+	}
+
+	@Override
 	public long getTrackId(int index) {
 		return active.get(index).featureId;
 	}

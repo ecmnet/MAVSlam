@@ -60,7 +60,7 @@ import georegression.transform.se.SePointOps_F64;
  * used to estimate 3D feature locations. For example if a stereo camera is used
  * then 3-view geometry can't be used to improve performance.
  *
- * @author Peter Abeles
+ * @author Peter Abeles, modified by Eike Mansfeld
  */
 public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 
@@ -109,6 +109,8 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 	private Se3_F64 temp = new Se3_F64();
 
 	private Point3D_F64 lastTrackAdded = new Point3D_F64();
+
+	private double quality = 0;
 
 	/**
 	 * Configures magic numbers and estimation algorithms.
@@ -303,6 +305,8 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 		if (!motionEstimator.process(obs))
 			return false;
 
+		this.quality = motionEstimator.getFitQuality();
+
 		if (doublePass) {
 			if (!performSecondPass(active, obs))
 				return false;
@@ -371,6 +375,11 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 		Point2D3D p = t.getCookie();
 		pixelToNorm.compute(t.x, t.y, p.observation);
 		return p;
+	}
+
+	// MSP
+	public double getQuality() {
+		return this.quality;
 	}
 
 	private void concatMotion() {

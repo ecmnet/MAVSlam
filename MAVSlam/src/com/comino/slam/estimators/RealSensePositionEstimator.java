@@ -83,14 +83,14 @@ import georegression.struct.se.Se3_F64;
 
 public class RealSensePositionEstimator {
 
-	private static final int    INIT_TIME_MS    	= 500;
+	private static final int    INIT_TIME_MS    	= 600;
 	private static final int    MAX_ERRORS    	    = 1;
 
 	private static final float  MAX_SPEED   		= 15;
 
 	private static final float  MAX_ROT_SPEED   	= 4f;
 
-	private static final int    MIN_QUALITY 		= 10;
+	private static final int    MIN_QUALITY 		= 60;
 
 	private static final int    MAXTRACKS   		= 150;
 	private static final int    RANSAC_ITERATIONS   = 80;
@@ -141,7 +141,8 @@ public class RealSensePositionEstimator {
 	private float low_pass   = 0;
 	private float low_pass_a = 0;
 
-	private boolean isRunning = false;
+	private boolean isRunning    = false;
+
 	private IMAVMSPController control;
 
 	private int error_count = 0;
@@ -295,8 +296,7 @@ public class RealSensePositionEstimator {
 					return;
 				}
 
-				quality = visualOdometry.getInlierCount() ;
-				if(quality>100) quality = 100;
+				quality = (int)(visualOdometry.getQuality() * 100f / MAXTRACKS);
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 
@@ -317,8 +317,9 @@ public class RealSensePositionEstimator {
 						speed_old.reset();
 						pos_ned.reset();
 						pos_raw_old.set(0,0,0);
-					} else
+					} else {
 						init_tms = System.currentTimeMillis();
+					}
 					return;
 				}
 				//
@@ -335,6 +336,7 @@ public class RealSensePositionEstimator {
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
 					if(quality > MIN_QUALITY ) {
+
 						speed.reset();
 						// Add camera offset to pos_raw
 						pos_raw = pos_raw.plus(cam_offset.T);
