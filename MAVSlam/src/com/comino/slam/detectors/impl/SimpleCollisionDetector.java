@@ -116,7 +116,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		nearestPoints.clear();
 
-		if(points.getAllTracks().size()==0 || ( model.sys.isStatus(Status.MSP_LANDED) && model.hud.ar < 0.3f)) {
+		if(points.getAllTracks().size()==0 || ( model.sys.isStatus(Status.MSP_LANDED) && model.hud.ar < 0.6f)) {
 			collision.set(false);
 			return;
 		}
