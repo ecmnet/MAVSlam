@@ -77,7 +77,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 		this.model = control.getCurrentModel();
 
 		streamer.registerOverlayListener(ctx -> {
-			if(collision.get()) {
+			if(collision.get() && nearestPoints.size()>0) {
 				for(NearestPoint n : nearestPoints) {
 					ctx.drawRect(n.plane_x-10, n.plane_y-10, 20, 20);
 				}
@@ -116,7 +116,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		nearestPoints.clear();
 
-		if(points.getAllTracks().size()==0 || ( model.sys.isStatus(Status.MSP_LANDED) && model.hud.ar < 0.6f)) {
+		if(points.getAllTracks().size()==0 || ( model.sys.isStatus(Status.MSP_LANDED) && model.raw.di < 0.6f)) {
 			collision.set(false);
 			return;
 		}
@@ -161,6 +161,10 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 		} else
 			collision.set(false);
 
+	}
+
+	public void reset() {
+		nearestPoints.clear();
 	}
 
 	private class NearestPoint {

@@ -363,7 +363,6 @@ public class RealSensePositionEstimator {
 
 					if(odo_speed < MAX_SPEED) {
 
-
 						// pos_delta.T = speed.T * dt
 						pos_delta.T.set(speed.T); pos_delta.T.scale(dt);
 						// rotate to NED
@@ -488,6 +487,12 @@ public class RealSensePositionEstimator {
 				vis_init.reset();
 				init_tms = System.currentTimeMillis();
 				publisMSPVision();
+
+				if(detectors.size()>0) {
+					detector_tms = System.currentTimeMillis();
+					for(ISLAMDetector d : detectors)
+						d.reset();
+				}
 			}
 		}
 	}
