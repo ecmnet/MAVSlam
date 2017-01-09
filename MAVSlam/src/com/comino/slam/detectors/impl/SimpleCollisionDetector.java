@@ -109,7 +109,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	 */
 
 	@Override
-	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, Planar<GrayU8> rgb) {
+	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
 		int x = 0; int y = 0;
 
 		AccessPointTracks3D points = (AccessPointTracks3D)odometry;

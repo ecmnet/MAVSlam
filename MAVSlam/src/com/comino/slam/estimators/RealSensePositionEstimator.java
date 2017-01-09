@@ -70,6 +70,7 @@ import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.alg.distort.DoNothingPixelTransform_F32;
 import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
+import boofcv.core.image.ConvertImage;
 import boofcv.factory.feature.tracker.FactoryPointTrackerTwoPass;
 import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU16;
@@ -90,20 +91,22 @@ public class RealSensePositionEstimator {
 
 	private static final float  MAX_ROT_SPEED   	= 4f;
 
-	private static final int    MIN_QUALITY 		= 60;
+	private static final int    MIN_QUALITY 		= 15;
 
-	private static final int    MAXTRACKS   		= 150;
-	private static final int    RANSAC_ITERATIONS   = 80;
-	private static final int    RETIRE_THRESHOLD    = 40;
-	private static final int    INLIER_THRESHOLD    = 120;
-	private static final int    REFINE_ITERATIONS   = 50;
+	private static final int    MAXTRACKS   		= 160;
+	private static final int    RANSAC_ITERATIONS   = 150;
+	private static final int    RETIRE_THRESHOLD    = 10;
+	private static final int    INLIER_THRESHOLD    = 150;
+	private static final int    REFINE_ITERATIONS   = 400;
 
 
 	private StreamRealSenseVisDepth realsense;
 	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
 
-	private float oldTimeDepth_us=0;
-	private float estTimeDepth_us=0;
+	private GrayU8 gray = null;
+
+	private double oldTimeDepth_us=0;
+	private double estTimeDepth_us=0;
 
 	private Vector3D_F64 	pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
@@ -169,6 +172,7 @@ public class RealSensePositionEstimator {
 
 		this.debug = config.getBoolProperty("vision_debug", "false");
 		System.out.println("Vision debugging: "+debug);
+		System.out.println("RANSAC iterations: "+RANSAC_ITERATIONS);
 
 		this.do_odometry = config.getBoolProperty("vision_enable", "true");
 		System.out.println("Vision Odometry enabled: "+do_odometry);
@@ -194,6 +198,8 @@ public class RealSensePositionEstimator {
 
 		this.model = control.getCurrentModel();
 
+		gray = new GrayU8(info.width,info.height);
+
 		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
 			@Override
 			public void received(Object o) {
@@ -212,13 +218,6 @@ public class RealSensePositionEstimator {
 			}
 		});
 
-		// reset odometry at position hold to set initial heading properly
-		control.addStatusChangeListener((ov,nv) -> {
-			if(nv.isStatusChanged(ov,Status.MSP_MODE_POSITION)) {
-				reset();
-			}
-		});
-
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
 		} catch(Exception e) {	}
@@ -228,12 +227,12 @@ public class RealSensePositionEstimator {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 2, 1),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 2, 0.5f),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
-		visualOdometry = FactoryRealSenseOdometry.depthDepthPnP(1.2,
+		visualOdometry = FactoryRealSenseOdometry.depthDepthPnP(1.5,
 				INLIER_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
@@ -253,8 +252,9 @@ public class RealSensePositionEstimator {
 
 		realsense.registerListener(new Listener() {
 
-			float dt; int mf=0; int fpm; float head_div;
+			double dt; int mf=0; int fpm; float head_div;
 			float ang_speed; float odo_speed;
+			int qual_error_count=0;
 
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
@@ -271,9 +271,10 @@ public class RealSensePositionEstimator {
 					mf++;
 				}
 
+				ConvertImage.average(rgb, gray);
 
 				for(IVisualStreamHandler stream : streams)
-					stream.addToStream(rgb.getBand(2), depth, model, System.nanoTime()/1000);
+					stream.addToStream(gray, depth, model, System.nanoTime()/1000);
 
 
 				// Check PX4 rotation and reset odometry if rotating too fast
@@ -289,7 +290,7 @@ public class RealSensePositionEstimator {
 				}
 
 
-				if( !visualOdometry.process(rgb.getBand(2),depth)) {
+				if( !visualOdometry.process(gray,depth)) {
 					if(debug)
 						System.out.println("[vis] Odometry failure");
 					init("Odometry");
@@ -297,6 +298,7 @@ public class RealSensePositionEstimator {
 				}
 
 				quality = (int)(visualOdometry.getQuality() * 100f / MAXTRACKS);
+				if(quality > 100) quality = 100;
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
 
@@ -324,8 +326,8 @@ public class RealSensePositionEstimator {
 				}
 				//
 
-				estTimeDepth_us = timeDepth*1000;
-				//	estTimeDepth_us = System.nanoTime()*1000;
+				//estTimeDepth_us = timeDepth*1000;
+				estTimeDepth_us = System.nanoTime()/1000f;
 				if(oldTimeDepth_us>0)
 					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
 				oldTimeDepth_us = estTimeDepth_us;
@@ -346,9 +348,12 @@ public class RealSensePositionEstimator {
 						speed.T.scale(1d/dt);
 
 					} else {
-						if(debug)
-							System.out.println("[vis] Quality "+quality+" < Min");
-						init("Quality");
+						if(++qual_error_count > 5) {
+							qual_error_count=0;
+							if(debug)
+								System.out.println("[vis] Quality "+quality+" < Min");
+							init("Quality");
+						}
 						return;
 					}
 
@@ -392,7 +397,7 @@ public class RealSensePositionEstimator {
 					}
 
 					// In landed state be more accurate
-					head_div = model.sys.isStatus(Status.MSP_LANDED) ? 0.1f : 0.2f;
+					head_div = model.sys.isStatus(Status.MSP_LANDED) ? 0.1f : 0.1f;
 
 					if(Math.abs(visAttitude[2] - model.attitude.y) > head_div) {
 						if(debug)
@@ -417,7 +422,7 @@ public class RealSensePositionEstimator {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
 						for(ISLAMDetector d : detectors)
-							d.process(visualOdometry, depth, rgb);
+							d.process(visualOdometry, depth, gray);
 					}
 				}
 			}
