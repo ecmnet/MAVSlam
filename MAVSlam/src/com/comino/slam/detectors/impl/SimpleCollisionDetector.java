@@ -49,9 +49,12 @@ import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
+import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
+import boofcv.struct.sfm.Point2D3DTrack;
+import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.transform.se.SePointOps_F64;
@@ -70,7 +73,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
-	private List<NearestPoint> nearestPoints =  new ArrayList<NearestPoint>();
+	private List<Point2D3D> nearestPoints =  new ArrayList<Point2D3D>();
 
 	public SimpleCollisionDetector(IMAVMSPController control, HttpMJPEGHandler streamer) {
 
@@ -78,12 +81,12 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		streamer.registerOverlayListener(ctx -> {
 			if(collision.get() && nearestPoints.size()>0) {
-				for(NearestPoint n : nearestPoints) {
-					ctx.drawRect(n.plane_x-10, n.plane_y-10, 20, 20);
+				for(Point2D3D n : nearestPoints) {
+					ctx.drawRect((int)n.observation.x-10, (int)n.observation.y-10, 20, 20);
 				}
 
-				NearestPoint n = nearestPoints.get(0);
-				ctx.drawString(String.format("Min.Distance: %#.2fm", n.p_body.z), 5, 20);
+				Point2D3D n = nearestPoints.get(0);
+				ctx.drawString(String.format("Min.Distance: %#.2fm", n.getLocation().z), 5, 20);
 
 				ctx.drawOval(center_x-10, center_y-10, 20, 20);
 				ctx.drawOval(center_x-15, center_y-15, 30, 30);
@@ -110,7 +113,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 	@Override
 	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
-		int x = 0; int y = 0;
+		Point2D_F64 xy; Point3D_F64 p;
 
 		AccessPointTracks3D points = (AccessPointTracks3D)odometry;
 
@@ -125,19 +128,17 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i)) {
-				x = (int)points.getAllTracks().get(i).x;
-				y = (int)points.getAllTracks().get(i).y;
-
-				// p is the obstacle ccordinates in body-frame
-				Point3D_F64 p = odometry.getTrackLocation(i);
+				// xy is the observation
+				xy = points.getAllTracks().get(i);
+				// p is the obstacle location in body-frame
+				p = odometry.getTrackLocation(i);
 
 				if(p.z < MIN_DISTANCE_M) {
-					NearestPoint n = new NearestPoint();
-					n.p_body = p;
-					n.plane_x = x;
-					n.plane_y = y;
-					center_x = center_x + x;
-					center_y = center_y + y;
+					Point2D3D n = new Point2D3D();
+					n.setLocation(p);
+					n.setObservation(xy);
+					center_x = center_x + (int)xy.x;
+					center_y = center_y + (int)xy.y;
 					nearestPoints.add(n);
 
 					// to get getWorld coordinates of p
@@ -155,7 +156,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			center_x = center_x / nearestPoints.size();
 			center_y = center_y / nearestPoints.size();
 			Collections.sort(nearestPoints, (a, b) -> {
-				return Double.compare(a.p_body.z,b.p_body.z);
+				return Double.compare(a.location.z,b.location.z);
 			});
 			collision.set(true);
 		} else
@@ -163,13 +164,9 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 	}
 
+
 	public void reset() {
 		nearestPoints.clear();
 	}
 
-	private class NearestPoint {
-		public Point3D_F64 p_body;
-		public int plane_x;
-		public int plane_y;
-	}
 }

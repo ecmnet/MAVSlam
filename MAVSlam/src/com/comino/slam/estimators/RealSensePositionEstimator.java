@@ -223,11 +223,11 @@ public class RealSensePositionEstimator {
 		} catch(Exception e) {	}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{1, 4, 8, 16};
+		configKlt.pyramidScaling = new int[]{1, 4, 16, 32};
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 2, 0.5f),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 1, 0.5f),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
