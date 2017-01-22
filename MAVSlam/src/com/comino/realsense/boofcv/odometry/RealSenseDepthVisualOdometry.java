@@ -9,15 +9,15 @@ import georegression.struct.se.Se3_F64;
 public interface RealSenseDepthVisualOdometry<Vis extends ImageBase, Depth extends ImageGray>
                extends DepthVisualOdometry<Vis, Depth> {
 
-	/**
-	 * Get the quality of current estimation (0..100)
-	 */
 	public int getInlierCount();
-
 
 	public Point3D_F64 getTrackLocation(int index);
 
 	public double getQuality();
+
+	public void reset(Se3_F64 initialState);
+
+	public void setRotation(Se3_F64 initialState);
 
 
 }

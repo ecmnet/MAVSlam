@@ -134,6 +134,16 @@ public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends Image
 	}
 
 	@Override
+	public void reset(Se3_F64 initialState) {
+		alg.reset(initialState);
+	}
+
+	@Override
+	public void setRotation(Se3_F64 state) {
+		alg.setRotation(state);
+	}
+
+	@Override
 	public boolean isFault() {
 		return !success;
 	}

@@ -165,6 +165,19 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 		tick = 0;
 	}
 
+	public void reset(Se3_F64 initialState) {
+		tracker.reset();
+		keyToWorld.set(initialState);
+		currToKey.reset();
+		first = true;
+		tick = 0;
+	}
+
+	public void setRotation(Se3_F64 state) {
+		keyToWorld.getRotation().zero();
+		currToKey.getRotation().set(state.getRotation());
+	}
+
 	/**
 	 * Estimates the motion given the left camera image. The latest information
 	 * required by ImagePixelTo3D should be passed to the class before invoking
