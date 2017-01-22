@@ -82,7 +82,7 @@ import georegression.struct.EulerType;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 
-public class RealSensePositionEstimator implements IPositionEstimator {
+public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 
 	private static final int    INIT_TIME_MS    	= 600;
 	private static final int    MAX_ERRORS    	    = 1;
@@ -163,7 +163,7 @@ public class RealSensePositionEstimator implements IPositionEstimator {
 	private RealSenseInfo info;
 
 
-	public RealSensePositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
+	public RealSensePositionEstimatorAttitude(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
 
 		this.info    = info;
 		this.control = control;
@@ -440,14 +440,10 @@ public class RealSensePositionEstimator implements IPositionEstimator {
 		ctx.drawString((int)fps+" fps", info.width-50, 20);
 	}
 
-	public RealSensePositionEstimator() {
+	public RealSensePositionEstimatorAttitude() {
 		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance("msp.properties"),null);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.comino.slam.estimators.IPositionEstimator#registerDetector(com.comino.slam.detectors.ISLAMDetector)
-	 */
-	@Override
 	public void registerDetector(ISLAMDetector detector) {
 		if(detector_cycle_ms>0) {
 			System.out.println("[vis] Vision detector registered: "+detector.getClass().getSimpleName());
@@ -455,19 +451,11 @@ public class RealSensePositionEstimator implements IPositionEstimator {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see com.comino.slam.estimators.IPositionEstimator#registerStreams(com.comino.server.mjpeg.IVisualStreamHandler)
-	 */
-	@Override
 	public void registerStreams(IVisualStreamHandler stream) {
 		System.out.println("[vis] Vision stream registered: "+stream.getClass().getSimpleName());
 		streams.add(stream);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.comino.slam.estimators.IPositionEstimator#start()
-	 */
-	@Override
 	public void start() {
 		isRunning = true; init_tms=0;
 		init("StartUp");
@@ -475,10 +463,6 @@ public class RealSensePositionEstimator implements IPositionEstimator {
 			realsense.start();
 	}
 
-	/* (non-Javadoc)
-	 * @see com.comino.slam.estimators.IPositionEstimator#stop()
-	 */
-	@Override
 	public void stop() {
 		if(isRunning) {
 			realsense.stop();
@@ -487,18 +471,10 @@ public class RealSensePositionEstimator implements IPositionEstimator {
 		isRunning=false;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.comino.slam.estimators.IPositionEstimator#isRunning()
-	 */
-	@Override
 	public boolean isRunning() {
 		return isRunning;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.comino.slam.estimators.IPositionEstimator#reset()
-	 */
-	@Override
 	public void reset() {
 		init_tms=0;
 		init("msp reset");
@@ -575,7 +551,7 @@ public class RealSensePositionEstimator implements IPositionEstimator {
 	}
 
 	public static void main(String[] args) {
-		new RealSensePositionEstimator();
+		new RealSensePositionEstimatorAttitude();
 	}
 
 }
