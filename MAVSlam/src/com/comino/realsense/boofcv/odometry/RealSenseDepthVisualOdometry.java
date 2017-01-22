@@ -17,7 +17,7 @@ public interface RealSenseDepthVisualOdometry<Vis extends ImageBase, Depth exten
 
 	public void reset(Se3_F64 initialState);
 
-	public void setRotation(Se3_F64 initialState);
+	public void setRotation(Se3_F64 rotation);
 
 
 }

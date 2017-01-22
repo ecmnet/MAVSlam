@@ -32,8 +32,10 @@ import boofcv.struct.distort.PointTransform_F64;
 import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.ImageBase;
 import boofcv.struct.sfm.Point2D3DTrack;
+import georegression.geometry.ConvertRotation3D_F64;
 import georegression.geometry.GeometryMath_F32;
 import georegression.geometry.GeometryMath_F64;
+import georegression.struct.EulerType;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.point.Vector3D_F64;
@@ -154,29 +156,7 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 		this.normToPixel = normToPixel;
 	}
 
-	/**
-	 * Resets the algorithm into its original state
-	 */
-	public void reset() {
-		tracker.reset();
-		keyToWorld.reset();
-		currToKey.reset();
-		first = true;
-		tick = 0;
-	}
 
-	public void reset(Se3_F64 initialState) {
-		tracker.reset();
-		keyToWorld.set(initialState);
-		currToKey.reset();
-		first = true;
-		tick = 0;
-	}
-
-	public void setRotation(Se3_F64 state) {
-		keyToWorld.getRotation().zero();
-		currToKey.getRotation().set(state.getRotation());
-	}
 
 	/**
 	 * Estimates the motion given the left camera image. The latest information
@@ -404,6 +384,29 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 	public Se3_F64 getCurrToWorld() {
 		currToKey.concat(keyToWorld, currToWorld);
 		return currToWorld;
+	}
+
+	/**
+	 * Resets the algorithm into its original state
+	 */
+	public void reset() {
+		tracker.reset();
+		keyToWorld.reset();
+		currToKey.reset();
+		first = true;
+		tick = 0;
+	}
+
+	public void reset(Se3_F64 initialState) {
+		tracker.reset();
+		keyToWorld.set(initialState);
+		currToKey.reset();
+		first = true;
+		tick = 0;
+	}
+
+	public void setRotation(Se3_F64 state) {
+		keyToWorld.R.set(state.R);
 	}
 
 	public PointTracker<T> getTracker() {

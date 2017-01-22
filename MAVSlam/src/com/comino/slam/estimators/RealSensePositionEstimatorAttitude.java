@@ -111,21 +111,19 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 	private Vector3D_F64 	pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
 
-	private Se3_F64 speed       	 = new Se3_F64();
 	private Se3_F64 speed_ned        = new Se3_F64();
 	private Se3_F64 speed_old        = new Se3_F64();
-	private Se3_F64 pos_delta_ned    = new Se3_F64();
 	private Se3_F64 pos_delta        = new Se3_F64();
 	private Se3_F64 pos_ned          = new Se3_F64();
 
-	private Se3_F64 rot_raw          = new Se3_F64();
 	private Se3_F64 rot_ned          = new Se3_F64();
 
 	private Se3_F64 vis_init         = new Se3_F64();
 
 	private Se3_F64 cam_offset       = new Se3_F64();
 
-	private Se3_F64 visToNED         = new Se3_F64();
+
+	private Se3_F64 current         = new Se3_F64();
 
 	private double[] visAttitude     = new double[3];
 	private double[] visAttitude_old = new double[3];
@@ -289,6 +287,8 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 					return;
 				}
 
+				setAttitudeToState(model, current);
+				visualOdometry.setRotation(current);
 
 				if( !visualOdometry.process(gray,depth)) {
 					if(debug)
@@ -296,6 +296,7 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 					init("Odometry");
 					return;
 				}
+
 
 				quality = (int)(visualOdometry.getQuality() * 100f / MAXTRACKS);
 				if(quality > 100) quality = 100;
@@ -310,11 +311,8 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 						vis_init.getTranslation().scale(1d/(++init_count));
 
 						//	ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-						ConvertRotation3D_F64.eulerToMatrix(EulerType.XYZ,
-								vis_init.getTranslation().x,
-								vis_init.getTranslation().y,
-								vis_init.getTranslation().z,
-								visToNED.getRotation());
+
+
 
 						speed_old.reset();
 						pos_ned.reset();
@@ -333,19 +331,19 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 				oldTimeDepth_us = estTimeDepth_us;
 
 				pos_raw = visualOdometry.getCameraToWorld().getT();
-				rot_raw.setRotation(visualOdometry.getCameraToWorld().getR());
+				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
 					if(quality > MIN_QUALITY ) {
 
-						speed.reset();
+						speed_ned.reset();
 						// Add camera offset to pos_raw
 						pos_raw = pos_raw.plus(cam_offset.T);
 
 						// speed.T = (pos_raw - pos_raw_old ) / dt
-						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed.T);
-						speed.T.scale(1d/dt);
+						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed_ned.T);
+						speed_ned.T.scale(1d/dt);
 
 					} else {
 						if(++qual_error_count > 5) {
@@ -359,21 +357,17 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 
 					if(low_pass > 0) {
 						// Low pass speed.T = speed.T * (1 - low_pass) + old_speed.T * low_pass
-						speed.T.scale(1-low_pass); speed_old.T.scale(low_pass);
-						speed.T.plusIP(speed_old.T);
+						speed_ned.T.scale(1-low_pass); speed_old.T.scale(low_pass);
+						speed_ned.T.plusIP(speed_old.T);
 					}
 
-					odo_speed = (float) speed.T.norm();
-					speed_old.T.set(speed.T);
+					odo_speed = (float) speed_ned.T.norm();
+					speed_old.T.set(speed_ned.T);
 
 					if(odo_speed < MAX_SPEED) {
 
 						// pos_delta.T = speed.T * dt
-						pos_delta.T.set(speed.T); pos_delta.T.scale(dt);
-						// rotate to NED
-						pos_delta.concat(visToNED, pos_delta_ned);
-						speed.concat(visToNED, speed_ned);
-
+						pos_delta.T.set(speed_ned.T); pos_delta.T.scale(dt);
 
 					} else {
 						init("Odometry speed");
@@ -381,10 +375,8 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 					}
 
 					// pos.T = pos.T + pos_delta.T
-					pos_ned.T.plusIP(pos_delta_ned.T);
+					pos_ned.T.plusIP(pos_delta.T);
 
-					// Get rotations based on vision 0=roll,1=pitch,2=yaw
-					rot_raw.concat(visToNED, rot_ned);
 
 					ConvertRotation3D_F64.matrixToEuler(rot_ned.R, EulerType.ZXY, visAttitude);
 
@@ -397,14 +389,14 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 					}
 
 					// In landed state be more accurate
-					head_div = model.sys.isStatus(Status.MSP_LANDED) ? 0.1f : 0.1f;
-
-					if(Math.abs(visAttitude[2] - model.attitude.y) > head_div) {
-						if(debug)
-							System.out.println("[vis] Heading not valid");
-						init("Heading div.");
-						return;
-					}
+//					head_div = model.sys.isStatus(Status.MSP_LANDED) ? 0.1f : 0.1f;
+//
+//					if(Math.abs(visAttitude[2] - model.attitude.y) > head_div) {
+//						if(debug)
+//							System.out.println("[vis] Heading not valid");
+//						init("Heading div.");
+//						return;
+//					}
 
 
 				}
@@ -480,6 +472,22 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 		init("msp reset");
 	}
 
+	private void setAttitudeToState(DataModel m, Se3_F64 state) {
+		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+				m.attitude.r,
+				m.attitude.p,
+				m.attitude.y,
+				state.getRotation());
+
+		state.getTranslation().y = m.state.l_z;
+		state.getTranslation().x = m.state.l_y;
+		state.getTranslation().z = m.state.l_x;
+
+//		double[] att     = new double[3];
+//		ConvertRotation3D_F64.matrixToEuler(state.R, EulerType.ZXY, att);
+//		System.out.println("Heading is "+MSPMathUtils.fromRad((float)att[2]));
+	}
+
 	private void init(String reason) {
 		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS) {
 			if(do_odometry) {
@@ -487,7 +495,8 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 				if((error_count % MAX_ERRORS)==0)
 					control.writeLogMessage(new LogMessage("[vis] reset odometry: "+reason,
 							MAV_SEVERITY.MAV_SEVERITY_NOTICE));
-				visualOdometry.reset();
+				setAttitudeToState(model, current);
+				visualOdometry.reset(current);
 				init_count = 0; fps=0; quality=0;
 				vis_init.reset();
 				init_tms = System.currentTimeMillis();
