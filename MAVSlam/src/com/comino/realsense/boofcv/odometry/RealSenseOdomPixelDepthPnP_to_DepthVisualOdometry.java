@@ -129,6 +129,18 @@ public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends Image
 	}
 
 	@Override
+	public boolean process(Vis visual, Depth depth, Se3_F64 state) {
+		alg.setRotation(state);
+		sparse3D.setDepthImage(depth);
+		success = alg.process(visual);
+
+		active.clear();
+		alg.getTracker().getActiveTracks(active);
+
+		return success;
+	}
+
+	@Override
 	public void reset() {
 		alg.reset();
 	}
@@ -136,11 +148,6 @@ public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends Image
 	@Override
 	public void reset(Se3_F64 initialState) {
 		alg.reset(initialState);
-	}
-
-	@Override
-	public void setRotation(Se3_F64 state) {
-		alg.setRotation(state);
 	}
 
 	@Override

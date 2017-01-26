@@ -53,6 +53,7 @@ import com.comino.server.mjpeg.impl.CombinedFileStreamHandler;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
 import com.comino.slam.estimators.IPositionEstimator;
+import com.comino.slam.estimators.RealSensePositionEstimator;
 import com.comino.slam.estimators.RealSensePositionEstimatorAttitude;
 import com.sun.net.httpserver.HttpServer;
 

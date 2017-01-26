@@ -223,7 +223,7 @@ public class RealSensePositionEstimator implements IPositionEstimator {
 		} catch(Exception e) {	}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{1, 4, 16, 32};
+		configKlt.pyramidScaling = new int[]{1, 4, 16};
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =

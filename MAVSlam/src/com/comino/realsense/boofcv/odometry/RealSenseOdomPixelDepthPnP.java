@@ -23,6 +23,8 @@ import java.util.List;
 
 import org.ddogleg.fitting.modelset.ModelMatcher;
 
+import com.comino.msp.utils.MSPMathUtils;
+
 import boofcv.abst.feature.tracker.PointTrack;
 import boofcv.abst.feature.tracker.PointTracker;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -113,6 +115,8 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 	private Point3D_F64 lastTrackAdded = new Point3D_F64();
 
 	private double quality = 0;
+
+	private Se3_F64 attitude = null;
 
 	/**
 	 * Configures magic numbers and estimation algorithms.
@@ -260,9 +264,9 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 
 				// *** division not needed for RealSense
 
-				// double w = pixelTo3D.getW();
-				// X.set(pixelTo3D.getX() / w, pixelTo3D.getY() / w,
-				// pixelTo3D.getZ() / w);
+//				 double w = pixelTo3D.getW();
+//				 X.set(pixelTo3D.getX() / w, pixelTo3D.getY() / w,
+//				 pixelTo3D.getZ() / w);
 
 				X.set(pixelTo3D.getX(), pixelTo3D.getY(), pixelTo3D.getZ());
 
@@ -376,6 +380,8 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 	}
 
 	private void concatMotion() {
+		if(attitude!=null)
+			currToKey.R.set(attitude.R);
 		currToKey.concat(keyToWorld, temp);
 		keyToWorld.set(temp);
 		currToKey.reset();
@@ -406,7 +412,19 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 	}
 
 	public void setRotation(Se3_F64 state) {
+//		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+//		0,
+//		0,
+//		0,
+//		currToKey.R);
 		keyToWorld.R.set(state.R);
+
+//		this.attitude = state;
+
+
+//		double[] att     = new double[3];
+//		ConvertRotation3D_F64.matrixToEuler(state.R, EulerType.ZXY, att);
+//		System.out.println("Heading is "+MSPMathUtils.fromRad((float)att[2]));
 	}
 
 	public PointTracker<T> getTracker() {
