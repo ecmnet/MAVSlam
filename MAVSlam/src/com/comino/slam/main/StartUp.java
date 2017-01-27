@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 Eike Mansfeld ecm@gmx.de. All rights reserved.
+ *   Copyright (c) 2017 Eike Mansfeld ecm@gmx.de. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -142,17 +142,12 @@ public class StartUp implements Runnable {
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
 		}
-
-
 	}
-
-
 
 	public static void main(String[] args) {
 		new StartUp(args);
 
 	}
-
 
 
 	@Override

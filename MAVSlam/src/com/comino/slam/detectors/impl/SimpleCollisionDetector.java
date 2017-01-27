@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 Eike Mansfeld ecm@gmx.de. All rights reserved.
+ *   Copyright (c) 2017 Eike Mansfeld ecm@gmx.de. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,14 +66,12 @@ import javafx.beans.property.SimpleBooleanProperty;
 
 public class SimpleCollisionDetector implements ISLAMDetector {
 
-	private static final float     MIN_DISTANCE_M         = 1.25f;
+	private float     distance     = 1.25f;
 
-	private int center_x=0;
-	private int center_y=0;
-
-	private DataModel     model = null;
-	private Point3D_F64   pos   = new Point3D_F64();
-	private Se3_F64     toWorld = null;
+	private DataModel     model    = null;
+	private Point3D_F64   pos      = new Point3D_F64();
+	private Point2D3D     center   = new Point2D3D();
+	private Se3_F64      toWorld   = null;
 
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
@@ -81,7 +79,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 	public SimpleCollisionDetector(IMAVMSPController control, MSPConfig config,HttpMJPEGHandler streamer) {
 
-		this.model = control.getCurrentModel();
+		this.model    = control.getCurrentModel();
+		this.distance = config.getFloatProperty("distance_m", "1.25f");
 
 		streamer.registerOverlayListener(ctx -> {
 			if(collision.get() && nearestPoints.size()>0) {
@@ -92,8 +91,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				Point2D3D n = nearestPoints.get(0);
 				ctx.drawString(String.format("Min.Distance: %#.2fm", n.getLocation().z), 5, 20);
 
-				ctx.drawOval(center_x-10, center_y-10, 20, 20);
-				ctx.drawOval(center_x-15, center_y-15, 30, 30);
+				ctx.drawOval((int)center.observation.x-10, (int)center.observation.y-10, 20, 20);
+				ctx.drawOval((int)center.observation.x-15, (int)center.observation.y-15, 30, 30);
 			}
 		});
 
@@ -123,7 +122,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			return;
 		}
 
-		center_x = 0; center_y = 0;
+		center.location.set(0,0,0); center.observation.set(0,0);
 		toWorld = odometry.getCameraToWorld();
 
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
@@ -133,25 +132,35 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				// p is the obstacle location in body-frame
 				p = odometry.getTrackLocation(i);
 
-				if(p.z < MIN_DISTANCE_M) {
+				if(p.z < distance) {
+
 					Point2D3D n = new Point2D3D();
 					SePointOps_F64.transform(toWorld, p, pos);
 					n.setLocation(pos);
 					n.setObservation(xy);
-					center_x = center_x + (int)xy.x;
-					center_y = center_y + (int)xy.y;
+
 					nearestPoints.add(n);
+
+					center.location.plusIP(pos);
+					center.observation.plusIP(xy);
 				}
 			}
 		}
 		if(nearestPoints.size()>1) {
-			center_x = center_x / nearestPoints.size();
-			center_y = center_y / nearestPoints.size();
+
+			center.location.scale(1.0f/nearestPoints.size());
+			center.observation.scale(1.0f/nearestPoints.size());
+
 			Collections.sort(nearestPoints, (a, b) -> {
 				return Double.compare(a.location.z,b.location.z);
 			});
-			Point2D3D n = nearestPoints.get(0);
-			model.slam.setBlock((float)n.location.x, (float)n.location.y, (float)n.location.z);
+
+			// TODO: use temporal slam model later
+			model.slam.setBlock((float)center.location.z, (float)center.location.x, (float)center.location.y);
+
+//			Point2D3D np = nearestPoints.get(0);
+//			model.slam.setBlock((float)np.location.z, (float)np.location.x, (float)np.location.y;
+
 			collision.set(true);
 		} else
 			collision.set(false);
