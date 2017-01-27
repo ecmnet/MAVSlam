@@ -73,6 +73,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 	private DataModel     model = null;
 	private Point3D_F64   pos   = new Point3D_F64();
+	private Se3_F64     toWorld = null;
 
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
@@ -101,9 +102,6 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				control.writeLogMessage(new LogMessage("[vis] collision warning",
 						MAV_SEVERITY.MAV_SEVERITY_WARNING));
 
-				Point2D3D n = nearestPoints.get(0);
-				model.slam.setBlock((float)n.location.x, (float)n.location.y, (float)n.location.z);
-
 			}
 			else
 				control.writeLogMessage(new LogMessage("[vis] collision warning cleared",
@@ -111,11 +109,6 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		});
 	}
-
-	/*
-	 * This is a simple collision warner. It searches the closest inliner and presents a warning if the distance of this
-	 * inline is < MIN_DISTANCE_M
-	 */
 
 	@Override
 	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
@@ -131,6 +124,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 		}
 
 		center_x = 0; center_y = 0;
+		toWorld = odometry.getCameraToWorld();
 
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i)) {
@@ -141,21 +135,12 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 				if(p.z < MIN_DISTANCE_M) {
 					Point2D3D n = new Point2D3D();
-					SePointOps_F64.transform(odometry.getCameraToWorld(), p, pos);
+					SePointOps_F64.transform(toWorld, p, pos);
 					n.setLocation(pos);
 					n.setObservation(xy);
 					center_x = center_x + (int)xy.x;
 					center_y = center_y + (int)xy.y;
 					nearestPoints.add(n);
-
-					// to get getWorld coordinates of p
-					// SePointOps_F64.transform(odometry.getCameraToWorld(), p, pos);
-
-					// TODO: get a 3D avoidance vector based on the obstacle points
-					// TODO: Project to display frame and visualize the avoidance vector
-					// TODO: Take over control of the vehicle and perform avoidance maneuver
-
-
 				}
 			}
 		}
@@ -165,6 +150,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			Collections.sort(nearestPoints, (a, b) -> {
 				return Double.compare(a.location.z,b.location.z);
 			});
+			Point2D3D n = nearestPoints.get(0);
+			model.slam.setBlock((float)n.location.x, (float)n.location.y, (float)n.location.z);
 			collision.set(true);
 		} else
 			collision.set(false);

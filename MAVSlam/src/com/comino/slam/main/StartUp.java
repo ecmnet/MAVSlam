@@ -173,9 +173,9 @@ public class StartUp implements Runnable {
 				if(publish_microslam) {
 					msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
 					msg.res = model.slam.res;
-//					msg.cx = model.state.l_x;
-//					msg.cy = model.state.l_y;
-//					msg.cz = model.state.l_z;
+					msg.cx = 0;
+					msg.cy = 0;
+					msg.cz = 0;
 					msg.data = model.slam.toArray();
 					msg.tms  = System.nanoTime() / 1000;
 					control.sendMAVLinkMessage(msg);
