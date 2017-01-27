@@ -37,8 +37,10 @@ import java.io.IOException;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 import org.mavlink.messages.MAV_CMD;
+import org.mavlink.messages.lquac.msg_msp_micro_slam;
 import org.mavlink.messages.lquac.msg_msp_status;
 
 import com.comino.mav.control.IMAVMSPController;
@@ -47,7 +49,9 @@ import com.comino.mav.control.impl.MAVProxyController2;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
+import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.Status;
+import com.comino.msp.utils.BlockPoint3D;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.CombinedFileStreamHandler;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
@@ -56,6 +60,8 @@ import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.RealSensePositionEstimator;
 import com.comino.slam.estimators.RealSensePositionEstimatorAttitude;
 import com.sun.net.httpserver.HttpServer;
+
+import boofcv.struct.geo.Point2D3D;
 
 public class StartUp implements Runnable {
 
@@ -68,6 +74,7 @@ public class StartUp implements Runnable {
 	private MSPCommander  commander = null;
 
 	IPositionEstimator vision = null;
+	private boolean publish_microslam;
 
 	public StartUp(String[] args) {
 
@@ -99,7 +106,7 @@ public class StartUp implements Runnable {
 			if(config.getBoolProperty("vision_enabled", "true")) {
 				vision = new RealSensePositionEstimatorAttitude(info, control, config, streamer);
 	//			vision = new RealSensePositionEstimator(info, control, config, streamer);
-			vision.registerDetector(new SimpleCollisionDetector(control,streamer));
+			vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
 			}
 		} catch(Exception e) {
 			System.out.println("[vis] Vision not available: "+e.getMessage());
@@ -107,6 +114,9 @@ public class StartUp implements Runnable {
 
 //		if(config.getBoolProperty("file_stream_enabled", "false"))
 //			vision.registerStreams(new CombinedFileStreamHandler(info, control));
+
+		this.publish_microslam = config.getBoolProperty("publish_microslam", "false");
+		System.out.println("Publishing microSlam enabled: "+publish_microslam);
 
 
 		if(vision!=null && !vision.isRunning())
@@ -148,15 +158,27 @@ public class StartUp implements Runnable {
 	@Override
 	public void run() {
 		long tms = System.currentTimeMillis();
+		DataModel model = control.getCurrentModel();
 
 		while(true) {
 			try {
-				Thread.sleep(333);
+				Thread.sleep(250);
 
 
 				if(!control.isConnected()) {
 					control.connect();
 					continue;
+				}
+
+				if(publish_microslam) {
+					msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
+					msg.res = model.slam.res;
+//					msg.cx = model.state.l_x;
+//					msg.cy = model.state.l_y;
+//					msg.cz = model.state.l_z;
+					msg.data = model.slam.toArray();
+					msg.tms  = System.nanoTime() / 1000;
+					control.sendMAVLinkMessage(msg);
 				}
 
 				msg_msp_status msg = new msg_msp_status(2,1);

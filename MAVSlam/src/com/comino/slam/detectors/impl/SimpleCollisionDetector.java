@@ -39,11 +39,14 @@ import java.util.Collections;
 import java.util.List;
 
 import org.mavlink.messages.MAV_SEVERITY;
+import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.mav.control.IMAVMSPController;
+import com.comino.msp.main.MSPConfig;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
+import com.comino.msp.utils.BlockPoint3D;
 import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.ISLAMDetector;
@@ -68,14 +71,14 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	private int center_x=0;
 	private int center_y=0;
 
-	private DataModel model = null;
+	private DataModel     model = null;
 	private Point3D_F64   pos   = new Point3D_F64();
 
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
 	private List<Point2D3D> nearestPoints =  new ArrayList<Point2D3D>();
 
-	public SimpleCollisionDetector(IMAVMSPController control, HttpMJPEGHandler streamer) {
+	public SimpleCollisionDetector(IMAVMSPController control, MSPConfig config,HttpMJPEGHandler streamer) {
 
 		this.model = control.getCurrentModel();
 
@@ -93,10 +96,13 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			}
 		});
 
-		collision.addListener((l,o,n) -> {
-			if(n.booleanValue()) {
+		collision.addListener((l,ov,nv) -> {
+			if(nv.booleanValue()) {
 				control.writeLogMessage(new LogMessage("[vis] collision warning",
 						MAV_SEVERITY.MAV_SEVERITY_WARNING));
+
+				Point2D3D n = nearestPoints.get(0);
+				model.slam.setBlock((float)n.location.x, (float)n.location.y, (float)n.location.z);
 
 			}
 			else
@@ -135,7 +141,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 				if(p.z < MIN_DISTANCE_M) {
 					Point2D3D n = new Point2D3D();
-					n.setLocation(p);
+					SePointOps_F64.transform(odometry.getCameraToWorld(), p, pos);
+					n.setLocation(pos);
 					n.setObservation(xy);
 					center_x = center_x + (int)xy.x;
 					center_y = center_y + (int)xy.y;

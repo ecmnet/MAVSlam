@@ -92,7 +92,7 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 	private static final int    MIN_QUALITY 		= 10;
 
 	private static final int    MAXTRACKS   		= 600;
-	private static final int    RANSAC_ITERATIONS   = 300;
+	private static final int    RANSAC_ITERATIONS   = 200;
 	private static final int    RETIRE_THRESHOLD    = 2;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 50;
@@ -291,11 +291,11 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 
 
 
-				quality = (int)(visualOdometry.getQuality() * 100f / MAXTRACKS);
+				quality = (int)(visualOdometry.getQuality() * 200f / MAXTRACKS);
 				if(quality > 100) quality = 100;
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
-
+                   // model.slam.moveTo(model.state.l_x,model.state.l_y, model.state.l_z);
 					if( quality > MIN_QUALITY) {
 						speed_old.reset();
 						pos_ned.reset();
