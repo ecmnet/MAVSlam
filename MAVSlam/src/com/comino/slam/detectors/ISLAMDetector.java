@@ -42,6 +42,6 @@ import boofcv.struct.image.Planar;
 public interface ISLAMDetector {
 
 	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray);
-	public void reset();
+	public void reset(float x,float y, float z);
 
 }

@@ -271,16 +271,16 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 
 
 				// Check PX4 rotation and reset odometry if rotating too fast
-				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
-						model.attitude.rr * model.attitude.rr +
-						model.attitude.yr * model.attitude.yr);
-
-				if(ang_speed > MAX_ROT_SPEED) {
-					if(debug)
-						System.out.println("[vis] Rotation speed "+ang_speed+" > MAX");
-					init("Rotation speed");
-					return;
-				}
+//				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
+//						model.attitude.rr * model.attitude.rr +
+//						model.attitude.yr * model.attitude.yr);
+//
+//				if(ang_speed > MAX_ROT_SPEED) {
+//					if(debug)
+//						System.out.println("[vis] Rotation speed "+ang_speed+" > MAX");
+//					init("Rotation speed");
+//					return;
+//				}
 
 				if( !visualOdometry.process(gray,depth,getAttitudeToState(model, current))) {
 					if(debug)
@@ -300,6 +300,8 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 						speed_old.reset();
 						pos_ned.reset();
 						pos_raw_old.set(0,0,0);
+						for(ISLAMDetector d : detectors)
+							d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
 					} else {
 						init_tms = System.currentTimeMillis();
 					}
@@ -331,7 +333,7 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 						speed_ned.T.scale(1d/dt);
 
 					} else {
-						if(++qual_error_count > 5) {
+						if(++qual_error_count > 10) {
 							qual_error_count=0;
 							if(debug)
 								System.out.println("[vis] Quality "+quality+" < Min");
@@ -483,7 +485,7 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 				if(detectors.size()>0) {
 					detector_tms = System.currentTimeMillis();
 					for(ISLAMDetector d : detectors)
-						d.reset();
+						d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
 				}
 			}
 		}

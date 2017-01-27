@@ -116,7 +116,7 @@ public class StartUp implements Runnable {
 //			vision.registerStreams(new CombinedFileStreamHandler(info, control));
 
 		this.publish_microslam = config.getBoolProperty("publish_microslam", "false");
-		System.out.println("Publishing microSlam enabled: "+publish_microslam);
+		System.out.println("[vis} Publishing microSlam enabled: "+publish_microslam);
 
 
 		if(vision!=null && !vision.isRunning())

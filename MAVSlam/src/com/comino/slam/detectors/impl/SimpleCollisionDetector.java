@@ -66,12 +66,13 @@ import javafx.beans.property.SimpleBooleanProperty;
 
 public class SimpleCollisionDetector implements ISLAMDetector {
 
-	private float     distance     = 1.25f;
+	private float     min_distance     = 1.25f;
+	private float     min_altitude     = 0.3f;
 
 	private DataModel     model    = null;
 	private Point3D_F64   pos      = new Point3D_F64();
+	private Point3D_F64   origin   = new Point3D_F64();
 	private Point2D3D     center   = new Point2D3D();
-	private Se3_F64      toWorld   = null;
 
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
@@ -80,7 +81,10 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	public SimpleCollisionDetector(IMAVMSPController control, MSPConfig config,HttpMJPEGHandler streamer) {
 
 		this.model    = control.getCurrentModel();
-		this.distance = config.getFloatProperty("distance_m", "1.25f");
+		this.min_distance = config.getFloatProperty("min_distance", "1.25f");
+		System.out.println("[scd] Collision distance set to "+min_distance);
+		this.min_altitude = config.getFloatProperty("min_altitude", "0.3f");
+		System.out.println("[scd] Min.altitude set to "+min_altitude);
 
 		streamer.registerOverlayListener(ctx -> {
 			if(collision.get() && nearestPoints.size()>0) {
@@ -117,13 +121,12 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		nearestPoints.clear();
 
-		if(points.getAllTracks().size()==0 || ( model.sys.isStatus(Status.MSP_LANDED) && model.raw.di < 0.6f)) {
+		if(points.getAllTracks().size()==0 || ( model.sys.isStatus(Status.MSP_LANDED) && model.raw.di < min_altitude)) {
 			collision.set(false);
 			return;
 		}
 
 		center.location.set(0,0,0); center.observation.set(0,0);
-		toWorld = odometry.getCameraToWorld();
 
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i)) {
@@ -131,17 +134,17 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				xy = points.getAllTracks().get(i);
 				// p is the obstacle location in body-frame
 				p = odometry.getTrackLocation(i);
+//				SePointOps_F64.transform(toWorld,odometry.getTrackLocation(i),pos);
 
-				if(p.z < distance) {
+				if(p.z < min_distance && xy.y < 120) {
 
 					Point2D3D n = new Point2D3D();
-					SePointOps_F64.transform(toWorld, p, pos);
-					n.setLocation(pos);
+					n.setLocation(p);
 					n.setObservation(xy);
 
 					nearestPoints.add(n);
 
-					center.location.plusIP(pos);
+					center.location.plusIP(p);
 					center.observation.plusIP(xy);
 				}
 			}
@@ -156,10 +159,18 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			});
 
 			// TODO: use temporal slam model later
-			model.slam.setBlock((float)center.location.z, (float)center.location.x, (float)center.location.y);
+			SePointOps_F64.transform(odometry.getCameraToWorld(),center.location,pos);
+
+
+		//	pos.set(center.location);
 
 //			Point2D3D np = nearestPoints.get(0);
-//			model.slam.setBlock((float)np.location.z, (float)np.location.x, (float)np.location.y;
+//			SePointOps_F64.transform(odometry.getCameraToWorld(),np.location,pos);
+
+			pos.plusIP(origin);
+			model.slam.setBlock(pos.z, pos.x, pos.y);
+
+
 
 			collision.set(true);
 		} else
@@ -168,7 +179,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	}
 
 
-	public void reset() {
+	public void reset(float x, float y, float z) {
+		origin.set(y,z,x);
 		nearestPoints.clear();
 	}
 

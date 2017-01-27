@@ -520,7 +520,7 @@ public class RealSensePositionEstimator implements IPositionEstimator {
 				if(detectors.size()>0) {
 					detector_tms = System.currentTimeMillis();
 					for(ISLAMDetector d : detectors)
-						d.reset();
+						d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
 				}
 			}
 		}
