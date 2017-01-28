@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.comino.slam.boofcv.odometry;
+package com.comino.slam.boofcv.tracker;
 
 import boofcv.abst.feature.associate.AssociateDescription2D;
 import boofcv.abst.feature.describe.DescribeRegionPoint;

@@ -59,8 +59,8 @@ import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.comino.slam.boofcv.odometry.FactoryMAVOdometry;
-import com.comino.slam.boofcv.odometry.FactoryMAVPointTrackerTwoPass;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.tracker.FactoryMAVPointTrackerTwoPass;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
