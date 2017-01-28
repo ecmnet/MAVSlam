@@ -40,8 +40,8 @@ import java.awt.image.BufferedImage;
 import com.comino.mq.bus.MWMessageBus;
 import com.comino.mq.tests.OptPos;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
-import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
-import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
+import com.comino.slam.boofcv.odometry.FactoryMAVOdometry;
+import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -131,8 +131,8 @@ public class StreamRealSenseTest extends Application  {
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
 		// declares the algorithm
-		RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
-				FactoryRealSenseOdometry.depthDepthPnP(1.2, 120, 2, 200, 50, true,
+		MAVDepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
+				FactoryMAVOdometry.depthDepthPnP(1.2, 120, 2, 200, 50, true,
 						sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());

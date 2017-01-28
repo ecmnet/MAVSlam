@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.comino.realsense.boofcv.odometry;
+package com.comino.slam.boofcv.odometry;
 
 import static boofcv.alg.distort.LensDistortionOps.transformPoint;
 
@@ -49,12 +49,12 @@ import georegression.struct.se.Se3_F64;
  */
 // TODO WARNING! active list has been modified by dropping and adding tracks
 // this is probably true of other SFM algorithms
-public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends ImageBase, Depth extends ImageGray>
-	implements RealSenseDepthVisualOdometry<Vis,Depth> , AccessPointTracks3D
+public class MAVOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends ImageBase, Depth extends ImageGray>
+	implements MAVDepthVisualOdometry<Vis,Depth> , AccessPointTracks3D
 {
 	// low level algorithm
 	DepthSparse3D<Depth> sparse3D;
-	RealSenseOdomPixelDepthPnP<Vis> alg;
+	MAVOdomPixelDepthPnP<Vis> alg;
 	DistanceModelMonoPixels<Se3_F64,Point2D3D> distance;
 	ImageType<Vis> visualType;
 	Class<Depth> depthType;
@@ -62,7 +62,7 @@ public class RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends Image
 
 	List<PointTrack> active = new ArrayList<PointTrack>();
 
-	public RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry(DepthSparse3D<Depth> sparse3D, RealSenseOdomPixelDepthPnP<Vis> alg,
+	public MAVOdomPixelDepthPnP_to_DepthVisualOdometry(DepthSparse3D<Depth> sparse3D, MAVOdomPixelDepthPnP<Vis> alg,
 													   DistanceModelMonoPixels<Se3_F64, Point2D3D> distance,
 													   ImageType<Vis> visualType, Class<Depth> depthType) {
 		this.sparse3D = sparse3D;

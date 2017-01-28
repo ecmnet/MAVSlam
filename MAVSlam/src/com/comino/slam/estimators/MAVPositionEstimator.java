@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.LockSupport;
 
+import org.ejml.data.DenseMatrix64F;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
@@ -57,9 +58,10 @@ import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
-import com.comino.realsense.boofcv.odometry.FactoryRealSenseOdometry;
-import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.server.mjpeg.IVisualStreamHandler;
+import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
+import com.comino.slam.boofcv.odometry.FactoryMAVOdometry;
+import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
@@ -80,7 +82,7 @@ import georegression.struct.EulerType;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 
-public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
+public class MAVPositionEstimator implements IPositionEstimator {
 
 	private static final int    INIT_TIME_MS    	= 600;
 	private static final int    MAX_ERRORS    	    = 1;
@@ -89,17 +91,17 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 
 	private static final float  MAX_ROT_SPEED   	= 4f;
 
-	private static final int    MIN_QUALITY 		= 10;
+	private static final int    MIN_QUALITY 		= 15;
 
-	private static final int    MAXTRACKS   		= 600;
-	private static final int    RANSAC_ITERATIONS   = 200;
-	private static final int    RETIRE_THRESHOLD    = 2;
-	private static final int    INLIER_THRESHOLD    = 120;
-	private static final int    REFINE_ITERATIONS   = 50;
+	private static final int    MAXTRACKS   		= 160;
+	private static final int    RANSAC_ITERATIONS   = 150;
+	private static final int    RETIRE_THRESHOLD    = 10;
+	private static final int    INLIER_THRESHOLD    = 150;
+	private static final int    REFINE_ITERATIONS   = 400;
 
 
 	private StreamRealSenseVisDepth realsense;
-	private RealSenseDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
+	private MAVDepthVisualOdometry<GrayU8,GrayU16> visualOdometry;
 
 	private GrayU8 gray = null;
 
@@ -109,18 +111,21 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 	private Vector3D_F64 	pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
 
+	private Se3_F64 speed       	 = new Se3_F64();
 	private Se3_F64 speed_ned        = new Se3_F64();
 	private Se3_F64 speed_old        = new Se3_F64();
+	private Se3_F64 pos_delta_ned    = new Se3_F64();
 	private Se3_F64 pos_delta        = new Se3_F64();
 	private Se3_F64 pos_ned          = new Se3_F64();
 
+	private Se3_F64 rot_raw          = new Se3_F64();
 	private Se3_F64 rot_ned          = new Se3_F64();
 
+	private Se3_F64 vis_init         = new Se3_F64();
+
 	private Se3_F64 cam_offset       = new Se3_F64();
-	private Se3_F64 cam_offset_ned   = new Se3_F64();
 
-
-	private Se3_F64 current         = new Se3_F64();
+	private Se3_F64 visToNED         = new Se3_F64();
 
 	private double[] visAttitude     = new double[3];
 	private double[] visAttitude_old = new double[3];
@@ -144,6 +149,7 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 	private IMAVMSPController control;
 
 	private int error_count = 0;
+	private int init_count = 0;
 
 	private boolean do_position = false;
 	private boolean do_odometry = true;
@@ -157,14 +163,13 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 	private RealSenseInfo info;
 
 
-	public RealSensePositionEstimatorAttitude(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
+	public MAVPositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
 
 		this.info    = info;
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
 		this.streams   = new ArrayList<IVisualStreamHandler>();
 
-		System.out.println("Vision position estimator: "+this.getClass().getSimpleName());
 		this.debug = config.getBoolProperty("vision_debug", "false");
 		System.out.println("Vision debugging: "+debug);
 		System.out.println("RANSAC iterations: "+RANSAC_ITERATIONS);
@@ -218,16 +223,16 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 		} catch(Exception e) {	}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{1, 4, 16, 32};
+		configKlt.pyramidScaling = new int[]{1, 4, 16};
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 3, 1.0f),
+				FactoryPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 1, 0.5f),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
-		visualOdometry = FactoryRealSenseOdometry.depthDepthPnP(1.5f,
+		visualOdometry = FactoryMAVOdometry.depthDepthPnP(1.5,
 				INLIER_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
@@ -243,9 +248,11 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 			}
 		}
 
+		init_count = 0;
+
 		realsense.registerListener(new Listener() {
 
-			double dt; int mf=0; int fpm;
+			double dt; int mf=0; int fpm; float head_div;
 			float ang_speed; float odo_speed;
 			int qual_error_count=0;
 
@@ -271,37 +278,47 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 
 
 				// Check PX4 rotation and reset odometry if rotating too fast
-//				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
-//						model.attitude.rr * model.attitude.rr +
-//						model.attitude.yr * model.attitude.yr);
-//
-//				if(ang_speed > MAX_ROT_SPEED) {
-//					if(debug)
-//						System.out.println("[vis] Rotation speed "+ang_speed+" > MAX");
-//					init("Rotation speed");
-//					return;
-//				}
+				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
+						model.attitude.rr * model.attitude.rr +
+						model.attitude.yr * model.attitude.yr);
 
-				if( !visualOdometry.process(gray,depth,getAttitudeToState(model, current))) {
+				if(ang_speed > MAX_ROT_SPEED) {
+					if(debug)
+						System.out.println("[vis] Rotation speed "+ang_speed+" > MAX");
+					init("Rotation speed");
+					return;
+				}
+
+
+				if( !visualOdometry.process(gray,depth)) {
 					if(debug)
 						System.out.println("[vis] Odometry failure");
 					init("Odometry");
 					return;
 				}
 
-
-
-				quality = (int)(visualOdometry.getQuality() * 200f / MAXTRACKS);
+				quality = (int)(visualOdometry.getQuality() * 100f / MAXTRACKS);
 				if(quality > 100) quality = 100;
 
 				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
-                   // model.slam.moveTo(model.state.l_x,model.state.l_y, model.state.l_z);
+
 					if( quality > MIN_QUALITY) {
+						vis_init.getTranslation().z = vis_init.getTranslation().z * init_count + model.attitude.r;
+						vis_init.getTranslation().x = vis_init.getTranslation().x * init_count + model.attitude.p;
+						vis_init.getTranslation().y = vis_init.getTranslation().y * init_count + model.attitude.y;
+
+						vis_init.getTranslation().scale(1d/(++init_count));
+
+						//	ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+						ConvertRotation3D_F64.eulerToMatrix(EulerType.XYZ,
+								vis_init.getTranslation().x,
+								vis_init.getTranslation().y,
+								vis_init.getTranslation().z,
+								visToNED.getRotation());
+
 						speed_old.reset();
 						pos_ned.reset();
 						pos_raw_old.set(0,0,0);
-						for(ISLAMDetector d : detectors)
-							d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
 					} else {
 						init_tms = System.currentTimeMillis();
 					}
@@ -316,24 +333,22 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 				oldTimeDepth_us = estTimeDepth_us;
 
 				pos_raw = visualOdometry.getCameraToWorld().getT();
-				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
+				rot_raw.setRotation(visualOdometry.getCameraToWorld().getR());
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
 					if(quality > MIN_QUALITY ) {
 
-						speed_ned.reset();
-
-						// Correct camera offset to pos_raw
-						cam_offset.concat(current, cam_offset_ned);
-						pos_raw.plusIP(cam_offset_ned.T);
+						speed.reset();
+						// Add camera offset to pos_raw
+						pos_raw = pos_raw.plus(cam_offset.T);
 
 						// speed.T = (pos_raw - pos_raw_old ) / dt
-						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed_ned.T);
-						speed_ned.T.scale(1d/dt);
+						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed.T);
+						speed.T.scale(1d/dt);
 
 					} else {
-						if(++qual_error_count > 10) {
+						if(++qual_error_count > 5) {
 							qual_error_count=0;
 							if(debug)
 								System.out.println("[vis] Quality "+quality+" < Min");
@@ -344,17 +359,21 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 
 					if(low_pass > 0) {
 						// Low pass speed.T = speed.T * (1 - low_pass) + old_speed.T * low_pass
-						speed_ned.T.scale(1-low_pass); speed_old.T.scale(low_pass);
-						speed_ned.T.plusIP(speed_old.T);
+						speed.T.scale(1-low_pass); speed_old.T.scale(low_pass);
+						speed.T.plusIP(speed_old.T);
 					}
 
-					odo_speed = (float) speed_ned.T.norm();
-					speed_old.T.set(speed_ned.T);
+					odo_speed = (float) speed.T.norm();
+					speed_old.T.set(speed.T);
 
 					if(odo_speed < MAX_SPEED) {
 
 						// pos_delta.T = speed.T * dt
-						pos_delta.T.set(speed_ned.T); pos_delta.T.scale(dt);
+						pos_delta.T.set(speed.T); pos_delta.T.scale(dt);
+						// rotate to NED
+						pos_delta.concat(visToNED, pos_delta_ned);
+						speed.concat(visToNED, speed_ned);
+
 
 					} else {
 						init("Odometry speed");
@@ -362,16 +381,12 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 					}
 
 					// pos.T = pos.T + pos_delta.T
-					pos_ned.T.plusIP(pos_delta.T);
+					pos_ned.T.plusIP(pos_delta_ned.T);
+
+					// Get rotations based on vision 0=roll,1=pitch,2=yaw
+					rot_raw.concat(visToNED, rot_ned);
 
 					ConvertRotation3D_F64.matrixToEuler(rot_ned.R, EulerType.ZXY, visAttitude);
-
-					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)) {
-						if(debug)
-							System.out.println("[vis] Heading not valid");
-						init("Heading div.");
-						return;
-					}
 
 					// Attitude low pass
 					if(low_pass_a > 0) {
@@ -380,6 +395,18 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 							visAttitude_old[i] = visAttitude[i];
 						}
 					}
+
+					// In landed state be more accurate
+					head_div = model.sys.isStatus(Status.MSP_LANDED) ? 0.1f : 0.1f;
+
+					if(Math.abs(visAttitude[2] - model.attitude.y) > head_div) {
+						if(debug)
+							System.out.println("[vis] Heading not valid");
+						init("Heading div.");
+						return;
+					}
+
+
 				}
 				pos_raw_old.set(pos_raw);
 
@@ -410,17 +437,17 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 			if(points.isInlier(i))
 				ctx.drawRect((int)points.getAllTracks().get(i).x,(int)points.getAllTracks().get(i).y, 1, 1);
 		}
-		if(quality <  MIN_QUALITY)
-			ctx.drawString("Low quality", info.width-85, 20);
-		else
-			ctx.drawString((int)fps+" fps", info.width-50, 20);
-
+		ctx.drawString((int)fps+" fps", info.width-50, 20);
 	}
 
-	public RealSensePositionEstimatorAttitude() {
+	public MAVPositionEstimator() {
 		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance("msp.properties"),null);
 	}
 
+	/* (non-Javadoc)
+	 * @see com.comino.slam.estimators.IPositionEstimator#registerDetector(com.comino.slam.detectors.ISLAMDetector)
+	 */
+	@Override
 	public void registerDetector(ISLAMDetector detector) {
 		if(detector_cycle_ms>0) {
 			System.out.println("[vis] Vision detector registered: "+detector.getClass().getSimpleName());
@@ -428,11 +455,19 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see com.comino.slam.estimators.IPositionEstimator#registerStreams(com.comino.server.mjpeg.IVisualStreamHandler)
+	 */
+	@Override
 	public void registerStreams(IVisualStreamHandler stream) {
 		System.out.println("[vis] Vision stream registered: "+stream.getClass().getSimpleName());
 		streams.add(stream);
 	}
 
+	/* (non-Javadoc)
+	 * @see com.comino.slam.estimators.IPositionEstimator#start()
+	 */
+	@Override
 	public void start() {
 		isRunning = true; init_tms=0;
 		init("StartUp");
@@ -440,6 +475,10 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 			realsense.start();
 	}
 
+	/* (non-Javadoc)
+	 * @see com.comino.slam.estimators.IPositionEstimator#stop()
+	 */
+	@Override
 	public void stop() {
 		if(isRunning) {
 			realsense.stop();
@@ -448,26 +487,21 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 		isRunning=false;
 	}
 
+	/* (non-Javadoc)
+	 * @see com.comino.slam.estimators.IPositionEstimator#isRunning()
+	 */
+	@Override
 	public boolean isRunning() {
 		return isRunning;
 	}
 
+	/* (non-Javadoc)
+	 * @see com.comino.slam.estimators.IPositionEstimator#reset()
+	 */
+	@Override
 	public void reset() {
 		init_tms=0;
 		init("msp reset");
-	}
-
-	private Se3_F64 getAttitudeToState(DataModel m, Se3_F64 state) {
-		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-				m.attitude.r,
-				m.attitude.p,
-				m.attitude.y,
-				state.getRotation());
-
-//		state.getTranslation().y = m.state.l_z;
-//		state.getTranslation().x = m.state.l_y;
-//		state.getTranslation().z = m.state.l_x;
-		return state;
 	}
 
 	private void init(String reason) {
@@ -477,8 +511,9 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 				if((error_count % MAX_ERRORS)==0)
 					control.writeLogMessage(new LogMessage("[vis] reset odometry: "+reason,
 							MAV_SEVERITY.MAV_SEVERITY_NOTICE));
-				visualOdometry.reset(current);
-				fps=0; quality=0;
+				visualOdometry.reset();
+				init_count = 0; fps=0; quality=0;
+				vis_init.reset();
 				init_tms = System.currentTimeMillis();
 				publisMSPVision();
 
@@ -540,7 +575,7 @@ public class RealSensePositionEstimatorAttitude implements IPositionEstimator {
 	}
 
 	public static void main(String[] args) {
-		new RealSensePositionEstimatorAttitude();
+		new MAVPositionEstimator();
 	}
 
 }

@@ -33,7 +33,7 @@
 
 package com.comino.slam.detectors;
 
-import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
+import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
@@ -41,7 +41,7 @@ import boofcv.struct.image.Planar;
 
 public interface ISLAMDetector {
 
-	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray);
+	public void process(MAVDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray);
 	public void reset(float x,float y, float z);
 
 }

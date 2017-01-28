@@ -57,8 +57,8 @@ import com.comino.server.mjpeg.impl.CombinedFileStreamHandler;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
 import com.comino.slam.estimators.IPositionEstimator;
-import com.comino.slam.estimators.RealSensePositionEstimator;
-import com.comino.slam.estimators.RealSensePositionEstimatorAttitude;
+import com.comino.slam.estimators.MAVPositionEstimator;
+import com.comino.slam.estimators.MAVPositionEstimatorAttitude;
 import com.sun.net.httpserver.HttpServer;
 
 import boofcv.struct.geo.Point2D3D;
@@ -104,7 +104,7 @@ public class StartUp implements Runnable {
 
 		try {
 			if(config.getBoolProperty("vision_enabled", "true")) {
-				vision = new RealSensePositionEstimatorAttitude(info, control, config, streamer);
+				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
 	//			vision = new RealSensePositionEstimator(info, control, config, streamer);
 			vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
 			}

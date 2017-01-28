@@ -47,8 +47,8 @@ import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.BlockPoint3D;
-import com.comino.realsense.boofcv.odometry.RealSenseDepthVisualOdometry;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
+import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
@@ -66,6 +66,8 @@ import javafx.beans.property.SimpleBooleanProperty;
 
 public class SimpleCollisionDetector implements ISLAMDetector {
 
+	private final static int MIN_POINTS = 5;
+
 	private float     min_distance     = 1.25f;
 	private float     min_altitude     = 0.3f;
 
@@ -82,9 +84,9 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		this.model    = control.getCurrentModel();
 		this.min_distance = config.getFloatProperty("min_distance", "1.25f");
-		System.out.println("[scd] Collision distance set to "+min_distance);
+		System.out.println("[col] Collision distance set to "+min_distance);
 		this.min_altitude = config.getFloatProperty("min_altitude", "0.3f");
-		System.out.println("[scd] Min.altitude set to "+min_altitude);
+		System.out.println("[col] Min.altitude set to "+min_altitude);
 
 		streamer.registerOverlayListener(ctx -> {
 			if(collision.get() && nearestPoints.size()>0) {
@@ -92,8 +94,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 					ctx.drawRect((int)n.observation.x-10, (int)n.observation.y-10, 20, 20);
 				}
 
-				Point2D3D n = nearestPoints.get(0);
-				ctx.drawString(String.format("Min.Distance: %#.2fm", n.getLocation().z), 5, 20);
+				Point2D3D n = center; //nearestPoints.get(0);
+				ctx.drawString(String.format("Distance: %#.2fm", n.getLocation().z), 5, 20);
 
 				ctx.drawOval((int)center.observation.x-10, (int)center.observation.y-10, 20, 20);
 				ctx.drawOval((int)center.observation.x-15, (int)center.observation.y-15, 30, 30);
@@ -114,7 +116,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	}
 
 	@Override
-	public void process(RealSenseDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
+	public void process(MAVDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
 		Point2D_F64 xy; Point3D_F64 p;
 
 		AccessPointTracks3D points = (AccessPointTracks3D)odometry;
@@ -149,7 +151,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				}
 			}
 		}
-		if(nearestPoints.size()>1) {
+		if(nearestPoints.size()>MIN_POINTS) {
 
 			center.location.scale(1.0f/nearestPoints.size());
 			center.observation.scale(1.0f/nearestPoints.size());
@@ -162,13 +164,13 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			SePointOps_F64.transform(odometry.getCameraToWorld(),center.location,pos);
 
 
-		//	pos.set(center.location);
+			pos.set(center.location);
 
 //			Point2D3D np = nearestPoints.get(0);
 //			SePointOps_F64.transform(odometry.getCameraToWorld(),np.location,pos);
 
-			pos.plusIP(origin);
-			model.slam.setBlock(pos.z, pos.x, pos.y);
+//			pos.plusIP(origin);
+			model.slam.setBlock(pos.z, pos.x, -pos.y);
 
 
 
@@ -180,7 +182,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 
 	public void reset(float x, float y, float z) {
-		origin.set(y,z,x);
+		//origin.set(y,x,x);
+		//model.slam.moveTo(x, y, z);
 		nearestPoints.clear();
 	}
 

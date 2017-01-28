@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.comino.realsense.boofcv.odometry;
+package com.comino.slam.boofcv.odometry;
 
 import org.ddogleg.fitting.modelset.ModelMatcher;
 import org.ddogleg.fitting.modelset.ransac.Ransac;
@@ -44,7 +44,7 @@ import georegression.struct.se.Se3_F64;
  *
  * @author Peter Abeles
  */
-public class FactoryRealSenseOdometry {
+public class FactoryMAVOdometry {
 
 
 
@@ -52,7 +52,7 @@ public class FactoryRealSenseOdometry {
 	 * Depth sensor based visual odometry algorithm which runs a sparse feature tracker in the visual camera and
 	 * estimates the range of tracks once when first detected using the depth sensor.
 	 *
-	 * @see RealSenseOdomPixelDepthPnP
+	 * @see MAVOdomPixelDepthPnP
 	 *
 	 * @param thresholdAdd Add new tracks when less than this number are in the inlier set.  Tracker dependent. Set to
 	 *                     a value &le; 0 to add features every frame.
@@ -63,7 +63,7 @@ public class FactoryRealSenseOdometry {
 	 * @return StereoVisualOdometry
 	 */
 	public static <Vis extends ImageGray, Depth extends ImageGray>
-	RealSenseDepthVisualOdometry<Vis,Depth> depthDepthPnP(double inlierPixelTol,
+	MAVDepthVisualOdometry<Vis,Depth> depthDepthPnP(double inlierPixelTol,
 												 int thresholdAdd,
 												 int thresholdRetire ,
 												 int ransacIterations ,
@@ -94,10 +94,10 @@ public class FactoryRealSenseOdometry {
 			refine = FactoryMultiView.refinePnP(1e-12,refineIterations);
 		}
 
-		RealSenseOdomPixelDepthPnP<Vis> alg = new RealSenseOdomPixelDepthPnP<Vis>
+		MAVOdomPixelDepthPnP<Vis> alg = new MAVOdomPixelDepthPnP<Vis>
 						(thresholdAdd,thresholdRetire ,doublePass,motion,pixelTo3D,refine,tracker,null,null);
 
-		return new RealSenseOdomPixelDepthPnP_to_DepthVisualOdometry<Vis,Depth>
+		return new MAVOdomPixelDepthPnP_to_DepthVisualOdometry<Vis,Depth>
 				(sparseDepth,alg,distance, ImageType.single(visualType),depthType);
 	}
 

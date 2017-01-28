@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.comino.realsense.boofcv.odometry;
+package com.comino.slam.boofcv.odometry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +66,7 @@ import georegression.transform.se.SePointOps_F64;
  *
  * @author Peter Abeles, modified by Eike Mansfeld
  */
-public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
+public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 
 	// when the inlier set is less than this number new features are detected
 	private int thresholdAdd;
@@ -146,7 +146,7 @@ public class RealSenseOdomPixelDepthPnP<T extends ImageBase> {
 	 * @param normToPixel
 	 *            Converts from normalized image coordinates into raw pixels
 	 */
-	public RealSenseOdomPixelDepthPnP(int thresholdAdd, int thresholdRetire, boolean doublePass,
+	public MAVOdomPixelDepthPnP(int thresholdAdd, int thresholdRetire, boolean doublePass,
 			ModelMatcher<Se3_F64, Point2D3D> motionEstimator, ImagePixelTo3D pixelTo3D, RefinePnP refine,
 			PointTrackerTwoPass<T> tracker, PointTransform_F64 pixelToNorm, PointTransform_F64 normToPixel) {
 		this.thresholdAdd = thresholdAdd;
