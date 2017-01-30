@@ -218,7 +218,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
-		visualOdometry = FactoryMAVOdometry.depthDepthPnP(1.7f,
+		visualOdometry = FactoryMAVOdometry.depthDepthPnP(1.5f,
 				INLIER_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 

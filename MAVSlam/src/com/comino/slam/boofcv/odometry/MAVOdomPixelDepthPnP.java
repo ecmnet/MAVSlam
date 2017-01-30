@@ -384,19 +384,29 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 	private Se3_F64 invert       = new Se3_F64();
 
 	private void concatMotion() {
-			  CommonOps.invert(currToKey.R,invert.R);
-			  currToKey.concat(invert, trans);
-			  trans.concat(attitude, temp);
-			  currToWorld.T.plusIP(temp.T);
+//		System.out.println("...");
+//			  CommonOps.invert(currToKey.R,invert.R);
+//			  currToKey.concat(invert, trans);
+//			  trans.concat(attitude, temp);
+//			  currToWorld.T.plusIP(temp.T);
+//			  System.out.println(temp.T);
 
+//		System.out.println("....."+currToKey.T);
 
-//		currToKey.concat(keyToWorld, temp);
-//		keyToWorld.set(temp);
+		currToKey.concat(keyToWorld, temp);
+		keyToWorld.set(temp);
 		currToKey.reset();
 	}
 
 	public Se3_F64 getCurrToWorld() {
-		//currToKey.concat(keyToWorld, currToWorld);
+
+		  CommonOps.invert(currToKey.R,invert.R);
+		  currToKey.concat(invert, trans);
+		  trans.concat(attitude, currToKey);
+
+
+//		System.out.println(currToKey.T);
+		currToKey.concat(keyToWorld, currToWorld);
 		return currToWorld;
 	}
 
