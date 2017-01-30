@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.ddogleg.fitting.modelset.ModelMatcher;
+import org.ejml.ops.CommonOps;
 
 import com.comino.msp.utils.MSPMathUtils;
 
@@ -379,16 +380,23 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 		return this.quality;
 	}
 
+	private Se3_F64 trans        = new Se3_F64();
+	private Se3_F64 invert       = new Se3_F64();
+
 	private void concatMotion() {
-		if(attitude!=null)
-			currToKey.R.set(attitude.R);
-		currToKey.concat(keyToWorld, temp);
-		keyToWorld.set(temp);
+			  CommonOps.invert(currToKey.R,invert.R);
+			  currToKey.concat(invert, trans);
+			  trans.concat(attitude, temp);
+			  currToWorld.T.plusIP(temp.T);
+
+
+//		currToKey.concat(keyToWorld, temp);
+//		keyToWorld.set(temp);
 		currToKey.reset();
 	}
 
 	public Se3_F64 getCurrToWorld() {
-		currToKey.concat(keyToWorld, currToWorld);
+		//currToKey.concat(keyToWorld, currToWorld);
 		return currToWorld;
 	}
 
@@ -417,9 +425,9 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 //		0,
 //		0,
 //		currToKey.R);
-		keyToWorld.R.set(state.R);
+//		keyToWorld.R.set(state.R);
 
-//		this.attitude = state;
+		this.attitude = state;
 
 
 //		double[] att     = new double[3];

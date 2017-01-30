@@ -334,12 +334,12 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 					ConvertRotation3D_F64.matrixToEuler(rot_ned.R, EulerType.ZXY, visAttitude);
 
-					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)) {
-						if(debug)
-							System.out.println("[vis] Heading not valid");
-						init("Heading div.");
-						return;
-					}
+//					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)) {
+//						if(debug)
+//							System.out.println("[vis] Heading not valid");
+//						init("Heading div.");
+//						return;
+//					}
 				}
 				pos_raw_old.set(pos_raw);
 
