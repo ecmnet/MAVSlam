@@ -170,7 +170,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 //			SePointOps_F64.transform(odometry.getCameraToWorld(),np.location,pos);
 
 //			pos.plusIP(origin);
-			model.slam.setBlock(pos.z, pos.x, -pos.y);
+
+		    	model.slam.setBlock(pos.z, pos.x, -pos.y);
 
 
 

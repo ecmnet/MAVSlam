@@ -83,14 +83,16 @@ import georegression.struct.se.Se3_F64;
 
 public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
-	private static final int    INIT_TIME_MS    	= 600;
-	private static final int    MAX_ERRORS    	    = 1;
+	private static final int    INIT_COUNT          = 10;
+	private static final int    MAX_ERRORS    	    = 5;
+
+	private static final int    MAX_SPEED    	    = 5;
 
 	private static final int    MIN_QUALITY 		= 20;
 
-	private static final int    MAXTRACKS   		= 600;
-	private static final int    RANSAC_ITERATIONS   = 200;
-	private static final int    RETIRE_THRESHOLD    = 2;
+	private static final int    MAXTRACKS   		= 200;
+	private static final int    RANSAC_ITERATIONS   = 120;
+	private static final int    RETIRE_THRESHOLD    = 4;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 50;
 
@@ -120,10 +122,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private Se3_F64 current         = new Se3_F64();
 
 	private double[] visAttitude     = new double[3];
-	private double[] visAttitude_old = new double[3];
-
 	private long fps_tms   =0;
-	private long init_tms  =0;
 
 	private DataModel model;
 
@@ -134,7 +133,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private float fps = 0;
 
 	private boolean isRunning    = false;
-	private boolean initialized  = false;
+	private int     initialized_count  = 0;
 
 	private IMAVMSPController control;
 
@@ -150,6 +149,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private List<ISLAMDetector> 		detectors = null;
 	private List<IVisualStreamHandler>	streams = null;
 	private RealSenseInfo info;
+	private String last_reason;
 
 
 	public MAVPositionEstimatorAttitude(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
@@ -218,7 +218,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
-		visualOdometry = FactoryMAVOdometry.depthDepthPnP(1.7f,
+		visualOdometry = FactoryMAVOdometry.depthDepthPnP(1.5f,
 				INLIER_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
@@ -233,6 +233,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				});
 			}
 		}
+
+		initialized_count = 0;
 
 		realsense.registerListener(new Listener() {
 
@@ -254,6 +256,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					mf++;
 				}
 
+
 				ConvertImage.average(rgb, gray);
 
 				for(IVisualStreamHandler stream : streams)
@@ -261,43 +264,49 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 
 				if( !visualOdometry.process(gray,depth,getAttitudeToState(model, current))) {
-					if(debug && initialized)
-						System.out.println("[vis] Odometry failure");
+					if(debug)
+						System.out.println(timeDepth+"[vis] Odometry failure");
 					init("Odometry");
 					return;
 				}
 
 
-
 				quality = (int)(visualOdometry.getQuality() * 300f / MAXTRACKS);
 				if(quality > 100) quality = 100;
 
-				if((System.currentTimeMillis()-init_tms) < INIT_TIME_MS) {
-					if( quality > MIN_QUALITY) {
-						speed_old.reset();
+				if(initialized_count < INIT_COUNT) {
+
+					if(Float.isNaN(model.state.l_x) || Float.isNaN(model.state.l_y) || Float.isNaN(model.state.l_z))
 						pos_ned.reset();
-						pos_raw_old.set(0,0,0);
-					} else {
-						init_tms = System.currentTimeMillis();
+					else {
+						pos_ned.getTranslation().y = model.state.l_z;
+						pos_ned.getTranslation().x = model.state.l_y;
+						pos_ned.getTranslation().z = model.state.l_x;
+					}
+					pos_raw_old.set(0,0,0);
+					speed_old.reset();
+
+					if( quality > MIN_QUALITY) {
+						if(++initialized_count == INIT_COUNT) {
+							if(debug)
+								System.out.println(timeDepth+"[vis] Odometry init at: "+pos_ned.T);
+							control.writeLogMessage(new LogMessage("[vis] odometry init: "+last_reason,
+									MAV_SEVERITY.MAV_SEVERITY_NOTICE));
+							error_count = 0;
+						}
 					}
 					return;
 				}
 
-				if(!initialized) {
-					control.writeLogMessage(new LogMessage("[vis] odometry initialized",
-							MAV_SEVERITY.MAV_SEVERITY_NOTICE));
-					initialized = true;
-				}
-				//
-
-				//estTimeDepth_us = timeDepth*1000;
-				estTimeDepth_us = System.nanoTime()/1000f;
-				if(oldTimeDepth_us>0)
-					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
-				oldTimeDepth_us = estTimeDepth_us;
 
 				pos_raw = visualOdometry.getCameraToWorld().getT();
 				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
+
+				estTimeDepth_us = timeDepth*1000;
+				//estTimeDepth_us = System.nanoTime()/1000f;
+				if(oldTimeDepth_us>0)
+					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
+				oldTimeDepth_us = estTimeDepth_us;
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
@@ -313,11 +322,16 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed_ned.T);
 						speed_ned.T.scale(1d/dt);
 
+						if(speed_ned.T.norm()>MAX_SPEED) {
+							init("Speed");
+							return;
+						}
+
 					} else {
 						if(++qual_error_count > 10) {
 							qual_error_count=0;
 							if(debug)
-								System.out.println("[vis] Quality "+quality+" < Min");
+								System.out.println(timeDepth+"[vis] Quality "+quality+" < Min");
 							init("Quality");
 						}
 						return;
@@ -336,7 +350,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)) {
 						if(debug)
-							System.out.println("[vis] Heading not valid");
+							System.out.println(timeDepth+"[vis] Heading not valid");
 						init("Heading div.");
 						return;
 					}
@@ -354,13 +368,17 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				if(detectors.size()>0 && detector_cycle_ms>0) {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
-						for(ISLAMDetector d : detectors)
-							d.process(visualOdometry, depth, gray);
+						for(ISLAMDetector d : detectors) {
+							try {
+								d.process(visualOdometry, depth, gray);
+							} catch(Exception e) {
+								System.out.println(timeDepth+"[vis] Detector exception: "+e.getMessage());
+							}
+						}
 					}
 				}
 			}
 		});
-		init_tms = System.currentTimeMillis()+5000;
 	}
 
 	private void overlayFeatures(Graphics ctx) {
@@ -394,7 +412,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	}
 
 	public void start() {
-		isRunning = true; init_tms=0;
+		isRunning = true;
 		init("StartUp");
 		if(realsense!=null)
 			realsense.start();
@@ -413,7 +431,6 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	}
 
 	public void reset() {
-		init_tms=0;
 		init("msp reset");
 	}
 
@@ -423,31 +440,25 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				m.attitude.p,
 				m.attitude.y,
 				state.getRotation());
-
-		//		state.getTranslation().y = m.state.l_z;
-		//		state.getTranslation().x = m.state.l_y;
-		//		state.getTranslation().z = m.state.l_x;
 		return state;
 	}
 
 	private void init(String reason) {
-		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS) {
-			if(do_odometry) {
-				error_count++;
-				if((error_count % MAX_ERRORS)==0)
-					control.writeLogMessage(new LogMessage("[vis] reset odometry: "+reason,
-							MAV_SEVERITY.MAV_SEVERITY_NOTICE));
-				visualOdometry.reset(current);
+		this.last_reason = reason;
+		if(do_odometry) {
+			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
-				init_tms = System.currentTimeMillis();
-				publisMSPVision();
-
-				if(detectors.size()>0) {
-					detector_tms = System.currentTimeMillis();
-					for(ISLAMDetector d : detectors)
-						d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
-				}
 			}
+			getAttitudeToState(model, current);
+			visualOdometry.reset(current);
+			publisMSPVision();
+
+			if(detectors.size()>0) {
+				detector_tms = System.currentTimeMillis();
+				for(ISLAMDetector d : detectors)
+					d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
+			}
+			initialized_count = 0;
 		}
 	}
 

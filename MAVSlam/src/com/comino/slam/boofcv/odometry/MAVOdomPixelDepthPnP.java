@@ -116,7 +116,6 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 
 	private double quality = 0;
 
-	private Se3_F64 attitude = null;
 
 	/**
 	 * Configures magic numbers and estimation algorithms.
@@ -380,8 +379,6 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 	}
 
 	private void concatMotion() {
-		if(attitude!=null)
-			currToKey.R.set(attitude.R);
 		currToKey.concat(keyToWorld, temp);
 		keyToWorld.set(temp);
 		currToKey.reset();
@@ -418,9 +415,6 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 //		0,
 //		currToKey.R);
 		keyToWorld.R.set(state.R);
-
-//		this.attitude = state;
-
 
 //		double[] att     = new double[3];
 //		ConvertRotation3D_F64.matrixToEuler(state.R, EulerType.ZXY, att);
