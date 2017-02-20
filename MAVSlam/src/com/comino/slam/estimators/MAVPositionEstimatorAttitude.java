@@ -90,8 +90,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 20;
 
-	private static final int    MAXTRACKS   		= 200;
-	private static final int    RANSAC_ITERATIONS   = 120;
+	private static final int    MAXTRACKS   		= 300;
+	private static final int    RANSAC_ITERATIONS   = 140;
 	private static final int    RETIRE_THRESHOLD    = 4;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 50;
@@ -127,6 +127,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private DataModel model;
 
 	private boolean debug = false;
+	private boolean heading_init_enabled = false;
 
 
 	private int quality=0;
@@ -161,7 +162,9 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 		System.out.println("Vision position estimator: "+this.getClass().getSimpleName());
 		this.debug = config.getBoolProperty("vision_debug", "false");
+		this.heading_init_enabled = config.getBoolProperty("vision_heading_init", "true");
 		System.out.println("Vision debugging: "+debug);
+		System.out.println("Initialize heading when landed: "+heading_init_enabled);
 		System.out.println("RANSAC iterations: "+RANSAC_ITERATIONS);
 
 		this.do_odometry = config.getBoolProperty("vision_enable", "true");
@@ -279,9 +282,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					if(Float.isNaN(model.state.l_x) || Float.isNaN(model.state.l_y) || Float.isNaN(model.state.l_z))
 						pos_ned.reset();
 					else {
-						pos_ned.getTranslation().y = model.state.l_z;
-						pos_ned.getTranslation().x = model.state.l_y;
-						pos_ned.getTranslation().z = model.state.l_x;
+						getPositionToState(model,pos_ned);
 					}
 					pos_raw_old.set(0,0,0);
 					speed_old.reset();
@@ -348,7 +349,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 					ConvertRotation3D_F64.matrixToEuler(rot_ned.R, EulerType.ZXY, visAttitude);
 
-					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)) {
+					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)
+							    && heading_init_enabled) {
 						if(debug)
 							System.out.println(timeDepth+"[vis] Heading not valid");
 						init("Heading div.");
@@ -440,6 +442,13 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				m.attitude.p,
 				m.attitude.y,
 				state.getRotation());
+		return state;
+	}
+
+	private Se3_F64 getPositionToState(DataModel m, Se3_F64 state) {
+		state.getTranslation().y = m.state.l_z;
+		state.getTranslation().x = m.state.l_y;
+		state.getTranslation().z = m.state.l_x;
 		return state;
 	}
 
