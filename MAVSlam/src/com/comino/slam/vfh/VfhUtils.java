@@ -32,19 +32,28 @@
  ****************************************************************************/
 
 /*
- * Source: https://github.com/agarie/vector-field-histogram
+ * Source: http://crsouza.blogspot.com/2009/09/modulo-and-modular-distance-in-c.html
  */
 
 package com.comino.slam.vfh;
 
-public class VfhHist {
+public class VfhUtils {
 
-	public int 		alpha;
-	public int 		sectors;
-	public double 	threshold;
-	public double 	dampingConstant;
-	public double   density_a;
-	public double   density_b;
-	public short[]  densities;
+	public static int modulo(int x, int m) {
+
+		int r;
+
+		if (m < 0) m = -m;
+
+		r = x % m;
+		return r < 0 ? r + m : r;
+	}
+
+	public static int modularDist(int a, int b, int m) {
+		int dist_a = modulo(a - b, m);
+		int dist_b = modulo(b - a, m);
+
+		return dist_a < dist_b? dist_a : dist_b;
+	}
 
 }

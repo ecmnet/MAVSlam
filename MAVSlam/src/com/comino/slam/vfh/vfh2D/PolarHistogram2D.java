@@ -35,16 +35,45 @@
  * Source: https://github.com/agarie/vector-field-histogram
  */
 
-package com.comino.slam.vfh;
+package com.comino.slam.vfh.vfh2D;
 
-public class VfhHist {
+import java.util.Arrays;
 
-	public int 		alpha;
-	public int 		sectors;
-	public double 	threshold;
-	public double 	dampingConstant;
-	public double   density_a;
-	public double   density_b;
-	public short[]  densities;
+import com.comino.slam.vfh.VfhGrid;
+import com.comino.slam.vfh.VfhHist;
 
+public class PolarHistogram2D {
+
+	private VfhHist hist;
+
+	public PolarHistogram2D(int alpha, double threshold, double density_a, double density_b) {
+
+	  hist = new VfhHist();
+	  hist.alpha = alpha;
+	  hist.sectors = 360 / alpha;
+	  hist.threshold = threshold;
+	  hist.densities = new short[hist.sectors];
+
+	  Arrays.fill(hist.densities, (short)0);
+
+	}
+
+	public void histUpdate(VfhGrid grid) {
+	   int dim = grid.dimension;
+
+	   for (int i = 0; i < dim; ++i) {
+		    for (int j = 0; j < dim; ++j) {
+
+		    	 /* Calculate the angular position (beta) of this cell. */
+		    	  double beta = Math.atan2((double)(j - dim/2), (double)(i - dim/2));
+
+		    	  /* Calculate the obstacle density of this cell. */
+			      double density = Math.pow(grid.cells[i * dim + j], 2);
+			      density *= hist.density_a - hist.density_b * Math.sqrt((i - dim/2)*(i - dim/2) + (j - dim/2)*(j - dim/2));
+
+			      /* Add density to respective point in the histogram. */
+			      hist.densities[(int) Math.floor(beta / hist.alpha)] += density;
+		    }
+	   }
+	}
 }
