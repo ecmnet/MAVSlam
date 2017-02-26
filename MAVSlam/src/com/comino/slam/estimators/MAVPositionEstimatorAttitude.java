@@ -93,10 +93,10 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private static final int    MAXTRACKS   		= 150; // was 300
 	private static final int    KLT_RADIUS          = 4;   // was 3
 	private static final float  KLT_THRESHOLD       = 1f;
-	private static final int    RANSAC_ITERATIONS   = 150; // 140
-	private static final int    RETIRE_THRESHOLD    = 10;
+	private static final int    RANSAC_ITERATIONS   = 170; // 140
+	private static final int    RETIRE_THRESHOLD    = 5;
 	private static final int    INLIER_THRESHOLD    = 120;
-	private static final int    REFINE_ITERATIONS   = 70;
+	private static final int    REFINE_ITERATIONS   = 50;
 
 
 	private StreamRealSenseVisDepth realsense;
