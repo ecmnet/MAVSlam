@@ -32,45 +32,20 @@
  ****************************************************************************/
 
 /*
- * Source: http://crsouza.blogspot.com/2009/09/modulo-and-modular-distance-in-c.html
+ * Source: https://github.com/agarie/vector-field-histogram
  */
 
-package com.comino.slam.vfh;
+package com.comino.slam.vfh.vfh2D;
 
-public class VfhUtils {
+public class Vfh {
 
-	public static int modulo(int x, int m) {
 
-		int r;
+	public Vfh() {
 
-		if (m < 0) m = -m;
-
-		r = x % m;
-		return r < 0 ? r + m : r;
 	}
 
-	public static int modularDist(int a, int b, int m) {
-		int dist_a = modulo(a - b, m);
-		int dist_b = modulo(b - a, m);
-
-		return dist_a < dist_b? dist_a : dist_b;
-	}
-
-	public static void mprint(VfhGrid grid) {
-		int dim = grid.dimension;
-
-		for (int i = 0; i < dim; ++i) {
-			for (int j = 0; j < dim; ++j) {
-				if (grid.cells[i * dim + j] >= 8) {
-					System.out.printf("o");
-				} else if (grid.cells[i * dim + j] >= 4) {
-					System.out.printf("x");
-				} else {
-					System.out.printf(" ");
-				}
-			}
-			System.out.printf("\n");
-		}
+	public static void main(String[] args) {
+		Vfh vfh = new Vfh();
 	}
 
 }
