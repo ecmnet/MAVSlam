@@ -138,7 +138,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				p = odometry.getTrackLocation(i);
 //				SePointOps_F64.transform(toWorld,odometry.getTrackLocation(i),pos);
 
-				if(p.z < min_distance && xy.y < 120) {
+				if(p.z < min_distance && xy.y < 180) {
 
 					Point2D3D n = new Point2D3D();
 					n.setLocation(p);

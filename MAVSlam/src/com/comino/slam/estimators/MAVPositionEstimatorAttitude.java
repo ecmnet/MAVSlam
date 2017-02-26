@@ -90,11 +90,13 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 20;
 
-	private static final int    MAXTRACKS   		= 300;
-	private static final int    RANSAC_ITERATIONS   = 140;
-	private static final int    RETIRE_THRESHOLD    = 4;
+	private static final int    MAXTRACKS   		= 150; // was 300
+	private static final int    KLT_RADIUS          = 4;   // was 3
+	private static final float  KLT_THRESHOLD       = 1f;
+	private static final int    RANSAC_ITERATIONS   = 150; // 140
+	private static final int    RETIRE_THRESHOLD    = 10;
 	private static final int    INLIER_THRESHOLD    = 120;
-	private static final int    REFINE_ITERATIONS   = 50;
+	private static final int    REFINE_ITERATIONS   = 70;
 
 
 	private StreamRealSenseVisDepth realsense;
@@ -165,7 +167,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		this.heading_init_enabled = config.getBoolProperty("vision_heading_init", "true");
 		System.out.println("Vision debugging: "+debug);
 		System.out.println("Initialize heading when landed: "+heading_init_enabled);
-		System.out.println("RANSAC iterations: "+RANSAC_ITERATIONS);
+		System.out.println("Vision setup: MaxTracks="+MAXTRACKS+" RanSac="+RANSAC_ITERATIONS+ " KLTRadius="+KLT_RADIUS+ " KLTThreshold="+KLT_THRESHOLD);
 
 		this.do_odometry = config.getBoolProperty("vision_enable", "true");
 		System.out.println("Vision Odometry enabled: "+do_odometry);
@@ -207,6 +209,13 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 			}
 		});
 
+		// reset vision when armed
+		control.addStatusChangeListener((o,n) -> {
+			if(n.isStatusChanged(o, Status.MSP_ARMED)) {
+				reset();
+			}
+		});
+
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
 		} catch(Exception e) {	}
@@ -216,7 +225,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryMAVPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, 3, 1.0f),
+				FactoryMAVPointTrackerTwoPass.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, KLT_RADIUS, KLT_THRESHOLD),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
@@ -268,7 +277,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 				if( !visualOdometry.process(gray,depth,getAttitudeToState(model, current))) {
 					if(debug)
-						System.out.println(timeDepth+"[vis] Odometry failure");
+						System.out.println("[vis] Odometry failure");
 					init("Odometry");
 					return;
 				}
@@ -290,7 +299,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					if( quality > MIN_QUALITY) {
 						if(++initialized_count == INIT_COUNT) {
 							if(debug)
-								System.out.println(timeDepth+"[vis] Odometry init at: "+pos_ned.T);
+								System.out.println("[vis] Odometry init at: "+pos_ned.T);
 							control.writeLogMessage(new LogMessage("[vis] odometry init: "+last_reason,
 									MAV_SEVERITY.MAV_SEVERITY_NOTICE));
 							error_count = 0;
@@ -305,6 +314,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 				estTimeDepth_us = timeDepth*1000;
 				//estTimeDepth_us = System.nanoTime()/1000f;
+			//	estTimeDepth_us = control.getMonotonicTime_ns()/1000f;
+			// System.out.println((System.nanoTime()-control.getMonotonicTime_ns())/1000000f);
 				if(oldTimeDepth_us>0)
 					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
 				oldTimeDepth_us = estTimeDepth_us;

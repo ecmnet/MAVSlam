@@ -176,6 +176,8 @@ public class StartUp implements Runnable {
 					control.sendMAVLinkMessage(msg);
 				}
 
+				//System.out.println(control.getMonotonicTime_ns());
+
 				msg_msp_status msg = new msg_msp_status(2,1);
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
