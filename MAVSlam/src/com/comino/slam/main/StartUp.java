@@ -170,7 +170,8 @@ public class StartUp implements Runnable {
 
 				if(publish_microslam) {
 					msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
-					msg.res = model.slam.getResolution();
+					msg.resolution = 0;
+					msg.extension  = 0;
 					msg.cx  = model.slam.getVehicleX();
 					msg.cy  = model.slam.getVehicleY();
 					msg.cz = 0;
