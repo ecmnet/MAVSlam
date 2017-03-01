@@ -57,6 +57,8 @@ import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
 import boofcv.struct.sfm.Point2D3DTrack;
+import georegression.geometry.ConvertRotation3D_F64;
+import georegression.struct.EulerType;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
@@ -75,6 +77,9 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	private Point3D_F64   pos      = new Point3D_F64();
 	private Point3D_F64   origin   = new Point3D_F64();
 	private Point2D3D     center   = new Point2D3D();
+
+	private Se3_F64 current         = new Se3_F64();
+	private Se3_F64 pos_ned         = new Se3_F64();
 
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
@@ -123,10 +128,10 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		nearestPoints.clear();
 
-		if(points.getAllTracks().size()==0 || ( model.sys.isStatus(Status.MSP_LANDED) && model.raw.di < min_altitude)) {
-			collision.set(false);
-			return;
-		}
+//		if(points.getAllTracks().size()==0 || ( model.sys.isStatus(Status.MSP_LANDED) && model.raw.di < min_altitude)) {
+//			collision.set(false);
+//			return;
+//		}
 
 		center.location.set(0,0,0); center.observation.set(0,0);
 
@@ -137,6 +142,17 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				// p is the obstacle location in body-frame
 				p = odometry.getTrackLocation(i);
 //				SePointOps_F64.transform(toWorld,odometry.getTrackLocation(i),pos);
+
+
+
+//				SePointOps_F64.transform(odometry.getCameraToWorld(),p,pos);
+//
+//				pos.z = pos.z + model.state.l_x;
+//				pos.x = pos.x + model.state.l_y;
+//
+//			    model.slam.setBlock(pos.z, pos.x);
+
+
 
 				if(p.z < min_distance && xy.y < 180) {
 
@@ -160,20 +176,33 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				return Double.compare(a.location.z,b.location.z);
 			});
 
-			// TODO: use temporal slam model later
 			SePointOps_F64.transform(odometry.getCameraToWorld(),center.location,pos);
 
+			pos.z = pos.z + model.state.l_x;
+			pos.x = pos.x + model.state.l_y;
 
-			pos.set(center.location);
+		    model.slam.setBlock(pos.z, pos.x);
+
+
+//			getAttitudeToState(model, current);
+			// TODO: use temporal slam model later
+
+//			SePointOps_F64.transform(odometry.getCameraToWorld(),center.location,pos);
+//
+//			pos.z = pos.z + model.state.l_x;
+//			pos.x = pos.x + model.state.l_y;
+
 
 //			Point2D3D np = nearestPoints.get(0);
 //			SePointOps_F64.transform(odometry.getCameraToWorld(),np.location,pos);
 
 //			pos.plusIP(origin);
 
-		    	model.slam.setBlock(pos.z, pos.x, -pos.y);
+//			System.out.println("A "+(pos.x+model.state.l_x)+":"+(pos.z+model.state.l_y));
+//			System.out.println("B "+(pos.x)+":"+(pos.z));
+//			System.out.println("C "+(model.state.l_x)+":"+(model.state.l_y));
 
-
+//		    model.slam.setBlock(pos.z, pos.x);
 
 			collision.set(true);
 		} else
@@ -186,6 +215,22 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 		//origin.set(y,x,x);
 		//model.slam.moveTo(x, y, z);
 		nearestPoints.clear();
+	}
+
+	private Se3_F64 getAttitudeToState(DataModel m, Se3_F64 state) {
+		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+				m.attitude.r,
+				m.attitude.p,
+				m.attitude.y,
+				state.getRotation());
+		return state;
+	}
+
+	private Se3_F64 getPositionToState(DataModel m, Se3_F64 state) {
+		state.getTranslation().y = m.state.l_z;
+		state.getTranslation().x = m.state.l_y;
+		state.getTranslation().z = m.state.l_x;
+		return state;
 	}
 
 }

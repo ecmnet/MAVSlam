@@ -95,9 +95,9 @@ public class StartUp implements Runnable {
 
 		// Start services if required
 
-//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
-//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_INFRARED);
-//		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_INFRARED);
+		//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+		//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_INFRARED);
+		//		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_INFRARED);
 		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 
 		HttpMJPEGHandler streamer = new HttpMJPEGHandler(info, control.getCurrentModel());
@@ -105,15 +105,15 @@ public class StartUp implements Runnable {
 		try {
 			if(config.getBoolProperty("vision_enabled", "true")) {
 				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
-	//			vision = new RealSensePositionEstimator(info, control, config, streamer);
-			vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
+				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
+				vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
 			}
 		} catch(Exception e) {
 			System.out.println("[vis] Vision not available: "+e.getMessage());
 		}
 
-//		if(config.getBoolProperty("file_stream_enabled", "false"))
-//			vision.registerStreams(new CombinedFileStreamHandler(info, control));
+		//		if(config.getBoolProperty("file_stream_enabled", "false"))
+		//			vision.registerStreams(new CombinedFileStreamHandler(info, control));
 
 		this.publish_microslam = config.getBoolProperty("publish_microslam", "false");
 		System.out.println("[vis} Publishing microSlam enabled: "+publish_microslam);
@@ -155,23 +155,26 @@ public class StartUp implements Runnable {
 		long tms = System.currentTimeMillis();
 		DataModel model = control.getCurrentModel();
 
+		model.slam.setBlock(-1, -3);
+
 		while(true) {
 			try {
 				Thread.sleep(250);
-
 
 				if(!control.isConnected()) {
 					control.connect();
 					continue;
 				}
 
+				model.slam.setVehicle(model.state.l_x, model.state.l_y);
+
 				if(publish_microslam) {
 					msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
-					msg.res = model.slam.res;
-					msg.cx = 0;
-					msg.cy = 0;
+					msg.res = model.slam.getResolution();
+					msg.cx  = model.slam.getVehicleX();
+					msg.cy  = model.slam.getVehicleY();
 					msg.cz = 0;
-					msg.data = model.slam.toArray();
+					model.slam.toArray(msg.data);
 					msg.tms  = System.nanoTime() / 1000;
 					control.sendMAVLinkMessage(msg);
 				}
@@ -193,7 +196,5 @@ public class StartUp implements Runnable {
 				control.close();
 			}
 		}
-
 	}
-
 }
