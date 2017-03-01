@@ -39,6 +39,7 @@ package com.comino.slam.vfh.vfh2D;
 
 import java.util.Arrays;
 
+import com.comino.msp.model.segment.Slam;
 import com.comino.slam.vfh.VfhGrid;
 
 import georegression.struct.point.Point3D_F64;
@@ -63,7 +64,7 @@ public class HistogramGrid2D {
 		return gridUpdate(0,0,obstacle_absolute);
 	}
 
-    // Updates the grid with an relative observation
+	// Updates the grid with an relative observation
 	public boolean gridUpdate(float lpos_x, float lpos_y, Point3D_F64 obstacle) {
 
 		int new_x = (int)Math.floor(lpos_x / grid.resolution) + (int)Math.floor(obstacle.x / grid.resolution);
@@ -76,7 +77,7 @@ public class HistogramGrid2D {
 		return false;
 	}
 
-    // creates a moveing window at the current position with a certain window size
+	// creates a moveing window at the current position with a certain window size
 	public VfhGrid getMovingWindow(float lpos_x, float lpos_y, int windowSize) {
 		VfhGrid window = new VfhGrid();
 
@@ -91,5 +92,18 @@ public class HistogramGrid2D {
 			}
 		}
 		return window;
+	}
+
+	public void transferToMicroSLAM(Slam slam, int threshold, boolean debug) {
+		slam.clear();
+		for (int i = 0; i < grid.dimension; ++i) {
+			for (int j = 0; j < grid.dimension; ++j) {
+				if(grid.cells[i * grid.dimension + j] > threshold)
+					slam.setBlock(j*grid.resolution/100f+grid.resolution/200f,
+							i*grid.resolution/100f+grid.resolution/200f);
+			}
+		}
+		if(debug)
+			System.out.println(slam);
 	}
 }
