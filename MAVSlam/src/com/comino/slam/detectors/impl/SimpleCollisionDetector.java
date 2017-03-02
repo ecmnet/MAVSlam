@@ -145,12 +145,15 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 
 
+
 //				SePointOps_F64.transform(odometry.getCameraToWorld(),p,pos);
 //
 //				pos.z = pos.z + model.state.l_x;
 //				pos.x = pos.x + model.state.l_y;
 //
-//			    model.slam.setBlock(pos.z, pos.x);
+//			    System.out.println(pos.z+":"+pos.x);
+//				model.slam.setBlock(pos.z - current.getZ()  , pos.x -current.getX());
+//				model.slam.setVehicle(pos.z - current.getZ() , pos.x -current.getX());
 
 
 
@@ -175,13 +178,21 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			Collections.sort(nearestPoints, (a, b) -> {
 				return Double.compare(a.location.z,b.location.z);
 			});
+			pos.set(0,0,0);
+			current = odometry.getCameraToWorld();
 
-			SePointOps_F64.transform(odometry.getCameraToWorld(),center.location,pos);
 
-			pos.z = pos.z + model.state.l_x;
-			pos.x = pos.x + model.state.l_y;
+			SePointOps_F64.transform(current,center.location,pos);
+//
+			pos.z = pos.z + model.state.l_x - current.T.z;
+			pos.x = pos.x + model.state.l_y - current.T.x;
 
-		    model.slam.setBlock(pos.z, pos.x);
+
+
+			current = odometry.getCameraToWorld();
+
+			model.slam.setVehicle(pos.z , pos.x);
+			model.slam.setBlock(pos.z , pos.x);
 
 
 //			getAttitudeToState(model, current);

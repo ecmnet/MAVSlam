@@ -166,7 +166,7 @@ public class StartUp implements Runnable {
 					continue;
 				}
 
-				model.slam.setVehicle(model.state.l_x, model.state.l_y);
+			//	model.slam.setVehicle(model.state.l_x, model.state.l_y);
 
 				if(publish_microslam) {
 					msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
