@@ -131,7 +131,7 @@ public class StartUp implements Runnable {
 		Thread worker = new Thread(this);
 		worker.start();
 
-		control.getCurrentModel().slam.setBlock(-1, -3);
+	//	control.getCurrentModel().slam.setBlock(-1, -3);
 
 		// Start HTTP Service with MJPEG streamer
 
@@ -175,9 +175,10 @@ public class StartUp implements Runnable {
 					msg.cx  = model.slam.getVehicleX();
 					msg.cy  = model.slam.getVehicleY();
 					msg.cz = 0;
-					model.slam.toArray(msg.data);
 					msg.tms  = System.nanoTime() / 1000;
-					control.sendMAVLinkMessage(msg);
+
+					if(model.slam.toArray(msg.data))
+					   control.sendMAVLinkMessage(msg);
 				}
 
 				//System.out.println(control.getMonotonicTime_ns());
