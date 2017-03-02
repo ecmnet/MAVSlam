@@ -131,6 +131,8 @@ public class StartUp implements Runnable {
 		Thread worker = new Thread(this);
 		worker.start();
 
+		control.getCurrentModel().slam.setBlock(-1, -3);
+
 		// Start HTTP Service with MJPEG streamer
 
 		HttpServer server;
@@ -154,8 +156,6 @@ public class StartUp implements Runnable {
 	public void run() {
 		long tms = System.currentTimeMillis();
 		DataModel model = control.getCurrentModel();
-
-		model.slam.setBlock(-1, -3);
 
 		while(true) {
 			try {
