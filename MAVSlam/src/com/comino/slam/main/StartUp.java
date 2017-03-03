@@ -176,7 +176,7 @@ public class StartUp implements Runnable {
 					msg.cy  = model.slam.getVehicleY();
 					msg.cz = 0;
 					msg.tms  = System.nanoTime() / 1000;
-
+                    msg.count = model.slam.count;
 					if(model.slam.toArray(msg.data))
 					   control.sendMAVLinkMessage(msg);
 				}

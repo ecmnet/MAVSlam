@@ -39,10 +39,13 @@ import java.util.Collections;
 import java.util.List;
 
 import org.mavlink.messages.MAV_SEVERITY;
+import org.mavlink.messages.MSP_CMD;
+import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.main.MSPConfig;
+import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
@@ -71,7 +74,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 	private final static int MIN_POINTS = 5;
 
 	private float     min_distance     = 1.25f;
-	private float     min_altitude     = 0.3f;
+	private float     min_altitude     = 0.2f;
 
 	private DataModel     model    = null;
 	private Point3D_F64   pos      = new Point3D_F64();
@@ -92,6 +95,18 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 		System.out.println("[col] Collision distance set to "+min_distance);
 		this.min_altitude = config.getFloatProperty("min_altitude", "0.3f");
 		System.out.println("[col] Min.altitude set to "+min_altitude);
+
+		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
+			@Override
+			public void received(Object o) {
+				msg_msp_command cmd = (msg_msp_command)o;
+				switch(cmd.command) {
+				case MSP_CMD.MSP_TRANSFER_MICROSLAM:
+					model.slam.invalidateTransfer();
+					break;
+				}
+			}
+		});
 
 		streamer.registerOverlayListener(ctx -> {
 			if(collision.get() && nearestPoints.size()>0) {
@@ -132,6 +147,11 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 //			collision.set(false);
 //			return;
 //		}
+
+		if(points.getAllTracks().size()==0 || ( model.raw.di < min_altitude)) {
+		collision.set(false);
+		return;
+	}
 
 		center.location.set(0,0,0); center.observation.set(0,0);
 
@@ -186,34 +206,13 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 //
 			pos.z = pos.z + model.state.l_x - current.T.z;
 			pos.x = pos.x + model.state.l_y - current.T.x;
-
+            pos.y = -(pos.y - current.T.y) + model.state.l_z;
 
 
 			current = odometry.getCameraToWorld();
 
 			model.slam.setVehicle(pos.z , pos.x);
 			model.slam.setBlock(pos.z , pos.x);
-
-
-//			getAttitudeToState(model, current);
-			// TODO: use temporal slam model later
-
-//			SePointOps_F64.transform(odometry.getCameraToWorld(),center.location,pos);
-//
-//			pos.z = pos.z + model.state.l_x;
-//			pos.x = pos.x + model.state.l_y;
-
-
-//			Point2D3D np = nearestPoints.get(0);
-//			SePointOps_F64.transform(odometry.getCameraToWorld(),np.location,pos);
-
-//			pos.plusIP(origin);
-
-//			System.out.println("A "+(pos.x+model.state.l_x)+":"+(pos.z+model.state.l_y));
-//			System.out.println("B "+(pos.x)+":"+(pos.z));
-//			System.out.println("C "+(model.state.l_x)+":"+(model.state.l_y));
-
-//		    model.slam.setBlock(pos.z, pos.x);
 
 			collision.set(true);
 		} else
@@ -226,22 +225,6 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 		//origin.set(y,x,x);
 		//model.slam.moveTo(x, y, z);
 		nearestPoints.clear();
-	}
-
-	private Se3_F64 getAttitudeToState(DataModel m, Se3_F64 state) {
-		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-				m.attitude.r,
-				m.attitude.p,
-				m.attitude.y,
-				state.getRotation());
-		return state;
-	}
-
-	private Se3_F64 getPositionToState(DataModel m, Se3_F64 state) {
-		state.getTranslation().y = m.state.l_z;
-		state.getTranslation().x = m.state.l_y;
-		state.getTranslation().z = m.state.l_x;
-		return state;
 	}
 
 }
