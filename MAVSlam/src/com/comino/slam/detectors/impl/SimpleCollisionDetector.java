@@ -73,16 +73,15 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 	private final static int MIN_POINTS = 5;
 
-	private float     min_distance     = 1.25f;
+	private float     min_distance     = 2.25f;
 	private float     min_altitude     = 0.2f;
 
-	private DataModel     model    = null;
-	private Point3D_F64   pos      = new Point3D_F64();
-	private Point3D_F64   origin   = new Point3D_F64();
-	private Point2D3D     center   = new Point2D3D();
+	private DataModel     model        = null;
+	private Point3D_F64   pos          = new Point3D_F64();
+	private Point3D_F64   p_ned        = new Point3D_F64();
+	private Point2D3D     center_ned   = new Point2D3D();
 
 	private Se3_F64 current         = new Se3_F64();
-	private Se3_F64 pos_ned         = new Se3_F64();
 
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
@@ -114,11 +113,11 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 					ctx.drawRect((int)n.observation.x-10, (int)n.observation.y-10, 20, 20);
 				}
 
-				Point2D3D n = center; //nearestPoints.get(0);
+				Point2D3D n = center_ned; //nearestPoints.get(0);
 				ctx.drawString(String.format("Distance: %#.2fm", n.getLocation().z), 5, 20);
 
-				ctx.drawOval((int)center.observation.x-10, (int)center.observation.y-10, 20, 20);
-				ctx.drawOval((int)center.observation.x-15, (int)center.observation.y-15, 30, 30);
+				ctx.drawOval((int)center_ned.observation.x-10, (int)center_ned.observation.y-10, 20, 20);
+				ctx.drawOval((int)center_ned.observation.x-15, (int)center_ned.observation.y-15, 30, 30);
 			}
 		});
 
@@ -148,7 +147,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 //			return;
 //		}
 
-		center.location.set(0,0,0); center.observation.set(0,0);
+		center_ned.location.set(0,0,0); center_ned.observation.set(0,0);
 		current = odometry.getCameraToWorld();
 
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
@@ -164,34 +163,37 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 					n.setLocation(p);
 					n.setObservation(xy);
 
-					nearestPoints.add(n);
+					SePointOps_F64.transform(current,p,p_ned);
 
-					center.location.plusIP(p);
-					center.observation.plusIP(xy);
+					pos.x = p_ned.z + model.state.l_x - current.T.z;
+					pos.y = p_ned.x + model.state.l_y - current.T.x;
+					pos.z = -(p_ned.y - current.T.y) + model.state.l_z;
+
+					if(Math.abs(pos.z - model.state.l_z) < 0.5 && model.raw.di >0.5) {
+						model.slam.setBlock(pos.x , pos.y);
+					}
+
+					nearestPoints.add(n);
+					center_ned.location.plusIP(p_ned);
+					center_ned.observation.plusIP(xy);
 				}
 			}
 		}
 		if(nearestPoints.size()>MIN_POINTS) {
 
-			center.location.scale(1.0f/nearestPoints.size());
-			center.observation.scale(1.0f/nearestPoints.size());
+			center_ned.location.scale(1.0f/nearestPoints.size());
+			center_ned.observation.scale(1.0f/nearestPoints.size());
 
 			Collections.sort(nearestPoints, (a, b) -> {
 				return Double.compare(a.location.z,b.location.z);
 			});
-			pos.set(0,0,0);
 
-			SePointOps_F64.transform(current,center.location,pos);
+			pos.x =   center_ned.location.z + model.state.l_x - current.T.z;
+			pos.y =   center_ned.location.x + model.state.l_y - current.T.x;
+			pos.z = -(center_ned.location.y - current.T.y) + model.state.l_z;
 
-			pos.z = pos.z + model.state.l_x - current.T.z;
-			pos.x = pos.x + model.state.l_y - current.T.x;
-			pos.y = -(pos.y - current.T.y);
-
-			if(Math.abs(pos.y) < 0.5) {
-
-				model.slam.setVehicle(pos.z , pos.x);
-				model.slam.setBlock(pos.z , pos.x);
-
+			if(Math.abs(pos.z - model.state.l_z) < 0.5 && model.raw.di >0.5) {
+				model.slam.setVehicle(pos.x , pos.y);
 				collision.set(true);
 			} else
 				collision.set(false);
