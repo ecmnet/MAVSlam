@@ -143,17 +143,13 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		nearestPoints.clear();
 
-//		if(points.getAllTracks().size()==0 || ( model.sys.isStatus(Status.MSP_LANDED) && model.raw.di < min_altitude)) {
+//		if(points.getAllTracks().size()==0 || ( model.raw.di < min_altitude)) {
 //			collision.set(false);
 //			return;
 //		}
 
-		if(points.getAllTracks().size()==0 || ( model.raw.di < min_altitude)) {
-		collision.set(false);
-		return;
-	}
-
 		center.location.set(0,0,0); center.observation.set(0,0);
+		current = odometry.getCameraToWorld();
 
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i)) {
@@ -161,23 +157,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				xy = points.getAllTracks().get(i);
 				// p is the obstacle location in body-frame
 				p = odometry.getTrackLocation(i);
-//				SePointOps_F64.transform(toWorld,odometry.getTrackLocation(i),pos);
 
-
-
-
-//				SePointOps_F64.transform(odometry.getCameraToWorld(),p,pos);
-//
-//				pos.z = pos.z + model.state.l_x;
-//				pos.x = pos.x + model.state.l_y;
-//
-//			    System.out.println(pos.z+":"+pos.x);
-//				model.slam.setBlock(pos.z - current.getZ()  , pos.x -current.getX());
-//				model.slam.setVehicle(pos.z - current.getZ() , pos.x -current.getX());
-
-
-
-				if(p.z < min_distance && xy.y < 180) {
+				if(p.z < min_distance) {
 
 					Point2D3D n = new Point2D3D();
 					n.setLocation(p);
@@ -199,22 +180,22 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				return Double.compare(a.location.z,b.location.z);
 			});
 			pos.set(0,0,0);
-			current = odometry.getCameraToWorld();
-
 
 			SePointOps_F64.transform(current,center.location,pos);
-//
+
 			pos.z = pos.z + model.state.l_x - current.T.z;
 			pos.x = pos.x + model.state.l_y - current.T.x;
-            pos.y = -(pos.y - current.T.y) + model.state.l_z;
+			pos.y = -(pos.y - current.T.y);
 
+			if(Math.abs(pos.y) < 0.5) {
 
-			current = odometry.getCameraToWorld();
+				model.slam.setVehicle(pos.z , pos.x);
+				model.slam.setBlock(pos.z , pos.x);
 
-			model.slam.setVehicle(pos.z , pos.x);
-			model.slam.setBlock(pos.z , pos.x);
+				collision.set(true);
+			} else
+				collision.set(false);
 
-			collision.set(true);
 		} else
 			collision.set(false);
 
