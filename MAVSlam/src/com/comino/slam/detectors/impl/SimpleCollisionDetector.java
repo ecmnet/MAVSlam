@@ -83,6 +83,8 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 	private Se3_F64 current         = new Se3_F64();
 
+	private long last_clean         = 0;
+
 	private BooleanProperty collision = new SimpleBooleanProperty(false);
 
 	private List<Point2D3D> nearestPoints =  new ArrayList<Point2D3D>();
@@ -146,6 +148,18 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 //			collision.set(false);
 //			return;
 //		}
+
+		// SLAM forgets old blocks after 2 mins
+		if((System.nanoTime()-last_clean)>120 * 1e9) {
+			model.slam.getData().forEach((i,b) -> {
+				if(b.tms<last_clean) {
+                   model.slam.setBlock(i, false);
+				}
+			});
+			last_clean = System.nanoTime();
+		}
+
+		// TODO: Try to Re-calculate all blocks when odomtry is initialized
 
 		center_ned.location.set(0,0,0); center_ned.observation.set(0,0);
 		current = odometry.getCameraToWorld();

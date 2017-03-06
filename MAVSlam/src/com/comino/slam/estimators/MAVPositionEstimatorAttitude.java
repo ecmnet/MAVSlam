@@ -52,6 +52,7 @@ import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
+import com.comino.msp.model.segment.State;
 import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.RealSenseInfo;
@@ -83,7 +84,7 @@ import georegression.struct.se.Se3_F64;
 
 public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
-	private static final int    INIT_COUNT          = 10;
+	private static final int    INIT_COUNT          = 3;
 	private static final int    MAX_ERRORS    	    = 5;
 
 	private static final int    MAX_SPEED    	    = 5;
@@ -298,6 +299,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 					if( quality > MIN_QUALITY) {
 						if(++initialized_count == INIT_COUNT) {
+
 							if(debug)
 								System.out.println("[vis] Odometry init at: "+pos_ned.T);
 							control.writeLogMessage(new LogMessage("[vis] odometry init: "+last_reason,
@@ -314,8 +316,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 				estTimeDepth_us = timeDepth*1000;
 				//estTimeDepth_us = System.nanoTime()/1000f;
-			//	estTimeDepth_us = control.getMonotonicTime_ns()/1000f;
-			// System.out.println((System.nanoTime()-control.getMonotonicTime_ns())/1000000f);
+				//	estTimeDepth_us = control.getMonotonicTime_ns()/1000f;
+				// System.out.println((System.nanoTime()-control.getMonotonicTime_ns())/1000000f);
 				if(oldTimeDepth_us>0)
 					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
 				oldTimeDepth_us = estTimeDepth_us;
@@ -361,7 +363,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					ConvertRotation3D_F64.matrixToEuler(rot_ned.R, EulerType.ZXY, visAttitude);
 
 					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)
-							    && heading_init_enabled) {
+							&& heading_init_enabled) {
 						if(debug)
 							System.out.println(timeDepth+"[vis] Heading not valid");
 						init("Heading div.");

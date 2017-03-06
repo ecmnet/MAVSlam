@@ -201,7 +201,6 @@ public class VfhSLAMDetector implements ISLAMDetector {
 
 	}
 
-
 	public void reset(float x, float y, float z) {
 		//origin.set(y,x,x);
 		//model.slam.moveTo(x, y, z);
