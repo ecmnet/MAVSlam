@@ -34,6 +34,12 @@ Obstacle detection:
 
 
 
+MicroSLAM:
+
+![https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/microslam.png](https://raw.githubusercontent.com/ecmnet/MAVSlam/master/MAVSlam/microslam.png)
+
+
+
 #### Desktop odometry demo 
 
 A first implementation using Intel® RealSense™ R200 with boofcv on OSX/Linux platforms. Based on https://github.com/IntelRealSense/librealsense and http://boofcv.org/index.php?title=Main_Page.
