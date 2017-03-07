@@ -37,31 +37,23 @@ import java.io.IOException;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
-import java.util.List;
 
-import org.mavlink.messages.MAV_CMD;
 import org.mavlink.messages.lquac.msg_msp_micro_slam;
 import org.mavlink.messages.lquac.msg_msp_status;
 
 import com.comino.mav.control.IMAVMSPController;
-import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.mav.control.impl.MAVProxyController2;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
 import com.comino.msp.model.DataModel;
-import com.comino.msp.model.segment.Status;
-import com.comino.msp.utils.BlockPoint3D;
 import com.comino.realsense.boofcv.RealSenseInfo;
-import com.comino.server.mjpeg.impl.CombinedFileStreamHandler;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
+import com.comino.slam.detectors.impl.VfhSLAMDetector;
 import com.comino.slam.estimators.IPositionEstimator;
-import com.comino.slam.estimators.MAVPositionEstimator;
 import com.comino.slam.estimators.MAVPositionEstimatorAttitude;
 import com.sun.net.httpserver.HttpServer;
-
-import boofcv.struct.geo.Point2D3D;
 
 public class StartUp implements Runnable {
 
@@ -106,7 +98,8 @@ public class StartUp implements Runnable {
 			if(config.getBoolProperty("vision_enabled", "true")) {
 				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
 				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
-				vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
+			//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
+				vision.registerDetector(new VfhSLAMDetector(control,config,streamer));
 			}
 		} catch(Exception e) {
 			System.out.println("[vis] Vision not available: "+e.getMessage());

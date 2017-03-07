@@ -41,27 +41,21 @@ import java.util.List;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.lquac.msg_msp_command;
-import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
-import com.comino.msp.model.segment.Status;
-import com.comino.msp.utils.BlockPoint3D;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
+import com.comino.slam.vfh.vfh2D.HistogramGrid2D;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
-import boofcv.struct.image.Planar;
-import boofcv.struct.sfm.Point2D3DTrack;
-import georegression.geometry.ConvertRotation3D_F64;
-import georegression.struct.EulerType;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
@@ -73,24 +67,24 @@ public class VfhSLAMDetector implements ISLAMDetector {
 
 	private final static int MIN_POINTS = 5;
 
-	private float     min_distance     = 1.25f;
+	private float     min_distance     = 2.25f;
 	private float     min_altitude     = 0.2f;
 
-	private DataModel     model    = null;
-	private Point3D_F64   pos      = new Point3D_F64();
-	private Point3D_F64   origin   = new Point3D_F64();
-	private Point2D3D     center   = new Point2D3D();
+	private DataModel     model        = null;
+	private Point3D_F64   pos          = new Point3D_F64();
+	private Point3D_F64   p_ned        = new Point3D_F64();
+	private Point2D3D     center_ned   = new Point2D3D();
 
 	private Se3_F64 current         = new Se3_F64();
-	private Se3_F64 pos_ned         = new Se3_F64();
 
-	private BooleanProperty collision = new SimpleBooleanProperty(false);
+	private HistogramGrid2D  vfh = null;
 
 	private List<Point2D3D> nearestPoints =  new ArrayList<Point2D3D>();
 
 	public VfhSLAMDetector(IMAVMSPController control, MSPConfig config,HttpMJPEGHandler streamer) {
 
 		this.model    = control.getCurrentModel();
+		this.vfh      = new HistogramGrid2D(20,0.05f);
 		this.min_distance = config.getFloatProperty("min_distance", "1.25f");
 		System.out.println("[col] Collision distance set to "+min_distance);
 		this.min_altitude = config.getFloatProperty("min_altitude", "0.3f");
@@ -109,30 +103,13 @@ public class VfhSLAMDetector implements ISLAMDetector {
 		});
 
 		streamer.registerOverlayListener(ctx -> {
-			if(collision.get() && nearestPoints.size()>0) {
+			if(nearestPoints.size()>0) {
 				for(Point2D3D n : nearestPoints) {
 					ctx.drawRect((int)n.observation.x-10, (int)n.observation.y-10, 20, 20);
 				}
-
-				Point2D3D n = center; //nearestPoints.get(0);
-				ctx.drawString(String.format("Distance: %#.2fm", n.getLocation().z), 5, 20);
-
-				ctx.drawOval((int)center.observation.x-10, (int)center.observation.y-10, 20, 20);
-				ctx.drawOval((int)center.observation.x-15, (int)center.observation.y-15, 30, 30);
 			}
 		});
 
-		collision.addListener((l,ov,nv) -> {
-			if(nv.booleanValue()) {
-				control.writeLogMessage(new LogMessage("[vis] collision warning",
-						MAV_SEVERITY.MAV_SEVERITY_WARNING));
-
-			}
-			else
-				control.writeLogMessage(new LogMessage("[vis] collision warning cleared",
-						MAV_SEVERITY.MAV_SEVERITY_NOTICE));
-
-		});
 	}
 
 	@Override
@@ -143,12 +120,7 @@ public class VfhSLAMDetector implements ISLAMDetector {
 
 		nearestPoints.clear();
 
-//		if(points.getAllTracks().size()==0 || ( model.raw.di < min_altitude)) {
-//			collision.set(false);
-//			return;
-//		}
-
-		center.location.set(0,0,0); center.observation.set(0,0);
+		center_ned.location.set(0,0,0); center_ned.observation.set(0,0);
 		current = odometry.getCameraToWorld();
 
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
@@ -164,42 +136,44 @@ public class VfhSLAMDetector implements ISLAMDetector {
 					n.setLocation(p);
 					n.setObservation(xy);
 
-					nearestPoints.add(n);
+					SePointOps_F64.transform(current,p,p_ned);
 
-					center.location.plusIP(p);
-					center.observation.plusIP(xy);
+					pos.x = p_ned.z + model.state.l_x - current.T.z;
+					pos.y = p_ned.x + model.state.l_y - current.T.x;
+					pos.z = -(p_ned.y - current.T.y) + model.state.l_z;
+
+					if(Math.abs(pos.z - model.state.l_z) < 0.5 && model.raw.di >0.5) {
+						vfh.gridUpdate(10,10,pos);
+					}
+
+					nearestPoints.add(n);
+					center_ned.location.plusIP(p_ned);
+					center_ned.observation.plusIP(xy);
 				}
 			}
 		}
 		if(nearestPoints.size()>MIN_POINTS) {
 
-			center.location.scale(1.0f/nearestPoints.size());
-			center.observation.scale(1.0f/nearestPoints.size());
+			center_ned.location.scale(1.0f/nearestPoints.size());
+			center_ned.observation.scale(1.0f/nearestPoints.size());
 
 			Collections.sort(nearestPoints, (a, b) -> {
 				return Double.compare(a.location.z,b.location.z);
 			});
-			pos.set(0,0,0);
 
-			SePointOps_F64.transform(current,center.location,pos);
+			pos.x =   center_ned.location.z + model.state.l_x - current.T.z;
+			pos.y =   center_ned.location.x + model.state.l_y - current.T.x;
+			pos.z = -(center_ned.location.y - current.T.y) + model.state.l_z;
 
-			pos.z = pos.z + model.state.l_x - current.T.z;
-			pos.x = pos.x + model.state.l_y - current.T.x;
-			pos.y = -(pos.y - current.T.y);
+			if(Math.abs(pos.z - model.state.l_z) < 0.5 && model.raw.di >0.5) {
+				vfh.gridUpdate(10,10,pos);
+			}
+		}
 
-			if(Math.abs(pos.y) < 0.5) {
-
-				model.slam.setVehicle(pos.z , pos.x);
-				model.slam.setBlock(pos.z , pos.x);
-
-				collision.set(true);
-			} else
-				collision.set(false);
-
-		} else
-			collision.set(false);
-
+		vfh.forget();
+		vfh.transferToMicroSLAM(10,10,model.slam, 10, false);
 	}
+
 
 	public void reset(float x, float y, float z) {
 		//origin.set(y,x,x);

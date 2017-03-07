@@ -41,15 +41,12 @@ import java.util.List;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.lquac.msg_msp_command;
-import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
-import com.comino.msp.model.segment.Status;
-import com.comino.msp.utils.BlockPoint3D;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
@@ -58,10 +55,6 @@ import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
-import boofcv.struct.image.Planar;
-import boofcv.struct.sfm.Point2D3DTrack;
-import georegression.geometry.ConvertRotation3D_F64;
-import georegression.struct.EulerType;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
@@ -158,8 +151,6 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			});
 			last_clean = System.nanoTime();
 		}
-
-		// TODO: Try to Re-calculate all blocks when odomtry is initialized
 
 		center_ned.location.set(0,0,0); center_ned.observation.set(0,0);
 		current = odometry.getCameraToWorld();
