@@ -40,11 +40,8 @@ package com.comino.slam.vfh;
 public class VfhUtils {
 
 	public static int modulo(int x, int m) {
-
 		int r;
-
 		if (m < 0) m = -m;
-
 		r = x % m;
 		return r < 0 ? r + m : r;
 	}

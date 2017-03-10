@@ -40,11 +40,15 @@ package com.comino.slam.vfh;
 public class VfhHist {
 
 	public int 		alpha;
-	public int 		sectors;
-	public double 	threshold;
-	public double 	dampingConstant;
-	public double   density_a;
-	public double   density_b;
-	public short[]  densities;
+	public int 	   sectors;
+	public int[]    densities;
+
+
+	public VfhHist(int alpha) {
+		this.alpha = alpha;
+		this.sectors = 360 / alpha;
+		this.densities = new int[sectors];
+	}
+
 
 }

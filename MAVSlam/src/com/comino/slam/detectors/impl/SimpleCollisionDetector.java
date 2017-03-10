@@ -198,7 +198,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			pos.z = -(center_ned.location.y - current.T.y) + model.state.l_z;
 
 			if(Math.abs(pos.z - model.state.l_z) < 0.5 && model.raw.di >0.5) {
-				model.slam.setVehicle(pos.x , pos.y);
+				model.slam.setIndicator(pos.x , pos.y);
 				collision.set(true);
 			} else
 				collision.set(false);

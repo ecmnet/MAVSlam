@@ -159,14 +159,12 @@ public class StartUp implements Runnable {
 					continue;
 				}
 
-			//	model.slam.setVehicle(model.state.l_x, model.state.l_y);
-
 				if(publish_microslam) {
 					msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
 					msg.resolution = 0;
 					msg.extension  = 0;
-					msg.cx  = model.slam.getVehicleX();
-					msg.cy  = model.slam.getVehicleY();
+					msg.cx  = model.slam.getIndicatorX();
+					msg.cy  = model.slam.getIndicatorY();
 					msg.cz = 0;
 					msg.tms  = System.nanoTime() / 1000;
                     msg.count = model.slam.count;

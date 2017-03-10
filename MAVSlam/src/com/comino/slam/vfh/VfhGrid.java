@@ -37,11 +37,40 @@
 
 package com.comino.slam.vfh;
 
+import java.util.Arrays;
+
 public class VfhGrid {
 
 	public int   dimension;
-	public float resolution;
+	public int resolution;
 
 	public short[] cells;
 
+	public VfhGrid(float dim, float res) {
+		dimension  = (int)Math.floor(dim / res + 1);
+		resolution =(int)(res*100f);
+		cells = new short[dimension * dimension];
+		System.out.println("Grid with "+dimension +" ("+resolution+"cm)");
+	}
+
+
+	public void clear() {
+		Arrays.fill(cells,(short)0);
+	}
+
+	public String toString() {
+		StringBuilder b = new StringBuilder();
+		for(int c=dimension-1; c >= 0; c--) {
+			for(int r=0; r < dimension; r++) {
+				if(cells[r * dimension +c] > 10) {
+					b.append("X ");
+				}
+				else
+					b.append(". ");
+			}
+			b.append("\n");
+		}
+		b.append("\n");
+		return b.toString();
+	}
 }

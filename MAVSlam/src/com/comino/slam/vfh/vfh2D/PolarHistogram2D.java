@@ -39,41 +39,91 @@ package com.comino.slam.vfh.vfh2D;
 
 import java.util.Arrays;
 
+import com.comino.msp.utils.MSPMathUtils;
 import com.comino.slam.vfh.VfhGrid;
 import com.comino.slam.vfh.VfhHist;
 
 public class PolarHistogram2D {
 
 	private VfhHist hist;
+	private VfhHist hist_smoothed;
 
-	public PolarHistogram2D(int alpha, double threshold, double density_a, double density_b) {
+	private float resolution;
+	private float density_a;
+	private float density_b;
 
-	  hist = new VfhHist();
-	  hist.alpha = alpha;
-	  hist.sectors = 360 / alpha;
-	  hist.threshold = threshold;
-	  hist.densities = new short[hist.sectors];
+	private int threshold;
 
-	  Arrays.fill(hist.densities, (short)0);
+	public PolarHistogram2D(int alpha, int threshold, float density_a, float density_b, float resolution) {
+
+		hist          = new VfhHist(alpha);
+		hist_smoothed = new VfhHist(alpha);
+
+		this.density_a = density_a;
+		this.density_b = density_b;
+		this.threshold = threshold;
+
+		this.resolution = resolution;
+
+		Arrays.fill(hist.densities, (int)0);
 
 	}
 
 	public void histUpdate(VfhGrid grid) {
-	   int dim = grid.dimension;
+		int dim = grid.dimension; double density=0;
 
-	   for (int i = 0; i < dim; ++i) {
-		    for (int j = 0; j < dim; ++j) {
+		Arrays.fill(hist.densities, (int)0);
+		for (int i = 0; i < dim; ++i) {
+			for (int j = 0; j < dim; ++j) {
 
-		    	 /* Calculate the angular position (beta) of this cell. */
-		    	  double beta = Math.atan2((double)(j - dim/2), (double)(i - dim/2));
+				if(grid.cells[i * dim + j] < threshold)
+					continue;
 
-		    	  /* Calculate the obstacle density of this cell. */
-			      double density = Math.pow(grid.cells[i * dim + j], 2);
-			      density *= hist.density_a - hist.density_b * Math.sqrt((i - dim/2)*(i - dim/2) + (j - dim/2)*(j - dim/2));
+				/* Calculate the angular position (beta) of this cell. */
+				int beta = (int)MSPMathUtils.fromRad((float)Math.atan2((double)(i - dim/2), (double)(j - dim/2)));
 
-			      /* Add density to respective point in the histogram. */
-			      hist.densities[(int) Math.floor(beta / hist.alpha)] += density;
-		    }
-	   }
+				/* Calculate the obstacle density of this cell. */
+				density = grid.cells[i * dim + j] * grid.cells[i * dim + j] *
+						(density_a - density_b * Math.sqrt((i - dim/2)*(i - dim/2) + (j - dim/2)*(j - dim/2)) * resolution);
+
+				/* Add density to respective point in the histogram. */
+				if(beta > -180 && beta < 180)
+					hist.densities[(int)(beta+180) / hist.alpha] += (int)density;
+			}
+		}
 	}
+
+	public VfhHist histSmooth(int l) {
+		int h;
+		for(int k =0; k < hist.sectors; k++) {
+			h = 0;
+			for(int i = -l; i<= l; i++ )
+				h  = h + hist.densities[wrap(i+l,hist.sectors)] * (l - Math.abs(i) + 1);
+			hist_smoothed.densities[k] = h / (2 * l + 1);
+		}
+		return hist_smoothed;
+	}
+
+
+
+	private int wrap(int s, int max) {
+		if(s < 0)
+			return s + max;
+		if(s > max)
+			return s - max;
+		return s;
+	}
+
+
+	public String toString() {
+		StringBuilder b = new StringBuilder();
+		for(int i=0;i<hist.sectors;i++) {
+			if(hist.densities[i]<threshold)
+				b.append(".");
+			else
+				b.append("X");
+		}
+		return b.toString();
+	}
+
 }

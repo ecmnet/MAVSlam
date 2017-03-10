@@ -37,8 +37,6 @@
 
 package com.comino.slam.vfh.vfh2D;
 
-import java.util.Arrays;
-
 import com.comino.msp.model.segment.Slam;
 import com.comino.slam.vfh.VfhGrid;
 
@@ -46,20 +44,23 @@ import georegression.struct.point.Point3D_F64;
 
 public class HistogramGrid2D {
 
-	private static final long OBLIVISION_TIME_MS = 1000;
+	private static final long OBLIVISION_TIME_MS = 10000;
+	private static final int  MAX_CERTAINITY     = 1000;
 
-	private VfhGrid grid = null;
-	private long    tms  = 0;
+	private VfhGrid grid     = null;
+	private VfhGrid window   = null;
 
-	public HistogramGrid2D(float dimension, float resolution) {
+	private long        tms  = 0;
+	private float   centerx  = 0;
+	private float   centery  = 0;
+
+	public HistogramGrid2D(float cenx, float ceny, float dimension,  float windowsize, float resolution) {
 		assert(dimension % 2 == 1);
 
-		grid = new VfhGrid();
-		grid.dimension  = (int)Math.floor(dimension / resolution + 1);
-		grid.resolution = resolution * 100f;
-		grid.cells = new short[grid.dimension * grid.dimension];
-
-		Arrays.fill(grid.cells,(short)0);
+		centerx = cenx;
+		centery = ceny;
+		grid   = new VfhGrid(dimension, resolution);
+		window = new VfhGrid(windowsize, resolution);
 	}
 
 	// Updates the grid with an absolute observation
@@ -70,10 +71,11 @@ public class HistogramGrid2D {
 	// Updates the grid with an relative observation
 	public boolean gridUpdate(float lpos_x, float lpos_y, Point3D_F64 obstacle) {
 
-		int new_x = (int)Math.floor(lpos_x*100f / grid.resolution) + (int)Math.floor(obstacle.x*100f / grid.resolution);
-		int new_y = (int)Math.floor(lpos_y*100f / grid.resolution) + (int)Math.floor(obstacle.y*100f / grid.resolution);
+		int new_x = (int)Math.floor((lpos_x+centerx+obstacle.x)*100f / grid.resolution);
+		int new_y = (int)Math.floor((lpos_y+centery+obstacle.y)*100f / grid.resolution);
 
-		if (new_x < grid.dimension && new_y < grid.dimension && new_x > 0 && new_y > 0) {
+		if (new_x < grid.dimension && new_y < grid.dimension && new_x > 0 && new_y > 0
+				&& grid.cells[new_y * grid.dimension + new_x]<MAX_CERTAINITY) {
 			grid.cells[new_y * grid.dimension + new_x] += 1;
 			return true;
 		}
@@ -81,33 +83,37 @@ public class HistogramGrid2D {
 	}
 
 	// creates a moveing window at the current position with a certain window size
-	public VfhGrid getMovingWindow(float lpos_x, float lpos_y, int windowSize) {
-		VfhGrid window = new VfhGrid();
+	public synchronized VfhGrid getMovingWindow(float lpos_x, float lpos_y, boolean debug) {
+		window.clear(); int new_x  = 0; int new_y = 0;
+		for (int y = 0; y < window.dimension; y++) {
+			for (int x = 0; x < window.dimension;x++) {
+				new_x = x + (int)Math.floor((lpos_x+centerx)*100f / grid.resolution) - (window.dimension - 1) / 2;
+				new_y = y + (int)Math.floor((lpos_y+centery)*100f / grid.resolution) - (window.dimension - 1) / 2;
 
-		for (int i = 0; i < windowSize; ++i) {
-			for (int j = 0; j < windowSize; ++j) {
-				int grid_i = i + (int)Math.floor(lpos_x * 100f / grid.resolution) + (windowSize - 1) / 2;
-				int grid_j = j + (int)Math.floor(lpos_y * 100f / grid.resolution) + (windowSize - 1) / 2;
-
-				if (grid_i < grid.dimension && grid_j < grid.dimension) {
-					window.cells[i * windowSize + j] = grid.cells[grid_i * grid.dimension + grid_j];
+				if (new_x < grid.dimension && new_y < grid.dimension && new_x >= 0 && new_y >= 0) {
+					window.cells[y * window.dimension + x] = grid.cells[new_y * grid.dimension + new_x];
 				}
 			}
 		}
+		if(debug)
+			System.out.println(window);
 		return window;
 	}
 
-	public void transferToMicroSLAM(float center_x, float center_y,Slam slam, int threshold, boolean debug) {
+	public void transferToMicroSLAM(Slam slam, int threshold, boolean debug) {
 		for (int i = 0; i < grid.dimension; ++i) {
 			for (int j = 0; j < grid.dimension; ++j) {
+
 				if(grid.cells[i * grid.dimension + j] == 0)
 					continue;
+
 				if(grid.cells[i * grid.dimension + j] > threshold) {
-					slam.setBlock(j*grid.resolution/100f-center_x,i*grid.resolution/100f-center_y, true);
+					slam.setBlock(j*grid.resolution/100f-centerx,i*grid.resolution/100f-centery, true);
 					//	System.out.println("ADD: "+(j*grid.resolution/100f-center_x)+ ":"+ (i*grid.resolution/100f-center_y));
 				}
-				else
-					slam.setBlock(j*grid.resolution/100f-center_x,i*grid.resolution/100f-center_y, false);
+
+				if(grid.cells[i * grid.dimension + j] < 5)
+					slam.setBlock(j*grid.resolution/100f-centerx,i*grid.resolution/100f-centery, false);
 			}
 		}
 		if(debug)
