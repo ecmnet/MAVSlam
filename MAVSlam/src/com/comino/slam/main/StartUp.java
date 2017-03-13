@@ -152,7 +152,7 @@ public class StartUp implements Runnable {
 
 		while(true) {
 			try {
-				Thread.sleep(250);
+				Thread.sleep(200);
 
 				if(!control.isConnected()) {
 					control.connect();
@@ -167,9 +167,11 @@ public class StartUp implements Runnable {
 					msg.cy  = model.slam.getIndicatorY();
 					msg.cz = 0;
 					msg.tms  = System.nanoTime() / 1000;
+					msg.pd = model.slam.pd;
+					msg.pv = model.slam.pv;
                     msg.count = model.slam.count;
-					if(model.slam.toArray(msg.data))
-					   control.sendMAVLinkMessage(msg);
+					model.slam.toArray(msg.data);
+					control.sendMAVLinkMessage(msg);
 				}
 
 				//System.out.println(control.getMonotonicTime_ns());

@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.lquac.msg_msp_command;
+import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.main.MSPConfig;
@@ -51,6 +52,7 @@ import com.comino.msp.utils.MSPMathUtils;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
+import com.comino.slam.vfh.VfhHist;
 import com.comino.slam.vfh.vfh2D.HistogramGrid2D;
 import com.comino.slam.vfh.vfh2D.PolarHistogram2D;
 
@@ -84,7 +86,7 @@ public class VfhSLAMDetector implements ISLAMDetector, Runnable {
 
 	public VfhSLAMDetector(IMAVMSPController control, MSPConfig config,HttpMJPEGHandler streamer) {
 
-		this.model    = control.getCurrentModel();
+		this.model   = control.getCurrentModel();
 
 		this.min_distance = config.getFloatProperty("min_distance", "1.25f");
 		System.out.println("[col] Planning distance set to "+min_distance);
@@ -176,7 +178,11 @@ public class VfhSLAMDetector implements ISLAMDetector, Runnable {
 
 	@Override
 	public void run() {
-		poh.histUpdate(vfh.getMovingWindow(model.state.l_x, model.state.l_y, false));
+		poh.histUpdate(vfh.getMovingWindow(model.state.l_x, model.state.l_y));
+		VfhHist smoothed = poh.histSmooth(5);
+		int vi = poh.selectValley(smoothed, (int)MSPMathUtils.fromRad(model.attitude.y));
+        model.slam.pd =   model.attitude.y; //MSPMathUtils.toRad(poh.getDirection(smoothed, vi, 18));
+        model.slam.pv = 1;
 		vfh.forget();
 		vfh.transferToMicroSLAM(model.slam, 10, false);
 	}

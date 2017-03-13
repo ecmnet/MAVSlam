@@ -41,8 +41,8 @@ import java.util.Arrays;
 
 public class VfhGrid {
 
-	public int   dimension;
-	public int resolution;
+	public  int   dimension;
+	public  int resolution;
 
 	public short[] cells;
 
@@ -50,7 +50,7 @@ public class VfhGrid {
 		dimension  = (int)Math.floor(dim / res + 1);
 		resolution =(int)(res*100f);
 		cells = new short[dimension * dimension];
-		System.out.println("Grid with "+dimension +" ("+resolution+"cm)");
+	//	System.out.println("Grid with "+dimension +" ("+resolution+"cm)");
 	}
 
 
@@ -58,11 +58,11 @@ public class VfhGrid {
 		Arrays.fill(cells,(short)0);
 	}
 
-	public String toString() {
+	public String toString(int threshold) {
 		StringBuilder b = new StringBuilder();
 		for(int c=dimension-1; c >= 0; c--) {
 			for(int r=0; r < dimension; r++) {
-				if(cells[r * dimension +c] > 10) {
+				if(cells[r * dimension +c] > threshold) {
 					b.append("X ");
 				}
 				else
