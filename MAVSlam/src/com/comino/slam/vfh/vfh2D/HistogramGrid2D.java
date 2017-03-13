@@ -37,8 +37,10 @@
 
 package com.comino.slam.vfh.vfh2D;
 
+import com.comino.msp.main.StartUp;
 import com.comino.msp.model.segment.Slam;
 import com.comino.slam.vfh.VfhGrid;
+import com.comino.slam.vfh.VfhHist;
 
 import georegression.struct.point.Point3D_F64;
 
@@ -83,7 +85,7 @@ public class HistogramGrid2D {
 	}
 
 	// creates a moveing window at the current position with a certain window size
-	public synchronized VfhGrid getMovingWindow(float lpos_x, float lpos_y, boolean debug) {
+	public synchronized VfhGrid getMovingWindow(float lpos_x, float lpos_y) {
 		window.clear(); int new_x  = 0; int new_y = 0;
 		for (int y = 0; y < window.dimension; y++) {
 			for (int x = 0; x < window.dimension;x++) {
@@ -95,8 +97,6 @@ public class HistogramGrid2D {
 				}
 			}
 		}
-		if(debug)
-			System.out.println(window);
 		return window;
 	}
 
@@ -111,13 +111,16 @@ public class HistogramGrid2D {
 					slam.setBlock(j*grid.resolution/100f-centerx,i*grid.resolution/100f-centery, true);
 					//	System.out.println("ADD: "+(j*grid.resolution/100f-center_x)+ ":"+ (i*grid.resolution/100f-center_y));
 				}
-
-				if(grid.cells[i * grid.dimension + j] < 5)
+				else
 					slam.setBlock(j*grid.resolution/100f-centerx,i*grid.resolution/100f-centery, false);
 			}
 		}
 		if(debug)
 			System.out.println(slam);
+	}
+
+	public String toString(int threshold) {
+		return grid.toString(threshold);
 	}
 
 
@@ -130,4 +133,41 @@ public class HistogramGrid2D {
 						grid.cells[i * grid.dimension + j] -= 1;
 		}
 	}
+
+	public static void main(String[] args) {
+		Slam slam = new Slam(5,0.1f);
+		slam.setIndicator(0.1f, 0.1f);
+
+		HistogramGrid2D hist = new HistogramGrid2D(5,5,10,1f,0.1f);
+
+		Point3D_F64 p = new Point3D_F64();
+
+		for(int c= 0; c < 5; c++) {
+
+			for(int i=0;i<10;i++) {
+				p.set(0.5f,i/10f-0.15f,0); hist.gridUpdate(p);
+			}
+
+			for(int i=0;i<10;i++) {
+				p.set(i/10f-1.15f,0.5f,0); hist.gridUpdate(p);
+			}
+		}
+
+		PolarHistogram2D  pol = new PolarHistogram2D(3,2,3,0.1f,0.1f);
+		VfhGrid window = hist.getMovingWindow(0.1f,0.1f);
+		System.out.println(window.toString(0));
+		pol.histUpdate(window);
+
+
+		pol.print();
+		VfhHist s = pol.histSmooth(5);
+		int vi = pol.selectValley(s,240);
+		int d = pol.getDirection(s,vi,12);
+	    System.out.println(d);
+		pol.print(pol.histSmooth(5),d);
+
+
+
+	}
+
 }
