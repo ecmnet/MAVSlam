@@ -38,6 +38,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
+import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_micro_slam;
 import org.mavlink.messages.lquac.msg_msp_status;
 
@@ -152,7 +153,7 @@ public class StartUp implements Runnable {
 
 		while(true) {
 			try {
-				Thread.sleep(200);
+				Thread.sleep(500);
 
 				if(!control.isConnected()) {
 					control.connect();
@@ -160,17 +161,14 @@ public class StartUp implements Runnable {
 				}
 
 				if(publish_microslam) {
-					msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
+					msg_msp_micro_grid msg = new msg_msp_micro_grid(2,1);
 					msg.resolution = 0;
 					msg.extension  = 0;
-					msg.cx  = model.slam.getIndicatorX();
-					msg.cy  = model.slam.getIndicatorY();
-					msg.cz = 0;
+					msg.cx  = model.grid.getIndicatorX();
+					msg.cy  = model.grid.getIndicatorY();
 					msg.tms  = System.nanoTime() / 1000;
-					msg.pd = model.slam.pd;
-					msg.pv = model.slam.pv;
-                    msg.count = model.slam.count;
-					model.slam.toArray(msg.data);
+                    msg.count = model.grid.count;
+					model.grid.toArray(msg.data);
 					control.sendMAVLinkMessage(msg);
 				}
 

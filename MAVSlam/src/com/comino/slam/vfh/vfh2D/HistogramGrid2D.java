@@ -38,6 +38,8 @@
 package com.comino.slam.vfh.vfh2D;
 
 import com.comino.msp.main.StartUp;
+import com.comino.msp.model.DataModel;
+import com.comino.msp.model.segment.Grid;
 import com.comino.msp.model.segment.Slam;
 import com.comino.slam.vfh.VfhGrid;
 import com.comino.slam.vfh.VfhHist;
@@ -100,7 +102,7 @@ public class HistogramGrid2D {
 		return window;
 	}
 
-	public void transferToMicroSLAM(Slam slam, int threshold, boolean debug) {
+	public void transferGridToModel(DataModel model, int threshold, boolean debug) {
 		for (int i = 0; i < grid.dimension; ++i) {
 			for (int j = 0; j < grid.dimension; ++j) {
 
@@ -108,15 +110,15 @@ public class HistogramGrid2D {
 					continue;
 
 				if(grid.cells[i * grid.dimension + j] > threshold) {
-					slam.setBlock(j*grid.resolution/100f-centerx,i*grid.resolution/100f-centery, true);
+					model.grid.setBlock(j*grid.resolution/100f-centerx,i*grid.resolution/100f-centery, true);
 					//	System.out.println("ADD: "+(j*grid.resolution/100f-center_x)+ ":"+ (i*grid.resolution/100f-center_y));
 				}
 				else
-					slam.setBlock(j*grid.resolution/100f-centerx,i*grid.resolution/100f-centery, false);
+					model.grid.setBlock(j*grid.resolution/100f-centerx,i*grid.resolution/100f-centery, false);
 			}
 		}
 		if(debug)
-			System.out.println(slam);
+			System.out.println(model.grid);
 	}
 
 	public String toString(int threshold) {
@@ -135,8 +137,8 @@ public class HistogramGrid2D {
 	}
 
 	public static void main(String[] args) {
-		Slam slam = new Slam(5,0.1f);
-		slam.setIndicator(0.1f, 0.1f);
+		Grid grid = new Grid(5,0.1f);
+		grid.setIndicator(0.1f, 0.1f);
 
 		HistogramGrid2D hist = new HistogramGrid2D(5,5,10,1f,0.1f);
 

@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.lquac.msg_msp_command;
+import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.mav.control.IMAVMSPController;
@@ -84,8 +85,11 @@ public class VfhSLAMDetector implements ISLAMDetector, Runnable {
 
 	private List<Point2D3D> nearestPoints =  new ArrayList<Point2D3D>();
 
+	private IMAVMSPController control = null;
+
 	public VfhSLAMDetector(IMAVMSPController control, MSPConfig config,HttpMJPEGHandler streamer) {
 
+		this.control  = control;
 		this.model   = control.getCurrentModel();
 
 		this.min_distance = config.getFloatProperty("min_distance", "1.25f");
@@ -93,8 +97,8 @@ public class VfhSLAMDetector implements ISLAMDetector, Runnable {
 		this.min_altitude = config.getFloatProperty("min_altitude", "0.3f");
 		System.out.println("[col] Min.altitude set to "+min_altitude);
 
-		this.vfh      = new HistogramGrid2D(10,10,20,min_distance/2,model.slam.getResolution());
-		this.poh      = new PolarHistogram2D(2,2,10f,0.0025f, model.slam.getResolution());
+		this.vfh      = new HistogramGrid2D(10,10,20,min_distance/2,model.grid.getResolution());
+		this.poh      = new PolarHistogram2D(2,2,10f,0.0025f, model.grid.getResolution());
 
 		ExecutorService.get().scheduleAtFixedRate(this, 5000, 200, TimeUnit.MILLISECONDS);
 
@@ -104,7 +108,7 @@ public class VfhSLAMDetector implements ISLAMDetector, Runnable {
 				msg_msp_command cmd = (msg_msp_command)o;
 				switch(cmd.command) {
 				case MSP_CMD.MSP_TRANSFER_MICROSLAM:
-					model.slam.invalidateTransfer();
+					model.grid.invalidateTransfer();
 					break;
 				}
 			}
@@ -181,10 +185,15 @@ public class VfhSLAMDetector implements ISLAMDetector, Runnable {
 		poh.histUpdate(vfh.getMovingWindow(model.state.l_x, model.state.l_y));
 		VfhHist smoothed = poh.histSmooth(5);
 		int vi = poh.selectValley(smoothed, (int)MSPMathUtils.fromRad(model.attitude.y));
-        model.slam.pd =   model.attitude.y; //MSPMathUtils.toRad(poh.getDirection(smoothed, vi, 18));
-        model.slam.pv = 1;
 		vfh.forget();
-		vfh.transferToMicroSLAM(model.slam, 10, false);
+		vfh.transferGridToModel(model, 10, false);
+
+		// publish planned data
+		msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
+		msg.pd = MSPMathUtils.toRad(poh.getDirection(smoothed, vi, 18));
+		msg.pv = 1;
+		control.sendMAVLinkMessage(msg);
+
 	}
 
 }

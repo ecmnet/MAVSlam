@@ -96,7 +96,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 				msg_msp_command cmd = (msg_msp_command)o;
 				switch(cmd.command) {
 				case MSP_CMD.MSP_TRANSFER_MICROSLAM:
-					model.slam.invalidateTransfer();
+					model.grid.invalidateTransfer();
 					break;
 				}
 			}
@@ -144,9 +144,9 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 
 		// SLAM forgets old blocks after 2 mins
 		if((System.nanoTime()-last_clean)>120 * 1e9) {
-			model.slam.getData().forEach((i,b) -> {
+			model.grid.getData().forEach((i,b) -> {
 				if(b.tms<last_clean) {
-                   model.slam.setBlock(i, false);
+                   model.grid.setBlock(i, false);
 				}
 			});
 			last_clean = System.nanoTime();
@@ -175,7 +175,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 					pos.z = -(p_ned.y - current.T.y) + model.state.l_z;
 
 					if(Math.abs(pos.z - model.state.l_z) < 0.5 && model.raw.di >0.5) {
-						model.slam.setBlock(pos.x , pos.y);
+						model.grid.setBlock(pos.x , pos.y);
 					}
 
 					nearestPoints.add(n);
@@ -198,7 +198,7 @@ public class SimpleCollisionDetector implements ISLAMDetector {
 			pos.z = -(center_ned.location.y - current.T.y) + model.state.l_z;
 
 			if(Math.abs(pos.z - model.state.l_z) < 0.5 && model.raw.di >0.5) {
-				model.slam.setIndicator(pos.x , pos.y);
+				model.grid.setIndicator(pos.x , pos.y);
 				collision.set(true);
 			} else
 				collision.set(false);
