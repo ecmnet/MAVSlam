@@ -168,8 +168,8 @@ public class StartUp implements Runnable {
 					msg.cy  = model.grid.getIndicatorY();
 					msg.tms  = System.nanoTime() / 1000;
                     msg.count = model.grid.count;
-					model.grid.toArray(msg.data);
-					control.sendMAVLinkMessage(msg);
+					if(model.grid.toArray(msg.data))
+					   control.sendMAVLinkMessage(msg);
 				}
 
 				//System.out.println(control.getMonotonicTime_ns());

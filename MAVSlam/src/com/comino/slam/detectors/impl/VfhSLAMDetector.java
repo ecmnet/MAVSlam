@@ -191,7 +191,8 @@ public class VfhSLAMDetector implements ISLAMDetector, Runnable {
 		// publish planned data
 		msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
 		msg.pd = MSPMathUtils.toRad(poh.getDirection(smoothed, vi, 18));
-		msg.pv = 1;
+		msg.pv = 0;
+		msg.tms = System.nanoTime() / 1000;
 		control.sendMAVLinkMessage(msg);
 
 	}
