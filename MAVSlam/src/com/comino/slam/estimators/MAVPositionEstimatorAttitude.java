@@ -294,7 +294,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					else {
 						getPositionToState(model,pos_ned);
 					}
-					pos_raw_old.set(0,0,0);
+					pos_raw_old.set(visualOdometry.getCameraToWorld().getT());
 					speed_old.reset();
 
 					if( quality > MIN_QUALITY) {
