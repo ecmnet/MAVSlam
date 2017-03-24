@@ -41,6 +41,7 @@ import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
+import georegression.transform.se.SePointOps_F64;
 
 /**
  * Wrapper around {@link VisOdomPixelDepthPnP} for {@link DepthVisualOdometry}.
@@ -59,6 +60,9 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends ImageBase, 
 	ImageType<Vis> visualType;
 	Class<Depth> depthType;
 	boolean success;
+
+	PointTransform_F64 leftPixelToNorm = null;
+	PointTransform_F64 leftNormToPixel = null;
 
 	List<PointTrack> active = new ArrayList<PointTrack>();
 
@@ -108,14 +112,17 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends ImageBase, 
 	public void setCalibration(IntrinsicParameters paramVisual, PixelTransform_F32 visToDepth) {
 		sparse3D.configure(paramVisual,visToDepth);
 
-		PointTransform_F64 leftPixelToNorm = transformPoint(paramVisual).undistort_F64(true,false);
-		PointTransform_F64 leftNormToPixel = transformPoint(paramVisual).distort_F64(false,true);
+		leftPixelToNorm = transformPoint(paramVisual).undistort_F64(true,false);
+		leftNormToPixel = transformPoint(paramVisual).distort_F64(false,true);
 
 		alg.setPixelToNorm(leftPixelToNorm);
 		alg.setNormToPixel(leftNormToPixel);
 
+
 		distance.setIntrinsic(paramVisual.fx,paramVisual.fy,paramVisual.skew);
 	}
+
+
 
 	@Override
 	public boolean process(Vis visual, Depth depth) {
@@ -138,6 +145,13 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends ImageBase, 
 		alg.getTracker().getActiveTracks(active);
 
 		return success;
+	}
+
+	public Point3D_F64 getPoint3DFromPixel(int pixelx, int pixely) {
+		if(sparse3D.process(pixelx, pixely)) {
+			return sparse3D.getWorldPt();
+		}
+		return null;
 	}
 
 	@Override

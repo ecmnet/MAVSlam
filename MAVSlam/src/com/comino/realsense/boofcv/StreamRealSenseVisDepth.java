@@ -182,8 +182,6 @@ public class StreamRealSenseVisDepth {
 
 			while( !requestStop ) {
 
-				//LockSupport.parkNanos(100000);
-
 				LibRealSenseWrapper.INSTANCE.rs_wait_for_frames(dev, error);
 
 				time = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,

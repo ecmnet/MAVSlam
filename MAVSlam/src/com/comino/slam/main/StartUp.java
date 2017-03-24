@@ -153,7 +153,7 @@ public class StartUp implements Runnable {
 
 		while(true) {
 			try {
-				Thread.sleep(500);
+				Thread.sleep(250);
 
 				if(!control.isConnected()) {
 					control.connect();

@@ -19,5 +19,6 @@ public interface MAVDepthVisualOdometry<Vis extends ImageBase, Depth extends Ima
 
 	public boolean process(Vis visual, Depth depth, Se3_F64 currentAttitude);
 
+	public Point3D_F64 getPoint3DFromPixel(int pixelx, int pixely);
 
 }
