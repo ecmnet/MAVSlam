@@ -51,7 +51,7 @@ import com.comino.msp.model.DataModel;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.SimpleCollisionDetector;
-import com.comino.slam.detectors.impl.VfhSLAMDetector;
+import com.comino.slam.detectors.impl.VfhFeatureDetector;
 import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.MAVPositionEstimatorAttitude;
 import com.sun.net.httpserver.HttpServer;
@@ -100,7 +100,7 @@ public class StartUp implements Runnable {
 				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
 				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
 			//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
-				vision.registerDetector(new VfhSLAMDetector(control,config,streamer));
+				vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
 			}
 		} catch(Exception e) {
 			System.out.println("[vis] Vision not available: "+e.getMessage());

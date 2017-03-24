@@ -66,7 +66,7 @@ import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.transform.se.SePointOps_F64;
 
-public class VfhSLAMDetector implements ISLAMDetector, Runnable {
+public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 
 	private final static int MIN_POINTS = 5;
 
@@ -87,7 +87,7 @@ public class VfhSLAMDetector implements ISLAMDetector, Runnable {
 
 	private IMAVMSPController control = null;
 
-	public VfhSLAMDetector(IMAVMSPController control, MSPConfig config,HttpMJPEGHandler streamer) {
+	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config,HttpMJPEGHandler streamer) {
 
 		this.control  = control;
 		this.model   = control.getCurrentModel();
