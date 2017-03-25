@@ -37,10 +37,8 @@
 
 package com.comino.slam.vfh.vfh2D;
 
-import com.comino.msp.main.StartUp;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.Grid;
-import com.comino.msp.model.segment.Slam;
 import com.comino.slam.vfh.VfhGrid;
 import com.comino.slam.vfh.VfhHist;
 

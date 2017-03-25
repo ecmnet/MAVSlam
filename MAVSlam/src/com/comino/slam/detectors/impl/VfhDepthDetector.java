@@ -34,14 +34,10 @@
 package com.comino.slam.detectors.impl;
 
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.lquac.msg_msp_command;
-import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.mav.control.IMAVMSPController;
@@ -57,14 +53,9 @@ import com.comino.slam.vfh.VfhHist;
 import com.comino.slam.vfh.vfh2D.HistogramGrid2D;
 import com.comino.slam.vfh.vfh2D.PolarHistogram2D;
 
-import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
-import georegression.struct.point.Point2D_F64;
-import georegression.struct.point.Point3D_F64;
-import georegression.struct.se.Se3_F64;
-import georegression.transform.se.SePointOps_F64;
 
 public class VfhDepthDetector implements ISLAMDetector, Runnable {
 
@@ -117,7 +108,7 @@ public class VfhDepthDetector implements ISLAMDetector, Runnable {
 	public void process(MAVDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
 
 
-		test.setLocation(odometry.getPoint3DFromPixel(160, 120));
+		test.setLocation(odometry.getPoint3DFromPixel(gray.width/2, gray.height/2));
 		test.getObservation().set(160, 120);
 		if(test.location!=null)
 		    System.out.println(test.location.z);
