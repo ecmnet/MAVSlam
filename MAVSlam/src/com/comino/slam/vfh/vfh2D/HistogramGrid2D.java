@@ -67,6 +67,15 @@ public class HistogramGrid2D {
 		window = new VfhGrid(windowsize, resolution);
 	}
 
+	public void reset(DataModel model) {
+		grid.clear();
+		for (int i = 0; i < grid.dimension; ++i) {
+			for (int j = 0; j < grid.dimension; ++j) {
+				model.grid.setBlock(j*grid.resolution/100f-centerx,i*grid.resolution/100f-centery, false);
+			}
+		}
+	}
+
 	// Updates the grid with an absolute observation
 	public boolean gridUpdate(Point3D_F64 obstacle_absolute) {
 		return gridUpdate(0,0,obstacle_absolute);

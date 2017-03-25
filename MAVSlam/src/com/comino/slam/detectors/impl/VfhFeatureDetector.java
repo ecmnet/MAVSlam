@@ -39,7 +39,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
+import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_micro_slam;
@@ -48,6 +50,7 @@ import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
+import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
@@ -109,6 +112,15 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 				switch(cmd.command) {
 				case MSP_CMD.MSP_TRANSFER_MICROSLAM:
 					model.grid.invalidateTransfer();
+					break;
+				case MSP_CMD.MSP_CMD_MICROSLAM:
+					switch((int)cmd.param1) {
+					case MSP_COMPONENT_CTRL.RESET:
+						vfh.reset(model);
+						control.writeLogMessage(new LogMessage("[vis] reset local map",
+								MAV_SEVERITY.MAV_SEVERITY_NOTICE));
+						break;
+					}
 					break;
 				}
 			}
