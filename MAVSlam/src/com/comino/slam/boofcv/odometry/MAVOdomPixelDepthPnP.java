@@ -245,40 +245,44 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 		// System.out.println("----------- Adding new tracks ---------------");
 
 		tracker.spawnTracks();
-		List<PointTrack> spawned = tracker.getNewTracks(null);
+		try {
+			List<PointTrack> spawned = tracker.getNewTracks(null);
 
-		// estimate 3D coordinate using stereo vision
-		for (PointTrack t : spawned) {
-			Point2D3DTrack p = t.getCookie();
-			if (p == null) {
-				t.cookie = p = new Point2D3DTrack();
+			// estimate 3D coordinate using stereo vision
+			for (PointTrack t : spawned) {
+				Point2D3DTrack p = t.getCookie();
+				if (p == null) {
+					t.cookie = p = new Point2D3DTrack();
+				}
+
+				// discard point if it can't localized
+				if (!pixelTo3D.process(t.x, t.y) || pixelTo3D.getW() == 0) {
+
+					tracker.dropTrack(t);
+				} else {
+					Point3D_F64 X = p.getLocation();
+
+					// *** division not needed for RealSense
+
+					//				 double w = pixelTo3D.getW();
+					//				 X.set(pixelTo3D.getX() / w, pixelTo3D.getY() / w,
+					//				 pixelTo3D.getZ() / w);
+
+					X.set(pixelTo3D.getX(), pixelTo3D.getY(), pixelTo3D.getZ());
+
+					lastTrackAdded.set(X);
+
+					// translate the point into the key frame
+					SePointOps_F64.transform(currToKey, X, X);
+					// not needed since the current frame was just set to be the key
+					// frame
+
+					p.lastInlier = tick;
+					pixelToNorm.compute(t.x, t.y, p.observation);
+				}
 			}
-
-			// discard point if it can't localized
-			if (!pixelTo3D.process(t.x, t.y) || pixelTo3D.getW() == 0) {
-
-				tracker.dropTrack(t);
-			} else {
-				Point3D_F64 X = p.getLocation();
-
-				// *** division not needed for RealSense
-
-//				 double w = pixelTo3D.getW();
-//				 X.set(pixelTo3D.getX() / w, pixelTo3D.getY() / w,
-//				 pixelTo3D.getZ() / w);
-
-				X.set(pixelTo3D.getX(), pixelTo3D.getY(), pixelTo3D.getZ());
-
-				lastTrackAdded.set(X);
-
-				// translate the point into the key frame
-				SePointOps_F64.transform(currToKey, X, X);
-				// not needed since the current frame was just set to be the key
-				// frame
-
-				p.lastInlier = tick;
-				pixelToNorm.compute(t.x, t.y, p.observation);
-			}
+		} catch(Exception e) {
+			System.err.println("Add new tracks: "+e.getMessage());
 		}
 	}
 
@@ -409,16 +413,16 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 	}
 
 	public void setRotation(Se3_F64 state) {
-//		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-//		0,
-//		0,
-//		0,
-//		currToKey.R);
+		//		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+		//		0,
+		//		0,
+		//		0,
+		//		currToKey.R);
 		keyToWorld.R.set(state.R);
 
-//		double[] att     = new double[3];
-//		ConvertRotation3D_F64.matrixToEuler(state.R, EulerType.ZXY, att);
-//		System.out.println("Heading is "+MSPMathUtils.fromRad((float)att[2]));
+		//		double[] att     = new double[3];
+		//		ConvertRotation3D_F64.matrixToEuler(state.R, EulerType.ZXY, att);
+		//		System.out.println("Heading is "+MSPMathUtils.fromRad((float)att[2]));
 	}
 
 	public PointTracker<T> getTracker() {

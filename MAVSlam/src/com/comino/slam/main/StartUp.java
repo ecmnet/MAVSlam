@@ -91,7 +91,7 @@ public class StartUp implements Runnable {
 		//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 		//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_INFRARED);
 		//		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_INFRARED);
-		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
+   		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 
 		HttpMJPEGHandler streamer = new HttpMJPEGHandler(info, control.getCurrentModel());
 

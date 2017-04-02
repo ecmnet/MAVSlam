@@ -87,7 +87,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private static final int    INIT_COUNT          = 3;
 	private static final int    MAX_ERRORS    	    = 5;
 
-	private static final int    MAX_SPEED    	    = 5;
+	private static final int    MAX_SPEED    	    = 10;
 
 	private static final int    MIN_QUALITY 		= 20;
 
