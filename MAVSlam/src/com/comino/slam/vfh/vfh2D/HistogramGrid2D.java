@@ -80,6 +80,8 @@ public class HistogramGrid2D {
 	}
 
 	// Updates the grid with an relative observation
+	// TODO: 1. Weight increment relative to the distance
+	//       2. Mark surrounding cells with a default if distance is < limit
 	public boolean gridUpdate(float lpos_x, float lpos_y, Point3D_F64 obstacle) {
 
 		int new_x = (int)Math.floor((lpos_x+centerx+obstacle.x)*100f / grid.resolution);
