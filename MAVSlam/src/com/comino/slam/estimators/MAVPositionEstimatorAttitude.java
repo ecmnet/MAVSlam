@@ -269,18 +269,23 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					mf++;
 				}
 
+				try {
+					ConvertImage.average(rgb, gray);
 
-				ConvertImage.average(rgb, gray);
-
-				for(IVisualStreamHandler stream : streams)
-					stream.addToStream(gray, depth, model, System.nanoTime()/1000);
+					for(IVisualStreamHandler stream : streams)
+						stream.addToStream(gray, depth, model, System.nanoTime()/1000);
 
 
-				if( !visualOdometry.process(gray,depth,getAttitudeToState(model, current))) {
+					if( !visualOdometry.process(gray,depth,getAttitudeToState(model, current))) {
+						if(debug)
+							System.out.println("[vis] Odometry failure");
+						init("Odometry");
+						return;
+					}
+				} catch( Exception e) {
 					if(debug)
-						System.out.println("[vis] Odometry failure");
-					init("Odometry");
-					return;
+						System.out.println("[vis] Odometry failure: "+e.getMessage());
+					init("Exception");
 				}
 
 

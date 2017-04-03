@@ -271,30 +271,37 @@ public class MAVPositionEstimator implements IPositionEstimator {
 					mf++;
 				}
 
-				ConvertImage.average(rgb, gray);
+				try {
+					ConvertImage.average(rgb, gray);
 
-				for(IVisualStreamHandler stream : streams)
-					stream.addToStream(gray, depth, model, System.nanoTime()/1000);
+					for(IVisualStreamHandler stream : streams)
+						stream.addToStream(gray, depth, model, System.nanoTime()/1000);
 
 
-				// Check PX4 rotation and reset odometry if rotating too fast
-				ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
-						model.attitude.rr * model.attitude.rr +
-						model.attitude.yr * model.attitude.yr);
+					// Check PX4 rotation and reset odometry if rotating too fast
+					ang_speed = (float)Math.sqrt(model.attitude.pr * model.attitude.pr +
+							model.attitude.rr * model.attitude.rr +
+							model.attitude.yr * model.attitude.yr);
 
-				if(ang_speed > MAX_ROT_SPEED) {
+					if(ang_speed > MAX_ROT_SPEED) {
+						if(debug)
+							System.out.println("[vis] Rotation speed "+ang_speed+" > MAX");
+						init("Rotation speed");
+						return;
+					}
+
+
+					if( !visualOdometry.process(gray,depth)) {
+						if(debug)
+							System.out.println("[vis] Odometry failure");
+						init("Odometry");
+						return;
+					}
+
+				} catch( Exception e) {
 					if(debug)
-						System.out.println("[vis] Rotation speed "+ang_speed+" > MAX");
-					init("Rotation speed");
-					return;
-				}
-
-
-				if( !visualOdometry.process(gray,depth)) {
-					if(debug)
-						System.out.println("[vis] Odometry failure");
-					init("Odometry");
-					return;
+						System.out.println("[vis] Odometry failure: "+e.getMessage());
+					init("Exception");
 				}
 
 				quality = (int)(visualOdometry.getQuality() * 100f / MAXTRACKS);
