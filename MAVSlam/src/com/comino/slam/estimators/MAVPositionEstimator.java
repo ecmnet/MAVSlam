@@ -515,9 +515,12 @@ public class MAVPositionEstimator implements IPositionEstimator {
 		if((System.currentTimeMillis()-init_tms)>INIT_TIME_MS) {
 			if(do_odometry) {
 				error_count++;
-				if((error_count % MAX_ERRORS)==0)
+				if((error_count % MAX_ERRORS)==0) {
 					control.writeLogMessage(new LogMessage("[vis] reset odometry: "+reason,
 							MAV_SEVERITY.MAV_SEVERITY_NOTICE));
+					if(debug)
+						System.out.println("[vis] reset odometry: "+reason);
+				}
 				visualOdometry.reset();
 				init_count = 0; fps=0; quality=0;
 				vis_init.reset();
