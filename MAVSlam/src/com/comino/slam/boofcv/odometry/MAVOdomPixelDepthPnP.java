@@ -262,12 +262,6 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 				} else {
 					Point3D_F64 X = p.getLocation();
 
-					// *** division not needed for RealSense
-
-					//				 double w = pixelTo3D.getW();
-					//				 X.set(pixelTo3D.getX() / w, pixelTo3D.getY() / w,
-					//				 pixelTo3D.getZ() / w);
-
 					X.set(pixelTo3D.getX(), pixelTo3D.getY(), pixelTo3D.getZ());
 
 					lastTrackAdded.set(X);
