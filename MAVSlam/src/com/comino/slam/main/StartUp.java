@@ -89,9 +89,7 @@ public class StartUp implements Runnable {
 		// Start services if required
 
 		//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
-		//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_INFRARED);
-		//		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_INFRARED);
-   		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
+		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 
 		HttpMJPEGHandler streamer = new HttpMJPEGHandler(info, control.getCurrentModel());
 
@@ -99,7 +97,7 @@ public class StartUp implements Runnable {
 			if(config.getBoolProperty("vision_enabled", "true")) {
 				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
 				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
-			//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
+				//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
 				vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
 			}
 		} catch(Exception e) {
@@ -125,7 +123,7 @@ public class StartUp implements Runnable {
 		Thread worker = new Thread(this);
 		worker.start();
 
-	//	control.getCurrentModel().slam.setBlock(-1, -3);
+		//	control.getCurrentModel().slam.setBlock(-1, -3);
 
 		// Start HTTP Service with MJPEG streamer
 
@@ -167,9 +165,9 @@ public class StartUp implements Runnable {
 					msg.cx  = model.grid.getIndicatorX();
 					msg.cy  = model.grid.getIndicatorY();
 					msg.tms  = System.nanoTime() / 1000;
-                    msg.count = model.grid.count;
+					msg.count = model.grid.count;
 					if(model.grid.toArray(msg.data))
-					   control.sendMAVLinkMessage(msg);
+						control.sendMAVLinkMessage(msg);
 				}
 
 				//System.out.println(control.getMonotonicTime_ns());
