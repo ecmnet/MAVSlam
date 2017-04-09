@@ -91,10 +91,10 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 20;
 
-	private static final int    MAXTRACKS   		= 150; // was 300
-	private static final int    KLT_RADIUS          = 4;   // was 3
+	private static final int    MAXTRACKS   		= 150;
+	private static final int    KLT_RADIUS          = 4;
 	private static final float  KLT_THRESHOLD       = 1f;
-	private static final int    RANSAC_ITERATIONS   = 170; // 140
+	private static final int    RANSAC_ITERATIONS   = 170;
 	private static final int    RETIRE_THRESHOLD    = 5;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 50;
@@ -231,7 +231,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
-		visualOdometry = FactoryMAVOdometry.depthDepthPnP(1.5f,
+		visualOdometry = FactoryMAVOdometry.depthDepthPnP(1.2f,
 				INLIER_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
