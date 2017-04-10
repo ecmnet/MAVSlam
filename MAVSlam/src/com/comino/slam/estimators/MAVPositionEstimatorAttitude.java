@@ -87,15 +87,15 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private static final int    INIT_COUNT          = 3;
 	private static final int    MAX_ERRORS    	    = 5;
 
-	private static final int    MAX_SPEED    	    = 10;
+	private static final int    MAX_SPEED    	    = 20;
 
 	private static final int    MIN_QUALITY 		= 20;
 
-	private static final float  INLIER_PIXEL_TOL    = 1.5f;
+	private static final float  INLIER_PIXEL_TOL    = 1.3f;
 	private static final int    MAXTRACKS   		= 150;
 	private static final int    KLT_RADIUS          = 4;
 	private static final float  KLT_THRESHOLD       = 1f;
-	private static final int    RANSAC_ITERATIONS   = 170;
+	private static final int    RANSAC_ITERATIONS   = 120;
 	private static final int    RETIRE_THRESHOLD    = 5;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 50;
@@ -223,7 +223,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		} catch(Exception e) {	}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{1, 2, 4  };
+		configKlt.pyramidScaling = new int[]{ 1, 8 };
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
