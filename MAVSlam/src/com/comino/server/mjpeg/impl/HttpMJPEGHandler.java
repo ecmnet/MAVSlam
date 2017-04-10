@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 
 import com.comino.msp.model.DataModel;
+import com.comino.msp.utils.ExecutorService;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.IMJPEGOverlayListener;
 import com.comino.server.mjpeg.IVisualStreamHandler;
@@ -103,16 +104,21 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 
 		if((System.currentTimeMillis()-last_image_tms)<MAX_VIDEO_RATE_MS)
 			return;
+
 		last_image_tms = System.currentTimeMillis();
 
-		if(imageByteList.size()>10)
+		if(imageByteList.size()>5) {
 			imageByteList.remove(0);
-
-		ConvertBufferedImage.convertTo(grayImage, image);
-		if(listeners.size()>0) {
-			for(IMJPEGOverlayListener listener : listeners)
-				listener.processOverlay(gr);
+			return;
 		}
-		imageByteList.add(image);
+
+		ExecutorService.get().execute(() -> {
+			ConvertBufferedImage.convertTo(grayImage, image);
+			if(listeners.size()>0) {
+				for(IMJPEGOverlayListener listener : listeners)
+					listener.processOverlay(gr);
+			}
+			imageByteList.add(image);
+		});
 	}
 }
