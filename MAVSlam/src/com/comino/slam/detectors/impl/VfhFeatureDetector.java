@@ -129,7 +129,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 		streamer.registerOverlayListener(ctx -> {
 			if(nearestPoints.size()>0) {
 				for(Point2D3D n : nearestPoints) {
-					ctx.drawRect((int)n.observation.x-10, (int)n.observation.y-10, 20, 20);
+					ctx.drawRect((int)n.observation.x-5, (int)n.observation.y-5, 10,10);
 				}
 			}
 		});

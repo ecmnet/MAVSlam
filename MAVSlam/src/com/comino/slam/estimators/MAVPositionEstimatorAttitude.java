@@ -91,6 +91,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 	private static final int    MIN_QUALITY 		= 20;
 
+	private static final float  INLIER_PIXEL_TOL    = 1.5f;
 	private static final int    MAXTRACKS   		= 150;
 	private static final int    KLT_RADIUS          = 4;
 	private static final float  KLT_THRESHOLD       = 1f;
@@ -222,7 +223,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		} catch(Exception e) {	}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{1, 2, 4, 8 };
+		configKlt.pyramidScaling = new int[]{1, 2, 4  };
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
@@ -231,7 +232,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
-		visualOdometry = FactoryMAVOdometry.depthDepthPnP(1.2f,
+		visualOdometry = FactoryMAVOdometry.depthDepthPnP(INLIER_PIXEL_TOL,
 				INLIER_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
