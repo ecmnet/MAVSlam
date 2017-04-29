@@ -3,7 +3,7 @@
 	<property name="lib.dir" value="lib" />
 	<property name="dis.dir" value="dis" />
 	<property name="build.dir" value="bin" />
-	<property name="deploy.dir" value="/Volumes/up/slam" />
+	<property name="deploy.dir" value="/Volumes/up" />
 
 
 
@@ -26,6 +26,7 @@
 				<attribute name="Main-Class" value="com.comino.realsense.boofcv.RealSenseMotionCapture" />
 				-->
 				<attribute name="Main-Class" value="com.comino.slam.main.StartUp" />
+			<!--	<attribute name="Main-Class" value="com.comino.mav.comm.highspeedserial.SerialAMAO"/> -->
 				<attribute name="Built-By" value="${user.name}" />
 
 				<attribute name="Class-Path" value="jna-4.2.2.jar
@@ -63,9 +64,14 @@
 
 
 	<target name="UPDEPLOY" depends="build" description="Deploy to UPBOard">
-		<copy todir="${deploy.dir}">
+		<copy todir="${deploy.dir}/slam">
 			<fileset dir="${dis.dir}/" />
 		</copy>
+		<buildnumber />
+				<echo>Current build number:${build.number}</echo>
+				<propertyfile file="${deploy.dir}/msp.properties">
+					<entry key="build" value="${build.number}" />
+				</propertyfile>
 	</target>
 
 </project>
