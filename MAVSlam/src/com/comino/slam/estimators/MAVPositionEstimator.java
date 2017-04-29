@@ -448,7 +448,7 @@ public class MAVPositionEstimator implements IPositionEstimator {
 	}
 
 	public MAVPositionEstimator() {
-		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance("msp.properties"),null);
+		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance(),null);
 	}
 
 	/* (non-Javadoc)

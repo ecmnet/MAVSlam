@@ -73,7 +73,7 @@ public class StartUp implements Runnable {
 
 		RealSenseInfo info = null;
 
-		config  = MSPConfig.getInstance("msp.properties");
+		config  = MSPConfig.getInstance("/home/up","msp.properties");
 		System.out.println("MSPControlService version "+config.getVersion());
 
 		if(args.length>0)
@@ -90,19 +90,35 @@ public class StartUp implements Runnable {
 
 		// Start services if required
 
-		if(config.getBoolProperty("vision_highres", "false"))
-            info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
-		else
-			info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-
-		HttpMJPEGHandler streamer = new HttpMJPEGHandler(info, control.getCurrentModel());
-
 		try {
-			if(config.getBoolProperty("vision_enabled", "true")) {
+			if(config.getBoolProperty("vision_enabled", "false")) {
+
+				if(config.getBoolProperty("vision_highres", "false"))
+		            info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+				else
+					info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
+
+
+				HttpMJPEGHandler streamer = new HttpMJPEGHandler(info, control.getCurrentModel());
+
+				// Start HTTP Service with MJPEG streamer
+
+
 				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
 				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
 				//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
 				vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
+
+				HttpServer server;
+				try {
+					server = HttpServer.create(new InetSocketAddress(8080),2);
+					server.createContext("/mjpeg", streamer);
+					server.setExecutor(null); // creates a default executor
+					server.start();
+				} catch (IOException e) {
+					System.err.println(e.getMessage());
+				}
+
 			}
 		} catch(Exception e) {
 			System.out.println("[vis] Vision not available: "+e.getMessage());
@@ -112,11 +128,15 @@ public class StartUp implements Runnable {
 		//			vision.registerStreams(new CombinedFileStreamHandler(info, control));
 
 		this.publish_microslam = config.getBoolProperty("publish_microslam", "false");
-		System.out.println("[vis} Publishing microSlam enabled: "+publish_microslam);
+		System.out.println("[vis] Publishing microSlam enabled: "+publish_microslam);
 
 
-		if(vision!=null && !vision.isRunning())
+		if(vision!=null && !vision.isRunning()) {
 			vision.start();
+
+			// Start HTTP Service with MJPEG streamer
+
+		}
 
 
 		// register MSP commands here
@@ -129,17 +149,7 @@ public class StartUp implements Runnable {
 
 		//	control.getCurrentModel().slam.setBlock(-1, -3);
 
-		// Start HTTP Service with MJPEG streamer
 
-		HttpServer server;
-		try {
-			server = HttpServer.create(new InetSocketAddress(8080),2);
-			server.createContext("/mjpeg", streamer);
-			server.setExecutor(null); // creates a default executor
-			server.start();
-		} catch (IOException e) {
-			System.err.println(e.getMessage());
-		}
 	}
 
 	public static void main(String[] args) {

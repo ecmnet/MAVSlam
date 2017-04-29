@@ -126,7 +126,11 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private Se3_F64 current         = new Se3_F64();
 
 	private double[] visAttitude     = new double[3];
-	private long fps_tms   =0;
+	private long fps_tms             =0;
+
+	private long last_pos_tms        = 0;
+	private long last_speed_tms      = 0;
+	private long last_msp_tms        = 0;
 
 	private DataModel model;
 
@@ -417,7 +421,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	}
 
 	public MAVPositionEstimatorAttitude() {
-		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance("msp.properties"),null);
+		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance(),null);
 	}
 
 	public void registerDetector(ISLAMDetector detector) {
@@ -492,7 +496,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 	private void publishPX4Vision() {
 
-		if(do_position && do_odometry) {
+		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > 20) {
+			last_pos_tms = System.currentTimeMillis();
 			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
 			sms.usec = System.nanoTime()/1000;;
 			//sms.usec = (long)estTimeDepth_us;
@@ -505,7 +510,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 			control.sendMAVLinkMessage(sms);
 		}
 
-		if(do_speed && do_odometry) {
+		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > 20) {
+			last_speed_tms = System.currentTimeMillis();
 			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
 			sse.usec = System.nanoTime()/1000;
 			sse.x = (float) speed_ned.T.z;
@@ -517,25 +523,28 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	}
 
 	private void publisMSPVision() {
-		msg_msp_vision msg = new msg_msp_vision(2,1);
-		msg.x =  (float) pos_ned.T.z;
-		msg.y =  (float) pos_ned.T.x;
-		msg.z =  (float) pos_ned.T.y;
-		msg.vx = (float) speed_ned.T.z;
-		msg.vy = (float) speed_ned.T.x;
-		msg.vz = (float) speed_ned.T.y;
-		msg.h = MSPMathUtils.fromRad((float)visAttitude[2]);   //MSPMathUtils.fromRad((float)vis_init.getY());
-		msg.p = (float)visAttitude[1];
-		msg.r = (float)visAttitude[0];
-		msg.quality = quality;
-		msg.fps = fps;
-		msg.errors = error_count;
-		if(do_position && do_odometry)
-			msg.flags = msg.flags | 1;
-		if(do_speed && do_odometry)
-			msg.flags = msg.flags | 2;
-		msg.tms = (long)estTimeDepth_us;
-		control.sendMAVLinkMessage(msg);
+		if((System.currentTimeMillis()-last_msp_tms) > 20) {
+			last_msp_tms = System.currentTimeMillis();
+			msg_msp_vision msg = new msg_msp_vision(2,1);
+			msg.x =  (float) pos_ned.T.z;
+			msg.y =  (float) pos_ned.T.x;
+			msg.z =  (float) pos_ned.T.y;
+			msg.vx = (float) speed_ned.T.z;
+			msg.vy = (float) speed_ned.T.x;
+			msg.vz = (float) speed_ned.T.y;
+			msg.h = MSPMathUtils.fromRad((float)visAttitude[2]);   //MSPMathUtils.fromRad((float)vis_init.getY());
+			msg.p = (float)visAttitude[1];
+			msg.r = (float)visAttitude[0];
+			msg.quality = quality;
+			msg.fps = fps;
+			msg.errors = error_count;
+			if(do_position && do_odometry)
+				msg.flags = msg.flags | 1;
+			if(do_speed && do_odometry)
+				msg.flags = msg.flags | 2;
+			msg.tms = (long)estTimeDepth_us;
+			control.sendMAVLinkMessage(msg);
+		}
 	}
 
 	public static void main(String[] args) {

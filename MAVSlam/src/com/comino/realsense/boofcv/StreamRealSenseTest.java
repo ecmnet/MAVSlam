@@ -101,8 +101,8 @@ public class StreamRealSenseTest extends Application  {
 		});
 
 
-		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+//		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
+		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 
 		try {
 
@@ -138,7 +138,7 @@ public class StreamRealSenseTest extends Application  {
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
 
 
-		output = new BufferedImage(info.width, info.height, BufferedImage.TYPE_USHORT_555_RGB);
+		output = new BufferedImage(info.width, info.height, BufferedImage.TYPE_3BYTE_BGR);
 		wirgb = new WritableImage(info.width, info.height);
 		ivrgb.setImage(wirgb);
 
