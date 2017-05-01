@@ -84,7 +84,7 @@ import georegression.struct.se.Se3_F64;
 
 public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
-	private static final int    INIT_COUNT          = 3;
+	private static final int    INIT_COUNT          = 5;
 	private static final int    MAX_ERRORS    	    = 5;
 
 	private static final int    MAX_SPEED    	    = 20;
@@ -346,10 +346,12 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed_ned.T);
 						speed_ned.T.scale(1d/dt);
 
-						if(speed_ned.T.norm()>MAX_SPEED) {
+						// Check XY speed
+						if(Math.sqrt(speed_ned.getX()*speed_ned.getX()+speed_ned.getZ()*speed_ned.getZ())>MAX_SPEED) {
 							init("Speed");
 							return;
 						}
+
 
 					} else {
 						if(++qual_error_count > 10) {
@@ -365,7 +367,6 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 					// pos_delta.T = speed.T * dt
 					pos_delta.T.set(speed_ned.T); pos_delta.T.scale(dt);
-
 
 					// pos.T = pos.T + pos_delta.T
 					pos_ned.T.plusIP(pos_delta.T);

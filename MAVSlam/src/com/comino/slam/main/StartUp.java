@@ -43,7 +43,7 @@ import org.mavlink.messages.lquac.msg_msp_micro_slam;
 import org.mavlink.messages.lquac.msg_msp_status;
 
 import com.comino.mav.control.IMAVMSPController;
-import com.comino.mav.control.impl.MAVProxyController2;
+import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
@@ -78,9 +78,9 @@ public class StartUp implements Runnable {
 		System.out.println("MSPControlService version "+config.getVersion());
 
 		if(args.length>0)
-			control = new MAVProxyController2(true);
+			control = new MAVProxyController(true);
 		else
-			control = new MAVProxyController2(false);
+			control = new MAVProxyController(false);
 
 		osBean =  java.lang.management.ManagementFactory.getOperatingSystemMXBean();
 		mxBean = java.lang.management.ManagementFactory.getMemoryMXBean();
