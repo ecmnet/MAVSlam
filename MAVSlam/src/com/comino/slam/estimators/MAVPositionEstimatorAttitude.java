@@ -299,6 +299,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 				if(initialized_count < INIT_COUNT) {
 
+
 					if(Float.isNaN(model.state.l_x) || Float.isNaN(model.state.l_y) || Float.isNaN(model.state.l_z))
 						pos_ned.reset();
 					else {
@@ -316,7 +317,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 									MAV_SEVERITY.MAV_SEVERITY_NOTICE));
 							error_count = 0;
 						}
-					}
+					}  else
+						initialized_count = 0;
 					return;
 				}
 
