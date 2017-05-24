@@ -421,7 +421,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		else
 			ctx.drawString((int)fps+" fps", info.width-50, 20);
 
-		if(!Float.isNaN(model.sys.t_armed_ms))
+		if(!Float.isNaN(model.sys.t_armed_ms) && model.sys.isStatus(Status.MSP_ARMED))
 		 ctx.drawString(String.format("%.1f sec",model.sys.t_armed_ms/1000), 20, 20);
 
 	}
