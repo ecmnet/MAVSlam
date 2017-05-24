@@ -97,7 +97,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private static final float  KLT_THRESHOLD       = 1f;
 	private static final int    RANSAC_ITERATIONS   = 120;
 	private static final int    RETIRE_THRESHOLD    = 5;
-	private static final int    INLIER_THRESHOLD    = 120;
+	private static final int    INLIER_THRESHOLD    = 100;
 	private static final int    REFINE_ITERATIONS   = 50;
 
 
@@ -420,6 +420,9 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 			ctx.drawString("Low quality", info.width-85, 20);
 		else
 			ctx.drawString((int)fps+" fps", info.width-50, 20);
+
+		if(!Float.isNaN(model.sys.t_armed_ms))
+		 ctx.drawString(String.format("%.1f sec",model.sys.t_armed_ms/1000), 20, 20);
 
 	}
 
