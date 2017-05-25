@@ -166,7 +166,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 					pos.y = p_ned.x + model.state.l_y - current.T.x;
 					pos.z = -(p_ned.y - current.T.y) + model.state.l_z;
 
-					if(Math.abs(pos.z - model.state.l_z) < 0.5 && model.raw.di >0.5) {
+					if(Math.abs(pos.z - model.state.l_z) < 0.5f && model.raw.di >min_altitude) {
 						vfh.gridUpdate(pos);
 						nearestPoints.add(n);
 						center_ned.location.plusIP(p_ned);
