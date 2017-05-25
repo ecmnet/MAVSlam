@@ -93,11 +93,11 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 	private static final float  INLIER_PIXEL_TOL    = 1.3f;
 	private static final int    MAXTRACKS   		= 150;
-	private static final int    KLT_RADIUS          = 4;
+	private static final int    KLT_RADIUS          = 3;
 	private static final float  KLT_THRESHOLD       = 1f;
 	private static final int    RANSAC_ITERATIONS   = 120;
-	private static final int    RETIRE_THRESHOLD    = 5;
-	private static final int    INLIER_THRESHOLD    = 100;
+	private static final int    RETIRE_THRESHOLD    = 50;
+	private static final int    INLIER_THRESHOLD    = 180;
 	private static final int    REFINE_ITERATIONS   = 50;
 
 
@@ -227,7 +227,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		} catch(Exception e) {	}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{ 1, 8 };
+		configKlt.pyramidScaling = new int[]{ 1, 4, 8 };
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
@@ -423,6 +423,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 		if(!Float.isNaN(model.sys.t_armed_ms) && model.sys.isStatus(Status.MSP_ARMED))
 		 ctx.drawString(String.format("%.1f sec",model.sys.t_armed_ms/1000), 20, 20);
+
 
 	}
 
