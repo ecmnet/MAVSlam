@@ -199,6 +199,7 @@ public class StartUp implements Runnable {
 				control.sendMAVLinkMessage(msg);
 
 			} catch (Exception e) {
+				e.printStackTrace();
 				control.close();
 			}
 		}
