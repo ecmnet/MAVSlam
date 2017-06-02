@@ -53,6 +53,7 @@ import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.MSPMathUtils;
+import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
@@ -86,11 +87,14 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 	private HistogramGrid2D  vfh = null;
 	private PolarHistogram2D poh = null;
 
+	private int debug = 0;
+
+
 	private List<Point2D3D> nearestPoints =  new ArrayList<Point2D3D>();
 
 	private IMAVMSPController control = null;
 
-	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config,HttpMJPEGHandler streamer) {
+	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer) {
 
 		this.control  = control;
 		this.model   = control.getCurrentModel();
@@ -132,6 +136,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 					ctx.drawRect((int)n.observation.x-5, (int)n.observation.y-5, 10,10);
 				}
 			}
+			ctx.drawString(String.valueOf(debug), 10, 30);
 		});
 
 	}
@@ -197,6 +202,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 		poh.histUpdate(vfh.getMovingWindow(model.state.l_x, model.state.l_y));
 		VfhHist smoothed = poh.histSmooth(5);
 		int vi = poh.selectValley(smoothed, (int)MSPMathUtils.fromRad(model.attitude.y));
+		model.debug.v1 = vi;
 		vfh.forget();
 		vfh.transferGridToModel(model, 10, false);
 
