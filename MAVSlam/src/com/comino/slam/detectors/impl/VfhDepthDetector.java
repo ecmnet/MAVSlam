@@ -135,7 +135,7 @@ public class VfhDepthDetector implements ISLAMDetector, Runnable {
 
 	@Override
 	public void reset(float x, float y, float z) {
-		// TODO Auto-generated method stub
+
 
 	}
 
