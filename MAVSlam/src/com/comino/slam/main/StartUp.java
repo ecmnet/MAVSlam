@@ -185,7 +185,7 @@ public class StartUp implements Runnable {
 						control.sendMAVLinkMessage(msg);
 				}
 
-				//System.out.println(control.getMonotonicTime_ns());
+			//	System.out.println(control.getCurrentModel().sys.getSynchronizedPX4Time_us());
 
 				msg_msp_status msg = new msg_msp_status(2,1);
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);

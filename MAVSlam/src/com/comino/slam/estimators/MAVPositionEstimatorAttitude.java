@@ -326,10 +326,9 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				pos_raw = visualOdometry.getCameraToWorld().getT();
 				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
 
-				estTimeDepth_us = timeDepth*1000;
-				//estTimeDepth_us = System.nanoTime()/1000f;
-				//	estTimeDepth_us = control.getMonotonicTime_ns()/1000f;
-				// System.out.println((System.nanoTime()-control.getMonotonicTime_ns())/1000000f);
+			    estTimeDepth_us = System.currentTimeMillis()*1000;
+			    // System.out.println(timeDepth -System.currentTimeMillis());
+
 				if(oldTimeDepth_us>0)
 					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
 				oldTimeDepth_us = estTimeDepth_us;
@@ -422,7 +421,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 			ctx.drawString((int)fps+" fps", info.width-50, 20);
 
 		if(!Float.isNaN(model.sys.t_armed_ms) && model.sys.isStatus(Status.MSP_ARMED))
-		 ctx.drawString(String.format("%.1f sec",model.sys.t_armed_ms/1000), 20, 20);
+			ctx.drawString(String.format("%.1f sec",model.sys.t_armed_ms/1000), 20, 20);
 
 
 	}
@@ -506,8 +505,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > 20) {
 			last_pos_tms = System.currentTimeMillis();
 			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-			sms.usec = System.nanoTime()/1000;;
-			//sms.usec = (long)estTimeDepth_us;
+			sms.usec = (long)estTimeDepth_us;
 			sms.x = (float) pos_ned.T.z;
 			sms.y = (float) pos_ned.T.x;
 			sms.z = (float) pos_ned.T.y;
@@ -520,7 +518,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > 20) {
 			last_speed_tms = System.currentTimeMillis();
 			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
-			sse.usec = System.nanoTime()/1000;
+			sse.usec = (long)estTimeDepth_us;
 			sse.x = (float) speed_ned.T.z;
 			sse.y = (float) speed_ned.T.x;
 			sse.z = (float) speed_ned.T.y;
@@ -544,6 +542,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 			msg.r = (float)visAttitude[0];
 			msg.quality = quality;
 			msg.fps = fps;
+			msg.tms = (long)estTimeDepth_us;
 			msg.errors = error_count;
 			if(do_position && do_odometry)
 				msg.flags = msg.flags | 1;
