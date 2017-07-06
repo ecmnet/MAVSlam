@@ -85,19 +85,19 @@ import georegression.struct.se.Se3_F64;
 public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 	private static final int    INIT_COUNT          = 5;
-	private static final int    MAX_ERRORS    	    = 5;
+	private static final int    MAX_ERRORS    	    = 3;
 
 	private static final int    MAX_SPEED    	    = 20;
 
-	private static final int    MIN_QUALITY 		= 20;
+	private static final int    MIN_QUALITY 		= 70;
 
 	private static final float  INLIER_PIXEL_TOL    = 1.3f;
-	private static final int    MAXTRACKS   		= 150;
+	private static final int    MAXTRACKS   		= 250;
 	private static final int    KLT_RADIUS          = 3;
 	private static final float  KLT_THRESHOLD       = 1f;
 	private static final int    RANSAC_ITERATIONS   = 120;
-	private static final int    RETIRE_THRESHOLD    = 50;
-	private static final int    INLIER_THRESHOLD    = 180;
+	private static final int    RETIRE_THRESHOLD    = 10;
+	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 50;
 
 
@@ -361,6 +361,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 								System.out.println(timeDepth+"[vis] Quality "+quality+" < Min");
 							init("Quality");
 						}
+						pos_raw_old.set(0,0,0);
 						return;
 					}
 
