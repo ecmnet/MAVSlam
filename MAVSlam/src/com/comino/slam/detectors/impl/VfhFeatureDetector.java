@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.mavlink.messages.MAV_SEVERITY;
+import org.mavlink.messages.MSP_AUTOCONTROL_MODE;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_msp_command;
@@ -49,8 +50,10 @@ import org.mavlink.messages.lquac.msg_msp_micro_slam;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
+import com.comino.msp.main.offboard.OffboardPositionUpdater;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
+import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.server.mjpeg.IVisualStreamHandler;
@@ -82,6 +85,8 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 	private Point3D_F64   p_ned        = new Point3D_F64();
 	private Point2D3D     center_ned   = new Point2D3D();
 
+	private OffboardPositionUpdater offboard = null;
+
 	private Se3_F64 current         = new Se3_F64();
 
 	private HistogramGrid2D  vfh = null;
@@ -94,20 +99,31 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 
 	private IMAVMSPController control = null;
 
-	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer) {
+	private boolean jumpBack;
+
+	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer, OffboardPositionUpdater offboard) {
 
 		this.control  = control;
 		this.model   = control.getCurrentModel();
+
+		this.offboard = offboard;
 
 		this.min_distance = config.getFloatProperty("min_distance", "1.25f");
 		System.out.println("[col] Planning distance set to "+min_distance);
 		this.min_altitude = config.getFloatProperty("min_altitude", "0.3f");
 		System.out.println("[col] Min.altitude set to "+min_altitude);
+		this.model.sys.setAutopilotMode(MSP_AUTOCONTROL_MODE.JUMPBACK, config.getBoolProperty("jump_back", "false"));
+		System.out.println("[col] Jumpback enabled "+model.sys.isAutopilotMode(MSP_AUTOCONTROL_MODE.JUMPBACK));
+
 
 		this.vfh      = new HistogramGrid2D(10,10,20,min_distance/2,model.grid.getResolution());
 		this.poh      = new PolarHistogram2D(2,2,10f,0.0025f, model.grid.getResolution());
 
 		ExecutorService.get().scheduleAtFixedRate(this, 5000, 200, TimeUnit.MILLISECONDS);
+
+		control.addStatusChangeListener((o,n) -> {
+
+		});
 
 		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
 			@Override
@@ -189,6 +205,12 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 			Collections.sort(nearestPoints, (a, b) -> {
 				return Double.compare(a.location.z,b.location.z);
 			});
+
+			// Jump back if potential collision found (only if in POSHOLD) and raw altitude > min_altitude
+			if(model.sys.isAutopilotMode(MSP_AUTOCONTROL_MODE.JUMPBACK)
+					&& model.sys.isStatus(Status.MSP_MODE_POSITION))
+				offboard.jumpBack(0.5f);
+
 		}
 	}
 
