@@ -38,9 +38,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
-import org.mavlink.messages.MSP_AUTOCONTROL_MODE;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
-import org.mavlink.messages.lquac.msg_msp_micro_slam;
 import org.mavlink.messages.lquac.msg_msp_status;
 
 import com.comino.mav.control.IMAVMSPController;
@@ -49,10 +47,8 @@ import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
 import com.comino.msp.model.DataModel;
-import com.comino.msp.model.segment.Status;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
-import com.comino.slam.detectors.impl.SimpleCollisionDetector;
 import com.comino.slam.detectors.impl.VfhFeatureDetector;
 import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.MAVPositionEstimatorAttitude;
@@ -136,16 +132,15 @@ public class StartUp implements Runnable {
 		if(vision!=null && !vision.isRunning()) {
 			vision.start();
 
-			// Start HTTP Service with MJPEG streamer
-
 		}
 
-		control.addStatusChangeListener((o,n) -> {
-			if(n.isAutopilotModeChanged(o, MSP_AUTOCONTROL_MODE.CIRCLE_MODE)) {
-				commander.getOffBoardUpdater().setExperimentalCirleMode(n.isAutopilotMode(MSP_AUTOCONTROL_MODE.CIRCLE_MODE));
-
-			}
-		});
+		// Experimental circle mode disabled for safety. Test JumpBack first
+//		control.addStatusChangeListener((o,n) -> {
+//			if(n.isAutopilotModeChanged(o, MSP_AUTOCONTROL_MODE.CIRCLE_MODE)) {
+//				commander.getOffBoardUpdater().setExperimentalCirleMode(n.isAutopilotMode(MSP_AUTOCONTROL_MODE.CIRCLE_MODE));
+//
+//			}
+//		});
 
 		// register MSP commands here
 
