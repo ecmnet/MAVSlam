@@ -84,12 +84,10 @@ import georegression.struct.se.Se3_F64;
 
 public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
-	private static final int    INIT_COUNT          = 5;
+	private static final int    INIT_COUNT          = 2;
 	private static final int    MAX_ERRORS    	    = 3;
 
 	private static final int    MAX_SPEED    	    = 20;
-
-	private static final int    MIN_QUALITY 		= 70;
 
 	private static final float  INLIER_PIXEL_TOL    = 1.3f;
 	private static final int    MAXTRACKS   		= 250;
@@ -139,6 +137,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 
 	private int quality=0;
+	private int min_quality = 0;
+
 	private float fps = 0;
 
 	private boolean isRunning    = false;
@@ -174,6 +174,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		System.out.println("Vision debugging: "+debug);
 		System.out.println("Initialize heading when landed: "+heading_init_enabled);
 		System.out.println("Vision setup: MaxTracks="+MAXTRACKS+" RanSac="+RANSAC_ITERATIONS+ " KLTRadius="+KLT_RADIUS+ " KLTThreshold="+KLT_THRESHOLD);
+		this.min_quality = config.getIntProperty("vision_min_quality", "50");
+		System.out.println("Vision minimum quality: "+min_quality);
 
 		this.do_odometry = config.getBoolProperty("vision_enable", "true");
 		System.out.println("Vision Odometry enabled: "+do_odometry);
@@ -181,6 +183,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		System.out.println("Vision publishes speed: "+do_speed);
 		this.do_position = config.getBoolProperty("vision_pub_pos", "true");
 		System.out.println("Vision publishes position: "+do_position);
+
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
 		if(this.detector_cycle_ms > 0)
@@ -207,7 +210,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					case MSP_COMPONENT_CTRL.ENABLE:
 						do_odometry = true; init("Init"); break;
 					case MSP_COMPONENT_CTRL.DISABLE:
-						do_odometry = false; break;
+						do_odometry = false;  break;
 					case MSP_COMPONENT_CTRL.RESET:
 						reset(); break;
 					}
@@ -235,6 +238,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
+
 
 		visualOdometry = FactoryMAVOdometry.depthDepthPnP(INLIER_PIXEL_TOL,
 				INLIER_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
@@ -275,10 +279,11 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				}
 
 				try {
-					ConvertImage.average(rgb, gray);
+				 ConvertImage.average(rgb, gray);
+				//	ConvertImage.convert(depth, gray);
 
 					for(IVisualStreamHandler stream : streams)
-						stream.addToStream(gray, depth, model, System.nanoTime()/1000);
+						stream.addToStream(gray, depth, model, System.currentTimeMillis()*1000);
 
 
 					if( !visualOdometry.process(gray,depth,getAttitudeToState(model, current))) {
@@ -299,7 +304,6 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 				if(initialized_count < INIT_COUNT) {
 
-
 					if(Float.isNaN(model.state.l_x) || Float.isNaN(model.state.l_y) || Float.isNaN(model.state.l_z))
 						pos_ned.reset();
 					else {
@@ -308,7 +312,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					pos_raw_old.set(visualOdometry.getCameraToWorld().getT());
 					speed_old.reset();
 
-					if( quality > MIN_QUALITY) {
+					if( quality > min_quality) {
 						if(++initialized_count == INIT_COUNT) {
 
 							if(debug)
@@ -335,7 +339,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
-					if(quality > MIN_QUALITY ) {
+					if(quality > min_quality ) {
 
 						speed_ned.reset();
 
@@ -416,7 +420,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 			if(points.isInlier(i))
 				ctx.drawRect((int)points.getAllTracks().get(i).x,(int)points.getAllTracks().get(i).y, 1, 1);
 		}
-		if(quality <  MIN_QUALITY)
+		if(quality <  min_quality)
 			ctx.drawString("Low quality", info.width-85, 20);
 		else
 			ctx.drawString((int)fps+" fps", info.width-50, 20);
