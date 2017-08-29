@@ -38,6 +38,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
+import org.mavlink.messages.MSP_AUTOCONTROL_MODE;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_micro_slam;
 import org.mavlink.messages.lquac.msg_msp_status;
@@ -95,7 +96,7 @@ public class StartUp implements Runnable {
 			if(config.getBoolProperty("vision_enabled", "false")) {
 
 				if(config.getBoolProperty("vision_highres", "false"))
-		            info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+					info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 				else
 					info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 
@@ -108,7 +109,7 @@ public class StartUp implements Runnable {
 				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
 				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
 				//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
-				vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
+				vision.registerDetector(new VfhFeatureDetector(control,config,streamer, commander.getOffBoardUpdater()));
 
 				HttpServer server;
 				try {
@@ -139,6 +140,12 @@ public class StartUp implements Runnable {
 
 		}
 
+		control.addStatusChangeListener((o,n) -> {
+			if(n.isAutopilotModeChanged(o, MSP_AUTOCONTROL_MODE.CIRCLE_MODE)) {
+				commander.getOffBoardUpdater().setExperimentalCirleMode(n.isAutopilotMode(MSP_AUTOCONTROL_MODE.CIRCLE_MODE));
+
+			}
+		});
 
 		// register MSP commands here
 
@@ -185,12 +192,11 @@ public class StartUp implements Runnable {
 						control.sendMAVLinkMessage(msg);
 				}
 
-			//	System.out.println(control.getCurrentModel().sys.getSynchronizedPX4Time_us());
-
 				msg_msp_status msg = new msg_msp_status(2,1);
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
 				msg.com_error = control.getErrorCount();
+				msg.autopilot_mode =control.getCurrentModel().sys.autopilot;
 				msg.uptime_ms = System.currentTimeMillis() - tms;
 				msg.status = control.getCurrentModel().sys.getStatus();
 				msg.setVersion(config.getVersion());
