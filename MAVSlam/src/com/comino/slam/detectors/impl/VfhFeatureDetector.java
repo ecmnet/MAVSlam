@@ -121,10 +121,6 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 
 		ExecutorService.get().scheduleAtFixedRate(this, 5000, 200, TimeUnit.MILLISECONDS);
 
-		control.addStatusChangeListener((o,n) -> {
-
-		});
-
 		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
 			@Override
 			public void received(Object o) {
@@ -152,7 +148,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 					ctx.drawRect((int)n.observation.x-5, (int)n.observation.y-5, 10,10);
 				}
 			}
-			ctx.drawString(String.valueOf(debug), 10, 30);
+			ctx.drawString(String.valueOf(debug), 20, 35);
 		});
 
 	}
