@@ -204,8 +204,11 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 
 			// Jump back if potential collision found (only if in POSHOLD) and raw altitude > min_altitude
 			if(model.sys.isAutopilotMode(MSP_AUTOCONTROL_MODE.JUMPBACK)
-					&& model.sys.isStatus(Status.MSP_MODE_POSITION))
+					&& model.sys.isStatus(Status.MSP_MODE_POSITION)) {
 				offboard.jumpBack(0.5f);
+				control.writeLogMessage(new LogMessage("[vis] JumpBack initiated",
+						MAV_SEVERITY.MAV_SEVERITY_WARNING));
+			}
 
 		}
 	}
