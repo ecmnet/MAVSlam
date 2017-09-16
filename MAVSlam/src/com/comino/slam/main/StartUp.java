@@ -47,6 +47,7 @@ import com.comino.msp.log.MSPLogger;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.commander.MSPCommander;
 import com.comino.msp.model.DataModel;
+import com.comino.msp.utils.WifiQuality;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.VfhFeatureDetector;
@@ -166,14 +167,20 @@ public class StartUp implements Runnable {
 		long tms = System.currentTimeMillis();
 		DataModel model = control.getCurrentModel();
 
+		WifiQuality wifi = new WifiQuality();
+
 		while(true) {
 			try {
 				Thread.sleep(250);
+
 
 				if(!control.isConnected()) {
 					control.connect();
 					continue;
 				}
+
+				wifi.getQuality();
+
 
 				if(publish_microslam) {
 					msg_msp_micro_grid msg = new msg_msp_micro_grid(2,1);
@@ -190,6 +197,7 @@ public class StartUp implements Runnable {
 				msg_msp_status msg = new msg_msp_status(2,1);
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
+				msg.wifi_quality = (byte)wifi.get();
 				msg.com_error = control.getErrorCount();
 				msg.autopilot_mode =control.getCurrentModel().sys.autopilot;
 				msg.uptime_ms = System.currentTimeMillis() - tms;
