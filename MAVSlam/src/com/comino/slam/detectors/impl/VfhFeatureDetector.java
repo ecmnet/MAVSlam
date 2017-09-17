@@ -44,20 +44,18 @@ import org.mavlink.messages.MSP_AUTOCONTROL_MODE;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_msp_command;
-import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.mav.control.IMAVMSPController;
+import com.comino.msp.execution.offboard.OffboardPositionUpdater;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.main.control.listener.IMAVLinkListener;
-import com.comino.msp.main.offboard.OffboardPositionUpdater;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.server.mjpeg.IVisualStreamHandler;
-import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
 import com.comino.slam.vfh.VfhHist;
@@ -205,8 +203,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 			// Jump back if potential collision found (only if in POSHOLD) and raw altitude > min_altitude
 			if(model.sys.isAutopilotMode(MSP_AUTOCONTROL_MODE.JUMPBACK)
 					&& model.sys.isStatus(Status.MSP_MODE_POSITION)) {
-				offboard.jumpBack(0.5f);
-				control.writeLogMessage(new LogMessage("[vis] JumpBack initiated",
+				control.writeLogMessage(new LogMessage("[vis] JumpBack WOULD BE initiated",
 						MAV_SEVERITY.MAV_SEVERITY_WARNING));
 			}
 
