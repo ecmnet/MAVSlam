@@ -18,11 +18,17 @@
 
 package com.comino.slam.boofcv.tracker;
 
+import static boofcv.factory.feature.tracker.FactoryPointTracker.createShiTomasi;
+
 import boofcv.abst.feature.associate.AssociateDescription2D;
 import boofcv.abst.feature.describe.DescribeRegionPoint;
 import boofcv.abst.feature.detdesc.DetectDescribePoint;
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
-import boofcv.abst.feature.tracker.*;
+import boofcv.abst.feature.tracker.DdaManagerDetectDescribePoint;
+import boofcv.abst.feature.tracker.DdaManagerGeneralPoint;
+import boofcv.abst.feature.tracker.DetectDescribeAssociateTwoPass;
+import boofcv.abst.feature.tracker.PointTrackerTwoPass;
+import boofcv.abst.feature.tracker.PointTrackerTwoPassKltPyramid;
 import boofcv.abst.filter.derivative.ImageGradient;
 import boofcv.alg.feature.detect.interest.EasyGeneralFeatureDetector;
 import boofcv.alg.feature.detect.interest.GeneralFeatureDetector;
@@ -34,8 +40,6 @@ import boofcv.factory.transform.pyramid.FactoryPyramid;
 import boofcv.struct.feature.TupleDesc;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.pyramid.PyramidDiscrete;
-
-import static boofcv.factory.feature.tracker.FactoryPointTracker.createShiTomasi;
 
 /**
  * @author Peter Abeles

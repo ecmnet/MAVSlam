@@ -37,9 +37,7 @@
 
 package com.comino.slam.vfh.vfh2D;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.slam.vfh.VfhGrid;

@@ -26,7 +26,6 @@ import boofcv.abst.geo.Estimate1ofPnP;
 import boofcv.abst.geo.RefinePnP;
 import boofcv.abst.sfm.DepthSparse3D_to_PixelTo3D;
 import boofcv.abst.sfm.ImagePixelTo3D;
-import boofcv.abst.sfm.d3.DepthVisualOdometry;
 import boofcv.alg.geo.DistanceModelMonoPixels;
 import boofcv.alg.geo.pose.PnPDistanceReprojectionSq;
 import boofcv.alg.sfm.DepthSparse3D;

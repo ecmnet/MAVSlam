@@ -23,8 +23,6 @@ import java.util.List;
 
 import org.ddogleg.fitting.modelset.ModelMatcher;
 
-import com.comino.msp.utils.MSPMathUtils;
-
 import boofcv.abst.feature.tracker.PointTrack;
 import boofcv.abst.feature.tracker.PointTracker;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -34,13 +32,8 @@ import boofcv.struct.distort.PointTransform_F64;
 import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.ImageBase;
 import boofcv.struct.sfm.Point2D3DTrack;
-import georegression.geometry.ConvertRotation3D_F64;
-import georegression.geometry.GeometryMath_F32;
-import georegression.geometry.GeometryMath_F64;
-import georegression.struct.EulerType;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
-import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.transform.se.SePointOps_F64;
 

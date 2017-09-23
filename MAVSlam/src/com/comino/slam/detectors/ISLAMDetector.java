@@ -37,7 +37,6 @@ import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
-import boofcv.struct.image.Planar;
 
 public interface ISLAMDetector {
 

@@ -39,7 +39,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.LockSupport;
 
-import org.ejml.data.DenseMatrix64F;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
@@ -49,8 +48,8 @@ import org.mavlink.messages.lquac.msg_vision_position_estimate;
 import org.mavlink.messages.lquac.msg_vision_speed_estimate;
 
 import com.comino.mav.control.IMAVMSPController;
+import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.main.MSPConfig;
-import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
@@ -59,7 +58,6 @@ import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.server.mjpeg.IVisualStreamHandler;
-import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.boofcv.odometry.FactoryMAVOdometry;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;

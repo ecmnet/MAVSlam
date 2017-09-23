@@ -43,8 +43,8 @@ import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.lquac.msg_msp_command;
 
 import com.comino.mav.control.IMAVMSPController;
+import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.main.MSPConfig;
-import com.comino.msp.main.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
