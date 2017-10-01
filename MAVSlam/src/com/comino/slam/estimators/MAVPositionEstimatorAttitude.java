@@ -485,6 +485,10 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	}
 
 	private void init(String reason) {
+
+		if(visualOdometry==null)
+			return;
+
 		this.last_reason = reason;
 		if(do_odometry) {
 			if(++error_count > MAX_ERRORS) {
