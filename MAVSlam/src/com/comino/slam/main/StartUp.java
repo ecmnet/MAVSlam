@@ -41,11 +41,11 @@ import java.net.InetSocketAddress;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 
+import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.log.MSPLogger;
-import com.comino.msp.main.MSPConfig;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.utils.WifiQuality;
 import com.comino.realsense.boofcv.RealSenseInfo;
