@@ -181,7 +181,6 @@ public class StartUp implements Runnable {
 
 				wifi.getQuality();
 
-
 				if(publish_microslam) {
 					msg_msp_micro_grid msg = new msg_msp_micro_grid(2,1);
 					msg.resolution = 0;

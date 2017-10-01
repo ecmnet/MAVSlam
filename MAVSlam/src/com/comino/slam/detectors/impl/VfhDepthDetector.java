@@ -49,9 +49,9 @@ import com.comino.msp.utils.MSPMathUtils;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
-import com.comino.slam.vfh.VfhHist;
-import com.comino.slam.vfh.vfh2D.HistogramGrid2D;
-import com.comino.slam.vfh.vfh2D.PolarHistogram2D;
+import com.comino.vfh.VfhHist;
+import com.comino.vfh.vfh2D.HistogramGrid2D;
+import com.comino.vfh.vfh2D.PolarHistogram2D;
 
 import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.GrayU16;

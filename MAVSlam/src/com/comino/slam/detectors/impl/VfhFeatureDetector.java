@@ -48,7 +48,7 @@ import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
-import com.comino.msp.execution.offboard.OffboardPositionUpdater;
+import com.comino.msp.execution.offboard.OffboardManager;
 import com.comino.msp.main.MSPConfig;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
@@ -58,9 +58,9 @@ import com.comino.msp.utils.MSPMathUtils;
 import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
-import com.comino.slam.vfh.VfhHist;
-import com.comino.slam.vfh.vfh2D.HistogramGrid2D;
-import com.comino.slam.vfh.vfh2D.PolarHistogram2D;
+import com.comino.vfh.VfhHist;
+import com.comino.vfh.vfh2D.HistogramGrid2D;
+import com.comino.vfh.vfh2D.PolarHistogram2D;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.struct.geo.Point2D3D;
@@ -83,7 +83,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 	private Point3D_F64   p_ned        = new Point3D_F64();
 	private Point2D3D     center_ned   = new Point2D3D();
 
-	private OffboardPositionUpdater offboard = null;
+	private OffboardManager offboard = null;
 
 	private Se3_F64 current         = new Se3_F64();
 
@@ -99,7 +99,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 
 	private boolean jumpBack;
 
-	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer, OffboardPositionUpdater offboard) {
+	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer, OffboardManager offboard) {
 
 		this.control  = control;
 		this.model   = control.getCurrentModel();
