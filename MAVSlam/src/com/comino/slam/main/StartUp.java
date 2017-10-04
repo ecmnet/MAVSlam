@@ -44,6 +44,7 @@ import org.mavlink.messages.lquac.msg_msp_status;
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.mav.control.impl.MAVProxyController;
+import com.comino.msp.execution.autopilot.Autopilot;
 import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
@@ -106,7 +107,7 @@ public class StartUp implements Runnable {
 				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
 				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
 				//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
-				vision.registerDetector(new VfhFeatureDetector(control,config,streamer, commander.getOffBoardUpdater()));
+				vision.registerDetector(new VfhFeatureDetector(control,config,streamer, Autopilot.getInstance(control)));
 
 				HttpServer server;
 				try {

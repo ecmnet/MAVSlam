@@ -48,7 +48,8 @@ import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
-import com.comino.msp.execution.auopilot.offboard.OffboardManager;
+import com.comino.msp.execution.autopilot.Autopilot;
+import com.comino.msp.execution.autopilot.offboard.OffboardManager;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
@@ -83,7 +84,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 	private Point3D_F64   p_ned        = new Point3D_F64();
 	private Point2D3D     center_ned   = new Point2D3D();
 
-	private OffboardManager offboard = null;
+	private Autopilot autopilot = null;
 
 	private Se3_F64 current         = new Se3_F64();
 
@@ -99,12 +100,12 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 
 	private boolean jumpBack;
 
-	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer, OffboardManager offboard) {
+	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer, Autopilot autopilot) {
 
 		this.control  = control;
 		this.model   = control.getCurrentModel();
 
-		this.offboard = offboard;
+		this.autopilot = autopilot;
 
 		this.min_distance = config.getFloatProperty("min_distance", "1.25f");
 		System.out.println("[col] Planning distance set to "+min_distance);
