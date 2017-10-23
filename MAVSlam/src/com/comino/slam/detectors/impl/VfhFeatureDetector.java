@@ -48,7 +48,7 @@ import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
-import com.comino.msp.execution.autopilot.Autopilot;
+import com.comino.msp.execution.autopilot.Autopilot2D;
 import com.comino.msp.execution.autopilot.offboard.OffboardManager;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
@@ -84,7 +84,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 	private Point3D_F64   p_ned        = new Point3D_F64();
 	private Point2D3D     center_ned   = new Point2D3D();
 
-	private Autopilot autopilot = null;
+	private Autopilot2D autopilot = null;
 
 	private Se3_F64 current         = new Se3_F64();
 
@@ -100,7 +100,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 
 	private boolean jumpBack;
 
-	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer, Autopilot autopilot) {
+	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer, Autopilot2D autopilot) {
 
 		this.control  = control;
 		this.model   = control.getCurrentModel();
@@ -220,7 +220,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 	public void run() {
 		poh.histUpdate(vfh.getMovingWindow(model.state.l_x, model.state.l_y));
 		VfhHist smoothed = poh.histSmooth(5);
-		int vi = poh.selectValley(smoothed, (int)MSPMathUtils.fromRad(model.attitude.y));
+		int vi = poh.selectValleyDeg(smoothed, (int)MSPMathUtils.fromRad(model.attitude.y));
 		model.debug.v1 = vi;
 		vfh.forget();
 		vfh.transferGridToModel(model, 10, false);
