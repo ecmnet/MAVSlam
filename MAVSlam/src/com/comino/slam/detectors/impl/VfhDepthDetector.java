@@ -120,7 +120,7 @@ public class VfhDepthDetector implements ISLAMDetector, Runnable {
 	public void run() {
 		poh.histUpdate(vfh.getMovingWindow(model.state.l_x, model.state.l_y));
 		VfhHist smoothed = poh.histSmooth(5);
-		int vi = poh.selectValley(smoothed, (int)MSPMathUtils.fromRad(model.attitude.y));
+		int vi = poh.selectValleyDeg(smoothed, (int)MSPMathUtils.fromRad(model.attitude.y));
 		vfh.forget();
 		vfh.transferGridToModel(model, 10, false);
 
