@@ -34,39 +34,28 @@
 package com.comino.slam.detectors.impl;
 
 
-import java.util.concurrent.TimeUnit;
-
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.lquac.msg_msp_command;
-import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
-import com.comino.msp.utils.ExecutorService;
-import com.comino.msp.utils.MSPMathUtils;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
-import com.comino.vfh.VfhHist;
-import com.comino.vfh.vfh2D.HistogramGrid2D;
-import com.comino.vfh.vfh2D.PolarHistogram2D;
 
 import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 
-public class VfhDepthDetector implements ISLAMDetector, Runnable {
+public class VfhDepthDetector implements ISLAMDetector {
 
 	private float     min_distance     = 2.25f;
 	private float     min_altitude     = 0.2f;
 
 	private DataModel     model        = null;
 	private Point2D3D     test         = new Point2D3D();
-
-	private HistogramGrid2D  vfh = null;
-	private PolarHistogram2D poh = null;
 
 	private IMAVMSPController control = null;
 
@@ -79,11 +68,6 @@ public class VfhDepthDetector implements ISLAMDetector, Runnable {
 		System.out.println("[col] Planning distance set to "+min_distance);
 		this.min_altitude = config.getFloatProperty("min_altitude", "0.3f");
 		System.out.println("[col] Min.altitude set to "+min_altitude);
-
-		this.vfh      = new HistogramGrid2D(10,10,20,min_distance/2,model.grid.getResolution());
-		this.poh      = new PolarHistogram2D(2,2,10f,0.0025f, model.grid.getResolution());
-
-		ExecutorService.get().scheduleAtFixedRate(this, 5000, 200, TimeUnit.MILLISECONDS);
 
 		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
 			@Override
@@ -115,23 +99,6 @@ public class VfhDepthDetector implements ISLAMDetector, Runnable {
 
 	}
 
-
-	@Override
-	public void run() {
-		poh.histUpdate(vfh.getMovingWindow(model.state.l_x, model.state.l_y));
-		VfhHist smoothed = poh.histSmooth(5);
-		int vi = poh.selectValleyDeg(smoothed, (int)MSPMathUtils.fromRad(model.attitude.y));
-		vfh.forget();
-		vfh.transferGridToModel(model, 10, false);
-
-		// publish planned data
-		msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
-		msg.pd = MSPMathUtils.toRad(poh.getDirection(smoothed, vi, 18));
-		msg.pv = 0;
-		msg.tms = System.nanoTime() / 1000;
-		control.sendMAVLinkMessage(msg);
-
-	}
 
 	@Override
 	public void reset(float x, float y, float z) {

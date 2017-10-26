@@ -37,31 +37,23 @@ package com.comino.slam.detectors.impl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_AUTOCONTROL_MODE;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_msp_command;
-import org.mavlink.messages.lquac.msg_msp_micro_slam;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.execution.autopilot.Autopilot2D;
-import com.comino.msp.execution.autopilot.offboard.OffboardManager;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
-import com.comino.msp.utils.ExecutorService;
-import com.comino.msp.utils.MSPMathUtils;
 import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
-import com.comino.vfh.VfhHist;
-import com.comino.vfh.vfh2D.HistogramGrid2D;
-import com.comino.vfh.vfh2D.PolarHistogram2D;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.struct.geo.Point2D3D;
@@ -72,7 +64,7 @@ import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.transform.se.SePointOps_F64;
 
-public class VfhFeatureDetector implements ISLAMDetector, Runnable {
+public class VfhFeatureDetector implements ISLAMDetector {
 
 	private final static int MIN_POINTS = 5;
 
@@ -88,17 +80,12 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 
 	private Se3_F64 current         = new Se3_F64();
 
-	private HistogramGrid2D  vfh = null;
-	private PolarHistogram2D poh = null;
-
 	private int debug = 0;
 
 
 	private List<Point2D3D> nearestPoints =  new ArrayList<Point2D3D>();
 
 	private IMAVMSPController control = null;
-
-	private boolean jumpBack;
 
 	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer, Autopilot2D autopilot) {
 
@@ -111,14 +98,6 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 		System.out.println("[col] Planning distance set to "+min_distance);
 		this.min_altitude = config.getFloatProperty("min_altitude", "0.3f");
 		System.out.println("[col] Min.altitude set to "+min_altitude);
-		this.model.sys.setAutopilotMode(MSP_AUTOCONTROL_MODE.JUMPBACK, config.getBoolProperty("jump_back", "false"));
-		System.out.println("[col] Jumpback enabled "+model.sys.isAutopilotMode(MSP_AUTOCONTROL_MODE.JUMPBACK));
-
-
-		this.vfh      = new HistogramGrid2D(10,10,20,min_distance/2,model.grid.getResolution());
-		this.poh      = new PolarHistogram2D(2,2,10f,0.0025f, model.grid.getResolution());
-
-		ExecutorService.get().scheduleAtFixedRate(this, 5000, 200, TimeUnit.MILLISECONDS);
 
 		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
 			@Override
@@ -131,7 +110,6 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 				case MSP_CMD.MSP_CMD_MICROSLAM:
 					switch((int)cmd.param1) {
 					case MSP_COMPONENT_CTRL.RESET:
-						vfh.reset(model);
 						control.writeLogMessage(new LogMessage("[vis] reset local map",
 								MAV_SEVERITY.MAV_SEVERITY_NOTICE));
 						break;
@@ -183,7 +161,7 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 					pos.z = -(p_ned.y - current.T.y) + model.state.l_z;
 
 					if(Math.abs(pos.z - model.state.l_z) < 0.5f && model.raw.di >min_altitude) {
-						vfh.gridUpdate(pos);
+						autopilot.getMap2D().gridUpdate(pos);
 						nearestPoints.add(n);
 						center_ned.location.plusIP(p_ned);
 						center_ned.observation.plusIP(xy);
@@ -214,24 +192,6 @@ public class VfhFeatureDetector implements ISLAMDetector, Runnable {
 
 	public void reset(float x, float y, float z) {
 		nearestPoints.clear();
-	}
-
-	@Override
-	public void run() {
-		poh.histUpdate(vfh.getMovingWindow(model.state.l_x, model.state.l_y));
-		VfhHist smoothed = poh.histSmooth(5);
-		int vi = poh.selectValleyDeg(smoothed, (int)MSPMathUtils.fromRad(model.attitude.y));
-		model.debug.v1 = vi;
-		vfh.forget();
-		vfh.transferGridToModel(model, 10, false);
-
-		// publish planned data
-		msg_msp_micro_slam msg = new msg_msp_micro_slam(2,1);
-		msg.pd = MSPMathUtils.toRad(poh.getDirection(smoothed, vi, 18));
-		msg.pv = 0;
-		msg.tms = System.nanoTime() / 1000;
-		control.sendMAVLinkMessage(msg);
-
 	}
 
 }
