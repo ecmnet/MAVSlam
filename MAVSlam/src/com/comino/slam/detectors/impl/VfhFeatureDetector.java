@@ -134,6 +134,7 @@ public class VfhFeatureDetector implements ISLAMDetector {
 	public void process(MAVDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
 		Point2D_F64 xy; Point3D_F64 p;
 
+
 		AccessPointTracks3D points = (AccessPointTracks3D)odometry;
 
 		nearestPoints.clear();
@@ -161,7 +162,7 @@ public class VfhFeatureDetector implements ISLAMDetector {
 					pos.z = -(p_ned.y - current.T.y) + model.state.l_z;
 
 					if(Math.abs(pos.z - model.state.l_z) < 0.5f && model.raw.di >min_altitude) {
-						autopilot.getMap2D().gridUpdate(pos);
+						autopilot.getMap2D().update(pos);
 						nearestPoints.add(n);
 						center_ned.location.plusIP(p_ned);
 						center_ned.observation.plusIP(xy);
