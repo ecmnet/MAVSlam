@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-package com.comino.slam.estimators;
+package com.comino.dev;
 
 
 import java.awt.Graphics;
@@ -62,6 +62,7 @@ import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.comino.slam.boofcv.odometry.FactoryMAVOdometry;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
+import com.comino.slam.estimators.IPositionEstimator;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;

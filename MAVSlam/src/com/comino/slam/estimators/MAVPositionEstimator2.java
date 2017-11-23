@@ -88,10 +88,10 @@ public class MAVPositionEstimator2 implements IPositionEstimator {
 	private static final int    MAX_SPEED    	    = 20;
 
 	private static final float  INLIER_PIXEL_TOL    = 1.3f;
-	private static final int    MAXTRACKS   		   = 300;
+	private static final int    MAXTRACKS   		   = 200;
 	private static final int    KLT_RADIUS          = 3;
 	private static final float  KLT_THRESHOLD       = 1f;
-	private static final int    RANSAC_ITERATIONS   = 300;
+	private static final int    RANSAC_ITERATIONS   = 200;
 	private static final int    RETIRE_THRESHOLD    = 10;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 70;
