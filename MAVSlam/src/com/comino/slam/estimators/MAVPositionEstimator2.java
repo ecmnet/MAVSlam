@@ -80,7 +80,7 @@ import georegression.struct.EulerType;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 
-public class MAVPositionEstimatorAttitude implements IPositionEstimator {
+public class MAVPositionEstimator2 implements IPositionEstimator {
 
 	private static final int    INIT_COUNT           = 2;
 	private static final int    MAX_ERRORS    	    = 3;
@@ -94,7 +94,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private static final int    RANSAC_ITERATIONS   = 300;
 	private static final int    RETIRE_THRESHOLD    = 10;
 	private static final int    INLIER_THRESHOLD    = 120;
-	private static final int    REFINE_ITERATIONS   = 150;
+	private static final int    REFINE_ITERATIONS   = 70;
 
 
 	private StreamRealSenseVisDepth realsense;
@@ -159,7 +159,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private String last_reason;
 
 
-	public MAVPositionEstimatorAttitude(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
+	public MAVPositionEstimator2(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
 
 		this.info    = info;
 		this.control = control;
@@ -210,7 +210,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					case MSP_COMPONENT_CTRL.DISABLE:
 						do_odometry = false;  break;
 					case MSP_COMPONENT_CTRL.RESET:
-						reset(); break;
+						reset();
+						break;
 					}
 				}
 			}
@@ -277,15 +278,14 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				}
 
 				try {
-				 ConvertImage.average(rgb, gray);
-				//	ConvertImage.convert(depth, gray);
+					ConvertImage.average(rgb, gray);
+					//	ConvertImage.convert(depth, gray);
 
 					for(IVisualStreamHandler stream : streams)
 						stream.addToStream(gray, depth, model, System.currentTimeMillis()*1000);
 
 
-
-					if( !visualOdometry.process(gray,depth,getAttitudeToState(model, current))) {
+					if( !visualOdometry.process(gray,depth)) {
 						if(debug)
 							System.out.println("[vis] Odometry failure");
 						init("Odometry");
@@ -329,8 +329,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				pos_raw = visualOdometry.getCameraToWorld().getT();
 				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
 
-			    estTimeDepth_us = System.currentTimeMillis()*1000;
-			    // System.out.println(timeDepth -System.currentTimeMillis());
+				estTimeDepth_us = System.currentTimeMillis()*1000;
+				// System.out.println(timeDepth -System.currentTimeMillis());
 
 				if(oldTimeDepth_us>0)
 					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
@@ -343,8 +343,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 						speed_ned.reset();
 
 						// Correct camera offset to pos_raw
-						cam_offset.concat(current, cam_offset_ned);
-						pos_raw.plusIP(cam_offset_ned.T);
+//						cam_offset.concat(current, cam_offset_ned);
+//						pos_raw.plusIP(cam_offset_ned.T);
 
 						// speed.T = (pos_raw - pos_raw_old ) / dt
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed_ned.T);
@@ -430,7 +430,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 	}
 
-	public MAVPositionEstimatorAttitude() {
+	public MAVPositionEstimator2() {
 		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance(),null);
 	}
 
@@ -495,6 +495,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
 			}
+
+			getPositionToState(model,current);
 			getAttitudeToState(model, current);
 			visualOdometry.reset(current);
 			publisMSPVision();
@@ -562,7 +564,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	}
 
 	public static void main(String[] args) {
-		new MAVPositionEstimatorAttitude();
+		new MAVPositionEstimator2();
 	}
 
 }

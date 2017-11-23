@@ -35,13 +35,9 @@ package com.comino.slam.detectors.impl;
 
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import org.mavlink.messages.MAV_SEVERITY;
-import org.mavlink.messages.MSP_AUTOCONTROL_MODE;
 import org.mavlink.messages.MSP_CMD;
-import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_msp_command;
 
 import com.comino.main.MSPConfig;
@@ -49,53 +45,49 @@ import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.execution.autopilot.Autopilot2D;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
-import com.comino.msp.model.segment.LogMessage;
-import com.comino.msp.model.segment.Status;
+import com.comino.msp.slam.map.ILocalMap;
 import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.sfm.AccessPointTracks3D;
-import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import georegression.struct.point.Point2D_F64;
 import georegression.struct.point.Point3D_F64;
+import georegression.struct.point.Vector4D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.transform.se.SePointOps_F64;
 
 public class VfhFeatureDetector implements ISLAMDetector {
 
-	private final static int MIN_POINTS = 5;
+	private float     	max_distance     = 3.0f;
+	private float     	min_altitude     = 0.35f;
 
-	private float     min_distance     = 2.25f;
-	private float     min_altitude     = 0.2f;
+	private DataModel     	model        = null;
+	private Point3D_F64   	p_ned        = new Point3D_F64();
 
-	private DataModel     model        = null;
-	private Point3D_F64   pos          = new Point3D_F64();
-	private Point3D_F64   p_ned        = new Point3D_F64();
-	private Point2D3D     center_ned   = new Point2D3D();
+	private Se3_F64 			current 		 = new Se3_F64();
 
-	private Autopilot2D autopilot = null;
+	private float debug1 = 0;
+	private float debug2 = 0;
+	private float debug3 = 0;
 
-	private Se3_F64 current         = new Se3_F64();
+	private ILocalMap map = null;
 
-	private int debug = 0;
+	private Vector4D_F64   current_pos   = new Vector4D_F64();
 
 
-	private List<Point2D3D> nearestPoints =  new ArrayList<Point2D3D>();
+	private List<Point2D_F64> nearestPoints =  new ArrayList<Point2D_F64>();
 
-	private IMAVMSPController control = null;
+	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer) {
 
-	public VfhFeatureDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer, Autopilot2D autopilot) {
-
-		this.control  = control;
 		this.model   = control.getCurrentModel();
 
-		this.autopilot = autopilot;
+		this.map = Autopilot2D.getInstance().getMap2D();
 
-		this.min_distance = config.getFloatProperty("min_distance", "1.25f");
-		System.out.println("[col] Planning distance set to "+min_distance);
+		this.max_distance = config.getFloatProperty("max_distance", "3.00f");
+		System.out.println("[col] Max planning distance set to "+max_distance);
 		this.min_altitude = config.getFloatProperty("min_altitude", "0.3f");
 		System.out.println("[col] Min.altitude set to "+min_altitude);
 
@@ -107,25 +99,19 @@ public class VfhFeatureDetector implements ISLAMDetector {
 				case MSP_CMD.MSP_TRANSFER_MICROSLAM:
 					model.grid.invalidateTransfer();
 					break;
-				case MSP_CMD.MSP_CMD_MICROSLAM:
-					switch((int)cmd.param1) {
-					case MSP_COMPONENT_CTRL.RESET:
-						control.writeLogMessage(new LogMessage("[vis] reset local map",
-								MAV_SEVERITY.MAV_SEVERITY_NOTICE));
-						break;
-					}
-					break;
 				}
 			}
 		});
 
 		streamer.registerOverlayListener(ctx -> {
 			if(nearestPoints.size()>0) {
-				for(Point2D3D n : nearestPoints) {
-					ctx.drawRect((int)n.observation.x-5, (int)n.observation.y-5, 10,10);
+				for(Point2D_F64 n : nearestPoints) {
+					ctx.drawRect((int)n.x-5, (int)n.y-5, 10,10);
 				}
 			}
-			ctx.drawString(String.valueOf(debug), 20, 35);
+			ctx.drawString(String.format("%.2f",debug1), 20, 35);
+			ctx.drawString(String.format("%.2f",debug2), 20, 50);
+			ctx.drawString(String.format("%.2f",debug3), 20, 65);
 		});
 
 	}
@@ -134,65 +120,52 @@ public class VfhFeatureDetector implements ISLAMDetector {
 	public void process(MAVDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
 		Point2D_F64 xy; Point3D_F64 p;
 
-
 		AccessPointTracks3D points = (AccessPointTracks3D)odometry;
 
 		nearestPoints.clear();
 
-		center_ned.location.set(0,0,0); center_ned.observation.set(0,0);
-		current = odometry.getCameraToWorld();
+		current_pos.set(model.state.l_x, model.state.l_y, model.state.l_z, model.state.h);
 
+		current = odometry.getCameraToWorld();
+//		getAttitudeToState(model,current);
+
+//		int i = 0; {
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
 			if(points.isInlier(i)) {
+
 				// xy is the observation
 				xy = points.getAllTracks().get(i);
 				// p is the obstacle location in body-frame
 				p = odometry.getTrackLocation(i);
 
-				if(p.z < min_distance && p.z > 0.1f) {
+				SePointOps_F64.transform(current,p,p_ned);
 
-					Point2D3D n = new Point2D3D();
-					n.setLocation(p);
-					n.setObservation(xy);
+				Point3D_F64 pos = new Point3D_F64(p_ned.z - current.T.z, p_ned.x - current.T.x, -p_ned.y - current.T.y);
 
-					SePointOps_F64.transform(current,p,p_ned);
+				// Search highest point (note: NED coordinate system)
 
-					pos.x = p_ned.z + model.state.l_x - current.T.z;
-					pos.y = p_ned.x + model.state.l_y - current.T.x;
-					pos.z = -(p_ned.y - current.T.y) + model.state.l_z;
+				if(     model.raw.di > min_altitude &&
+					    p.z < max_distance && p.y< min_altitude && p.y > -min_altitude) {
 
-					if(Math.abs(pos.z - model.state.l_z) < 0.5f && model.raw.di >min_altitude) {
-						autopilot.getMap2D().update(pos);
-						nearestPoints.add(n);
-						center_ned.location.plusIP(p_ned);
-						center_ned.observation.plusIP(xy);
-					}
+					debug1 = (float)pos.x;
+					debug2 = (float)pos.y;
+					debug3 = (float)model.raw.di;
+
+					map.update(pos, current_pos);
+
+					nearestPoints.add(xy);
 				}
 			}
 		}
 
-		if(nearestPoints.size()>MIN_POINTS) {
-
-			center_ned.location.scale(1.0f/nearestPoints.size());
-			center_ned.observation.scale(1.0f/nearestPoints.size());
-
-			Collections.sort(nearestPoints, (a, b) -> {
-				return Double.compare(a.location.z,b.location.z);
-			});
-
-			// Jump back if potential collision found (only if in POSHOLD) and raw altitude > min_altitude
-			if(model.sys.isAutopilotMode(MSP_AUTOCONTROL_MODE.JUMPBACK)
-					&& model.sys.isStatus(Status.MSP_MODE_POSITION)) {
-				control.writeLogMessage(new LogMessage("[vis] JumpBack WOULD BE initiated",
-						MAV_SEVERITY.MAV_SEVERITY_WARNING));
-			}
-
-		}
+		map.forget();
 	}
 
 
 	public void reset(float x, float y, float z) {
 		nearestPoints.clear();
 	}
+
+
 
 }

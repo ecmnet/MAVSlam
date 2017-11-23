@@ -53,7 +53,7 @@ import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.VfhFeatureDetector;
 import com.comino.slam.estimators.IPositionEstimator;
-import com.comino.slam.estimators.MAVPositionEstimatorAttitude;
+import com.comino.slam.estimators.MAVPositionEstimator2;
 import com.sun.net.httpserver.HttpServer;
 
 public class StartUp implements Runnable {
@@ -88,6 +88,8 @@ public class StartUp implements Runnable {
 
 		commander = new MSPCommander(control);
 
+		Autopilot2D.getInstance(control);
+
 		// Start services if required
 
 		try {
@@ -104,10 +106,10 @@ public class StartUp implements Runnable {
 				// Start HTTP Service with MJPEG streamer
 
 
-				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
+				vision = new MAVPositionEstimator2(info, control, config, streamer);
 				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
 				//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
-				vision.registerDetector(new VfhFeatureDetector(control,config,streamer, Autopilot2D.getInstance(control)));
+				vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
 
 				HttpServer server;
 				try {
@@ -152,7 +154,7 @@ public class StartUp implements Runnable {
 		Thread worker = new Thread(this);
 		worker.start();
 
-		//	control.getCurrentModel().slam.setBlock(-1, -3);
+		Autopilot2D.getInstance().reset(true);
 
 
 	}
@@ -169,11 +171,12 @@ public class StartUp implements Runnable {
 		DataModel model = control.getCurrentModel();
 
 		WifiQuality wifi = new WifiQuality();
+		msg_msp_micro_grid grid = new msg_msp_micro_grid(2,1);
+		msg_msp_status msg = new msg_msp_status(2,1);
 
 		while(true) {
 			try {
-				Thread.sleep(250);
-
+				Thread.sleep(100);
 
 				if(!control.isConnected()) {
 					control.connect();
@@ -183,18 +186,16 @@ public class StartUp implements Runnable {
 				wifi.getQuality();
 
 				if(publish_microslam) {
-					msg_msp_micro_grid msg = new msg_msp_micro_grid(2,1);
-					msg.resolution = 0;
-					msg.extension  = 0;
-					msg.cx  = model.grid.getIndicatorX();
-					msg.cy  = model.grid.getIndicatorY();
-					msg.tms  = System.nanoTime() / 1000;
-					msg.count = model.grid.count;
-					if(model.grid.toArray(msg.data))
-						control.sendMAVLinkMessage(msg);
+					grid.resolution = 0;
+					grid.extension  = 0;
+					grid.cx  = model.grid.getIndicatorX();
+					grid.cy  = model.grid.getIndicatorY();
+					grid.tms  = System.nanoTime() / 1000;
+					grid.count = model.grid.count;
+					if(model.grid.toArray(grid.data))
+						control.sendMAVLinkMessage(grid);
 				}
 
-				msg_msp_status msg = new msg_msp_status(2,1);
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
 				msg.wifi_quality = (byte)wifi.get();

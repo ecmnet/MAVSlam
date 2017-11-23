@@ -47,6 +47,7 @@ import org.mavlink.messages.lquac.msg_msp_vision;
 import org.mavlink.messages.lquac.msg_vision_position_estimate;
 import org.mavlink.messages.lquac.msg_vision_speed_estimate;
 
+import com.comino.dev.CoreSLAM;
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
@@ -160,10 +161,13 @@ public class MAVPositionEstimator implements IPositionEstimator {
 	private List<IVisualStreamHandler>	streams = null;
 	private RealSenseInfo info;
 
+	private CoreSLAM slam = null;
 
-	public MAVPositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
+
+	public MAVPositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream, CoreSLAM slam) {
 
 		this.info    = info;
+		this.slam    = slam;
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
 		this.streams   = new ArrayList<IVisualStreamHandler>();
@@ -446,7 +450,7 @@ public class MAVPositionEstimator implements IPositionEstimator {
 	}
 
 	public MAVPositionEstimator() {
-		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance(),null);
+		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance(),null,null);
 	}
 
 	/* (non-Javadoc)
