@@ -292,8 +292,6 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 		if (!motionEstimator.process(obs))
 			return false;
 
-		this.quality = motionEstimator.getFitQuality();
-
 		if (doublePass) {
 			if (!performSecondPass(active, obs))
 				return false;
@@ -319,6 +317,8 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 			t.lastInlier = tick;
 			inlierTracks.add(t);
 		}
+
+		this.quality = (quality + motionEstimator.getFitQuality())/2f;
 
 		return true;
 	}

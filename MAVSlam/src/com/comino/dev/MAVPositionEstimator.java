@@ -591,4 +591,13 @@ public class MAVPositionEstimator implements IPositionEstimator {
 		new MAVPositionEstimator();
 	}
 
+	private Se3_F64 getAttitudeToState(DataModel m, Se3_F64 state) {
+		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+				m.attitude.r,
+				m.attitude.p,
+				m.attitude.y,
+				state.getRotation());
+		return state;
+	}
+
 }

@@ -157,8 +157,6 @@ public class VfhFeatureDetector implements ISLAMDetector {
 				}
 			}
 		}
-
-		map.forget();
 	}
 
 

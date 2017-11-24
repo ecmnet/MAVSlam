@@ -82,7 +82,7 @@ import georegression.struct.se.Se3_F64;
 
 public class MAVPositionEstimator2 implements IPositionEstimator {
 
-	private static final int    INIT_COUNT           = 2;
+	private static final int    INIT_COUNT           = 4;
 	private static final int    MAX_ERRORS    	    = 3;
 
 	private static final int    MAX_SPEED    	    = 20;
@@ -122,7 +122,7 @@ public class MAVPositionEstimator2 implements IPositionEstimator {
 	private Se3_F64 current         = new Se3_F64();
 
 	private double[] visAttitude     = new double[3];
-	private long fps_tms             =0;
+	private long fps_tms             = 0;
 
 	private long last_pos_tms        = 0;
 	private long last_speed_tms      = 0;
@@ -140,7 +140,7 @@ public class MAVPositionEstimator2 implements IPositionEstimator {
 	private float fps = 0;
 
 	private boolean isRunning    = false;
-	private int     initialized_count  = 0;
+	private int     count    = 0;
 
 	private IMAVMSPController control;
 
@@ -255,7 +255,7 @@ public class MAVPositionEstimator2 implements IPositionEstimator {
 			}
 		}
 
-		initialized_count = 0;
+		count = 0;
 
 		realsense.registerListener(new Listener() {
 
@@ -294,26 +294,27 @@ public class MAVPositionEstimator2 implements IPositionEstimator {
 				} catch( Exception e) {
 					if(debug)
 						System.out.println("[vis] Odometry failure: "+e.getMessage());
-					init("Exception");
+					init(e.getMessage());
 				}
 
 
 				quality = (int)(visualOdometry.getQuality() * 300f / MAXTRACKS);
 				if(quality > 100) quality = 100;
 
-				if(initialized_count < INIT_COUNT) {
+				if(count < INIT_COUNT) {
 
 					if(Float.isNaN(model.state.l_x) || Float.isNaN(model.state.l_y) || Float.isNaN(model.state.l_z))
 						pos_ned.reset();
 					else {
 						getPositionToState(model,pos_ned);
 					}
+
 					pos_raw_old.set(visualOdometry.getCameraToWorld().getT());
+
 					speed_old.reset();
 
 					if( quality > min_quality) {
-						if(++initialized_count == INIT_COUNT) {
-
+						if(++count >= INIT_COUNT) {
 							if(debug)
 								System.out.println("[vis] Odometry init at: "+pos_ned.T);
 							control.writeLogMessage(new LogMessage("[vis] odometry init: "+last_reason,
@@ -321,7 +322,7 @@ public class MAVPositionEstimator2 implements IPositionEstimator {
 							error_count = 0;
 						}
 					}  else
-						initialized_count = 0;
+						count = 0;
 					return;
 				}
 
@@ -497,7 +498,7 @@ public class MAVPositionEstimator2 implements IPositionEstimator {
 			}
 
 			getPositionToState(model,current);
-			getAttitudeToState(model, current);
+			getAttitudeToState(model,current);
 			visualOdometry.reset(current);
 			publisMSPVision();
 
@@ -506,7 +507,7 @@ public class MAVPositionEstimator2 implements IPositionEstimator {
 				for(ISLAMDetector d : detectors)
 					d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
 			}
-			initialized_count = 0;
+			count = 0;
 		}
 	}
 
