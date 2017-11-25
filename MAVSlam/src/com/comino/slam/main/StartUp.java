@@ -53,7 +53,7 @@ import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.VfhFeatureDetector;
 import com.comino.slam.estimators.IPositionEstimator;
-import com.comino.slam.estimators.MAVPositionEstimator2;
+import com.comino.slam.estimators.MAVPositionEstimatorAttitude;
 import com.sun.net.httpserver.HttpServer;
 
 public class StartUp implements Runnable {
@@ -86,9 +86,7 @@ public class StartUp implements Runnable {
 
 		MSPLogger.getInstance(control);
 
-		commander = new MSPCommander(control);
-
-		Autopilot2D.getInstance(control);
+		commander = new MSPCommander(control,config);
 
 		// Start services if required
 
@@ -106,7 +104,7 @@ public class StartUp implements Runnable {
 				// Start HTTP Service with MJPEG streamer
 
 
-				vision = new MAVPositionEstimator2(info, control, config, streamer);
+				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
 				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
 				//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
 				vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
@@ -129,7 +127,7 @@ public class StartUp implements Runnable {
 		//		if(config.getBoolProperty("file_stream_enabled", "false"))
 		//			vision.registerStreams(new CombinedFileStreamHandler(info, control));
 
-		this.publish_microslam = config.getBoolProperty("publish_microslam", "false");
+		this.publish_microslam = config.getBoolProperty("slam_publish_microslam", "false");
 		System.out.println("[vis] Publishing microSlam enabled: "+publish_microslam);
 
 
