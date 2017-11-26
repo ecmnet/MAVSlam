@@ -58,7 +58,7 @@ import boofcv.struct.image.GrayU8;
 
 public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 
-	private static final int MAX_VIDEO_RATE_MS = 50;
+	private static final int MAX_VIDEO_RATE_MS = 40;
 
 	private List<IMJPEGOverlayListener> listeners = null;
 	private BufferedImage image = null;
@@ -89,7 +89,7 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 				imageByteList.remove(0);
 			}
 			try {
-				TimeUnit.MILLISECONDS.sleep(10);
+				TimeUnit.MILLISECONDS.sleep(20);
 			} catch (InterruptedException e) {	}
 		}
 	}
@@ -107,14 +107,14 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 
 		last_image_tms = System.currentTimeMillis();
 
-		if(imageByteList.size()>5) {
+		if(imageByteList.size()>10) {
 			imageByteList.remove(0);
 			return;
 		}
 
 		ExecutorService.get().execute(() -> {
-			ConvertBufferedImage.convertTo(grayImage, image);
 			if(listeners.size()>0) {
+				ConvertBufferedImage.convertTo(grayImage, image);
 				for(IMJPEGOverlayListener listener : listeners)
 					listener.processOverlay(gr);
 			}

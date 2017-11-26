@@ -154,7 +154,7 @@ public class VfhFeatureDetector implements ISLAMDetector {
 
 				// Search highest point (note: NED coordinate system)
 
-				if(     model.raw.di > min_altitude &&
+				if(  //   model.raw.di > min_altitude &&
 					    p.z < max_distance && p.y< min_altitude && p.y > -min_altitude) {
 
 
