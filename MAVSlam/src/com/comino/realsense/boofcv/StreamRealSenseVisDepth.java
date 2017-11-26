@@ -47,6 +47,7 @@ import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_stream;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
 
+import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.calib.IntrinsicParameters;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
@@ -103,13 +104,13 @@ public class StreamRealSenseVisDepth {
 		Pointer ch = LibRealSenseWrapper.INSTANCE.rs_get_device_firmware_version(dev, error);
 		System.out.println("Firmware version: "+ch.getString(0));
 
-    	LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_WHITE_BALANCE, 0, error);
-		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_EMITTER_ENABLED, 1, error);
-		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_EXPOSURE, 1, error);
-		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED, 1, error);
-		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_BACKLIGHT_COMPENSATION, 0, error);
-
 		LibRealSenseUtils.rs_apply_depth_control_preset(dev, LibRealSenseUtils.PRESET_DEPTH_HIGH);
+       	LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_WHITE_BALANCE, 1, error);
+		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_EMITTER_ENABLED, 0, error);
+		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_EXPOSURE, 0, error);
+		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED, 0, error);
+		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_BACKLIGHT_COMPENSATION, 1, error);
+		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_EXPOSURE, 20, error);
 
 		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_COLOR,
 				info.width,info.height,rs_format.RS_FORMAT_RGB8, info.framerate, error);
@@ -234,32 +235,18 @@ public class StreamRealSenseVisDepth {
 	}
 
 	public void bufferGrayToU8(Pointer input , GrayU8 output ) {
-		int indexOut = 0;
 		byte[] inp = input.getByteArray(0, output.width * output.height );
-
-		for( int y = 0; y < output.height; y++ ) {
-			for( int x = 0; x < output.width; x++) {
-				output.set(x, y, inp[indexOut++]);
-			}
-		}
+		System.arraycopy(inp, 0, output.data, 0, output.width * output.height);
 	}
 
 
 	public void bufferDepthToU16(Pointer input , GrayU16 output ) {
-		short[] inp = input.getShortArray(0, output.width * output.height);
-
-//		int indexOut = 0;
-//		for( int y = 0; y < output.height; y++ ) {
-//			for( int x = 0; x < output.width; x++) {
-//				if(inp[indexOut]<4000)
-//				  output.set(x, y, inp[indexOut]);
-//				indexOut++;
-//			}
-//		}
-		output.setData(inp);
+	    short[] inp = input.getShortArray(0, output.width * output.height);
+		System.arraycopy(inp, 0, output.data, 0, output.width * output.height);
 	}
 
 	public void bufferRgbToMsU8( Pointer inp , Planar<GrayU8> output ) {
+		int x,y,indexOut;
 
 		byte[] input = inp.getByteArray(0, output.width * output.height * 3);
 		GrayU8 band0 = output.getBand(0);
@@ -267,9 +254,9 @@ public class StreamRealSenseVisDepth {
 		GrayU8 band2 = output.getBand(2);
 
 		int indexIn = 0;
-		for( int y = 0; y < output.height; y++ ) {
-			int indexOut = output.startIndex + y*output.stride;
-			for( int x = 0; x < output.width; x++ , indexOut++ ) {
+		for( y = 0; y < output.height; y++ ) {
+			indexOut = output.startIndex + y*output.stride;
+			for( x = 0; x < output.width; x++ , indexOut++ ) {
 				band0.data[indexOut] = input[indexIn++];
 				band1.data[indexOut] = input[indexIn++];
 				band2.data[indexOut] = input[indexIn++];
@@ -284,10 +271,6 @@ public class StreamRealSenseVisDepth {
 		GrayU8 band1 = output.getBand(1);
 		GrayU8 band2 = output.getBand(2);
 
-//		band0.setData(input);
-//		band1.setData(input);
-//		band2.setData(input);
-
 
 		int indexIn = 0;
 		for( int y = 0; y < output.height; y++ ) {
@@ -298,9 +281,6 @@ public class StreamRealSenseVisDepth {
 				band2.data[indexOut] = input[indexIn++];
 			}
 		}
-
-
-
 	}
 
 	public interface Listener {
