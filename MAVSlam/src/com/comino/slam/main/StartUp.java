@@ -53,7 +53,7 @@ import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.VfhFeatureDetector;
 import com.comino.slam.estimators.IPositionEstimator;
-import com.comino.slam.estimators.MAVPositionEstimatorAttitude;
+import com.comino.slam.estimators.MAVVisualPositionEstimator;
 import com.sun.net.httpserver.HttpServer;
 
 public class StartUp implements Runnable {
@@ -104,7 +104,7 @@ public class StartUp implements Runnable {
 				// Start HTTP Service with MJPEG streamer
 
 
-				vision = new MAVPositionEstimatorAttitude(info, control, config, streamer);
+				vision = new MAVVisualPositionEstimator(info, control, config, streamer);
 				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
 				//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
 				vision.registerDetector(new VfhFeatureDetector(control,config,streamer));

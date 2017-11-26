@@ -52,6 +52,7 @@ import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
+import com.comino.msp.utils.MSP3DUtils;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
@@ -79,7 +80,7 @@ import georegression.struct.EulerType;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 
-public class MAVPositionEstimatorAttitude implements IPositionEstimator {
+public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private static final int    INIT_COUNT           = 1;
 	private static final int    MAX_ERRORS    	    = 3;
@@ -108,7 +109,6 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
 
 	private Se3_F64 speed_ned        = new Se3_F64();
-	private Se3_F64 speed_old        = new Se3_F64();
 	private Se3_F64 pos_delta        = new Se3_F64();
 	private Se3_F64 pos_ned          = new Se3_F64();
 
@@ -118,7 +118,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private Se3_F64 cam_offset_ned   = new Se3_F64();
 
 
-	private Se3_F64 current         = new Se3_F64();
+	private Se3_F64 current          = new Se3_F64();
 
 	private double[] visAttitude     = new double[3];
 	private long fps_tms             =0;
@@ -158,7 +158,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	private String last_reason;
 
 
-	public MAVPositionEstimatorAttitude(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
+	public MAVVisualPositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
 
 		this.info    = info;
 		this.control = control;
@@ -190,7 +190,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		this.cam_offset.T.x = -config.getFloatProperty("vision_y_offset", "0.0");
 		this.cam_offset.T.y = -config.getFloatProperty("vision_z_offset", "0.0");
 
-		System.out.printf("Vision position offset: %s\n\n",this.cam_offset.T);
+		System.out.printf("Vision position offset [m]: %s\n\n",MSP3DUtils.vector3D_F64ToString(cam_offset.T));
 		System.out.println("Resolution: "+info.width+"x"+info.height);
 
 		this.model = control.getCurrentModel();
@@ -255,6 +255,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 		initialized_count = 0;
 
+
 		realsense.registerListener(new Listener() {
 
 			double dt; int mf=0; int fpm;
@@ -284,7 +285,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 
 
-					if( !visualOdometry.process(gray,depth,getAttitudeToState(model, current))) {
+					if( !visualOdometry.process(gray,depth,setAttitudeToState(model, current))) {
 						if(debug)
 							System.out.println("[vis] Odometry failure");
 						init("Odometry");
@@ -296,25 +297,32 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 					init("Exception");
 				}
 
-
 				quality = (int)(visualOdometry.getQuality() * 300f / MAXTRACKS);
 				if(quality > 100) quality = 100;
+
+				// get Measurement from odometry
+				pos_raw = visualOdometry.getCameraToWorld().getT();
+
+				// Correct camera offset to pos_raw
+				cam_offset.concat(current, cam_offset_ned);
+				pos_raw.plusIP(cam_offset_ned.T);
 
 				if(initialized_count < INIT_COUNT) {
 
 					if(Float.isNaN(model.state.l_x) || Float.isNaN(model.state.l_y) || Float.isNaN(model.state.l_z))
 						pos_ned.reset();
 					else {
-						getPositionToState(model,pos_ned);
+						setPositionToState(model,pos_ned);
 					}
-					pos_raw_old.set(visualOdometry.getCameraToWorld().getT());
-					speed_old.reset();
+
+					// reset speed and old measurements
+					pos_raw_old.set(0,0,0);
 
 					if( quality > min_quality) {
 						if(++initialized_count == INIT_COUNT) {
-
+							oldTimeDepth_us = 0;
 							if(debug)
-								System.out.println("[vis] Odometry init at: "+pos_ned.T);
+								System.out.println("[vis] Odometry init at [m]: "+MSP3DUtils.vector3D_F64ToString(pos_ned.T));
 							control.writeLogMessage(new LogMessage("[vis] odometry init: "+last_reason,
 									MAV_SEVERITY.MAV_SEVERITY_NOTICE));
 							error_count = 0;
@@ -325,11 +333,8 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				}
 
 
-				pos_raw = visualOdometry.getCameraToWorld().getT();
 				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
-
 				estTimeDepth_us = System.currentTimeMillis()*1000;
-				// System.out.println(timeDepth -System.currentTimeMillis());
 
 				if(oldTimeDepth_us>0)
 					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
@@ -338,12 +343,6 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
 					if(quality > min_quality ) {
-
-						speed_ned.reset();
-
-						// Correct camera offset to pos_raw
-						cam_offset.concat(current, cam_offset_ned);
-						pos_raw.plusIP(cam_offset_ned.T);
 
 						// speed.T = (pos_raw - pos_raw_old ) / dt
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed_ned.T);
@@ -355,7 +354,6 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 							return;
 						}
 
-
 					} else {
 						if(++qual_error_count > 10) {
 							qual_error_count=0;
@@ -366,8 +364,6 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 						pos_raw_old.set(0,0,0);
 						return;
 					}
-
-					speed_old.T.set(speed_ned.T);
 
 					// pos_delta.T = speed.T * dt
 					pos_delta.T.set(speed_ned.T); pos_delta.T.scale(dt);
@@ -428,7 +424,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 
 	}
 
-	public MAVPositionEstimatorAttitude() {
+	public MAVVisualPositionEstimator() {
 		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance(),null);
 	}
 
@@ -467,7 +463,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		init("msp reset");
 	}
 
-	private Se3_F64 getAttitudeToState(DataModel m, Se3_F64 state) {
+	private Se3_F64 setAttitudeToState(DataModel m, Se3_F64 state) {
 		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
 				m.attitude.r,
 				m.attitude.p,
@@ -476,7 +472,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 		return state;
 	}
 
-	private Se3_F64 getPositionToState(DataModel m, Se3_F64 state) {
+	private Se3_F64 setPositionToState(DataModel m, Se3_F64 state) {
 		state.getTranslation().y = m.state.l_z;
 		state.getTranslation().x = m.state.l_y;
 		state.getTranslation().z = m.state.l_x;
@@ -493,7 +489,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
 			}
-			getAttitudeToState(model, current);
+			setAttitudeToState(model, current);
 			visualOdometry.reset(current);
 			publisMSPVision();
 
@@ -560,7 +556,7 @@ public class MAVPositionEstimatorAttitude implements IPositionEstimator {
 	}
 
 	public static void main(String[] args) {
-		new MAVPositionEstimatorAttitude();
+		new MAVVisualPositionEstimator();
 	}
 
 }
