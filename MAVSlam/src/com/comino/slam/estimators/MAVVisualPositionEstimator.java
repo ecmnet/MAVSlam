@@ -82,6 +82,9 @@ import georegression.struct.se.Se3_F64;
 
 public class MAVVisualPositionEstimator implements IPositionEstimator {
 
+	private static final int   	PUBLISH_RATE_MSP	    = 50 - 5;
+	private static final int  	PUBLISH_RATE_PX4    	= 20 - 5;
+
 	private static final int    INIT_COUNT           = 1;
 	private static final int    MAX_ERRORS    	    = 3;
 
@@ -504,7 +507,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private void publishPX4Vision() {
 
-		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > 20) {
+		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
 			last_pos_tms = System.currentTimeMillis();
 			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
 			sms.usec = (long)estTimeDepth_us;
@@ -517,7 +520,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			control.sendMAVLinkMessage(sms);
 		}
 
-		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > 20) {
+		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > PUBLISH_RATE_PX4) {
 			last_speed_tms = System.currentTimeMillis();
 			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
 			sse.usec = (long)estTimeDepth_us;
@@ -530,7 +533,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	}
 
 	private void publisMSPVision() {
-		if((System.currentTimeMillis()-last_msp_tms) > 20) {
+		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
 			last_msp_tms = System.currentTimeMillis();
 			msg_msp_vision msg = new msg_msp_vision(2,1);
 			msg.x =  (float) pos_ned.T.z;

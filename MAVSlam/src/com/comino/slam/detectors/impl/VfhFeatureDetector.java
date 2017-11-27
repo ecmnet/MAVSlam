@@ -136,6 +136,7 @@ public class VfhFeatureDetector implements ISLAMDetector {
 //		current.set(odometry.getCameraToWorld());
 		getAttitudeToState(model,current);
 
+		boolean first = true;
 
 //		int i = 0; {
 		for( int i = 0; i < points.getAllTracks().size(); i++ ) {
@@ -157,6 +158,7 @@ public class VfhFeatureDetector implements ISLAMDetector {
 				if(  //   model.raw.di > min_altitude &&
 					    p.z < max_distance && p.y< min_altitude && p.y > -min_altitude) {
 
+					if(first) {
 
 					debug1 = (float)(rel_ned.x);
 					debug2 = (float)current.T.z;
@@ -167,6 +169,8 @@ public class VfhFeatureDetector implements ISLAMDetector {
 					v.y = debug2;
 					v.z = debug3;
 					control.sendMAVLinkMessage(v);
+					first = false;
+					}
 
 
 
