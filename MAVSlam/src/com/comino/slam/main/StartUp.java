@@ -48,6 +48,7 @@ import com.comino.msp.execution.autopilot.Autopilot2D;
 import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
+import com.comino.msp.utils.CPUTemperature;
 import com.comino.msp.utils.WifiQuality;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
@@ -169,6 +170,7 @@ public class StartUp implements Runnable {
 		DataModel model = control.getCurrentModel();
 
 		WifiQuality wifi = new WifiQuality();
+		CPUTemperature temp = new CPUTemperature();
 		msg_msp_micro_grid grid = new msg_msp_micro_grid(2,1);
 		msg_msp_status msg = new msg_msp_status(2,1);
 
@@ -182,6 +184,8 @@ public class StartUp implements Runnable {
 				}
 
 				wifi.getQuality();
+
+				temp.getTemperature();
 
 				if(publish_microslam) {
 					grid.resolution = 0;
@@ -197,6 +201,7 @@ public class StartUp implements Runnable {
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
 				msg.wifi_quality = (byte)wifi.get();
+				msg.cpu_temp = (byte)temp.get();
 				msg.com_error = control.getErrorCount();
 				msg.autopilot_mode =control.getCurrentModel().sys.autopilot;
 				msg.uptime_ms = System.currentTimeMillis() - tms;
