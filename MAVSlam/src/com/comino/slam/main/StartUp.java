@@ -184,7 +184,6 @@ public class StartUp implements Runnable {
 				}
 
 				wifi.getQuality();
-
 				temp.getTemperature();
 
 				if(publish_microslam) {
