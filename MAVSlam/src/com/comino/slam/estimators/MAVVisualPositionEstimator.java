@@ -300,7 +300,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					init("Exception");
 				}
 
-				quality = (int)(visualOdometry.getQuality() * 300f / MAXTRACKS);
+				quality = (int)(visualOdometry.getQuality() * 80f / MAXTRACKS);
 				if(quality > 100) quality = 100;
 
 				// get Measurement from odometry
@@ -324,10 +324,11 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					if( quality > min_quality) {
 						if(++initialized_count == INIT_COUNT) {
 							oldTimeDepth_us = 0;
-							if(debug)
+							if(debug) {
 								System.out.println("[vis] Odometry init at [m]: "+MSP3DUtils.vector3D_F64ToString(pos_ned.T));
-							control.writeLogMessage(new LogMessage("[vis] odometry init: "+last_reason,
-									MAV_SEVERITY.MAV_SEVERITY_NOTICE));
+								control.writeLogMessage(new LogMessage("[vis] odometry re-init: "+last_reason,
+										MAV_SEVERITY.MAV_SEVERITY_NOTICE));
+							}
 							error_count = 0;
 						}
 					}  else
@@ -392,7 +393,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					error_count=0;
 				}
 
-				if(detectors.size()>0 && detector_cycle_ms>0) {
+				if(detectors.size()>0 && detector_cycle_ms>0 && do_odometry) {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
 						for(ISLAMDetector d : detectors) {
@@ -488,6 +489,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			return;
 
 		this.last_reason = reason;
+
 		if(do_odometry) {
 			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
