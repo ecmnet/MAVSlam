@@ -289,8 +289,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 
 					if( !visualOdometry.process(gray,depth,setAttitudeToState(model, current))) {
-						if(debug)
-							System.out.println("[vis] Odometry failure");
 						init("Odometry");
 						return;
 					}
@@ -396,11 +394,13 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				if(detectors.size()>0 && detector_cycle_ms>0 && do_odometry) {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
+						model.sys.setSensor(Status.MSP_SLAM_AVAILABILITY, true);
 						for(ISLAMDetector d : detectors) {
 							try {
 								d.process(visualOdometry, depth, gray);
 							} catch(Exception e) {
-								System.out.println(timeDepth+"[vis] Detector exception: "+e.getMessage());
+								model.sys.setSensor(Status.MSP_SLAM_AVAILABILITY, false);
+								System.out.println(timeDepth+"[vis] SLAM exception: "+e.getMessage());
 							}
 						}
 					}
