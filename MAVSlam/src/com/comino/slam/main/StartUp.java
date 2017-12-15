@@ -49,6 +49,7 @@ import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.utils.CPUTemperature;
+import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.WifiQuality;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
@@ -200,6 +201,7 @@ public class StartUp implements Runnable {
 				msg.load = (int)(osBean.getSystemLoadAverage()*100);
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
 				msg.wifi_quality = (byte)wifi.get();
+				msg.threads = ExecutorService.getActiveCount();
 				msg.cpu_temp = (byte)temp.get();
 				msg.com_error = control.getErrorCount();
 				msg.autopilot_mode =control.getCurrentModel().sys.autopilot;
