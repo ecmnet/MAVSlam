@@ -152,10 +152,10 @@ public class StartUp implements Runnable {
 
 		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
 		Thread worker = new Thread(this);
+		worker.setPriority(Thread.MIN_PRIORITY);
 		worker.start();
 
 		Autopilot2D.getInstance().reset(true);
-
 
 	}
 
@@ -198,10 +198,10 @@ public class StartUp implements Runnable {
 						control.sendMAVLinkMessage(grid);
 				}
 
-				msg.load = (int)(osBean.getSystemLoadAverage()*100);
+				msg.load = (int)(osBean.getSystemLoadAverage()*100)/4;
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
 				msg.wifi_quality = (byte)wifi.get();
-				msg.threads = ExecutorService.getActiveCount();
+				msg.threads = Thread.activeCount();
 				msg.cpu_temp = (byte)temp.get();
 				msg.com_error = control.getErrorCount();
 				msg.autopilot_mode =control.getCurrentModel().sys.autopilot;
