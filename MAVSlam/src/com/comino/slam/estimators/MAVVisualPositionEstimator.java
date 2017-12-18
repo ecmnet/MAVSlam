@@ -219,10 +219,16 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		});
 
 		// reset vision when armed
-		control.addStatusChangeListener((o,n) -> {
-			if(n.isStatusChanged(o, Status.MSP_ARMED)) {
+		control.getStatusManager().addListener( Status.MSP_ARMED, (o,n) -> {
+			if(n.isStatus(Status.MSP_ARMED)) {
 				reset();
 			}
+		});
+
+		// reset vision when GPOS gets valid
+		control.getStatusManager().addListener(Status.MSP_GPOS_VALID, (o,n) -> {
+			if((n.isStatus(Status.MSP_GPOS_VALID)))
+				reset();
 		});
 
 		try {
