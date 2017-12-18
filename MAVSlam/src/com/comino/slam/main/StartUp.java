@@ -153,6 +153,7 @@ public class StartUp implements Runnable {
 		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
 		Thread worker = new Thread(this);
 		worker.setPriority(Thread.MIN_PRIORITY);
+		worker.setName("Main");
 		worker.start();
 
 		Autopilot2D.getInstance().reset(true);
