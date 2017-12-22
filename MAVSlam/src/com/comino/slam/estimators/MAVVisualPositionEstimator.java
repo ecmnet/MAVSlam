@@ -91,13 +91,13 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int    MAX_SPEED    	    = 20;
 
 	private static final float  INLIER_PIXEL_TOL    = 1.3f;
-	private static final int    MAXTRACKS   		   = 50;
+	private static final int    MAXTRACKS   		   = 150;
 	private static final int    KLT_RADIUS          = 3;
 	private static final float  KLT_THRESHOLD       = 1f;
-	private static final int    RANSAC_ITERATIONS   = 50;
+	private static final int    RANSAC_ITERATIONS   = 120;
 	private static final int    RETIRE_THRESHOLD    = 10;
 	private static final int    INLIER_THRESHOLD    = 120;
-	private static final int    REFINE_ITERATIONS   = 30;
+	private static final int    REFINE_ITERATIONS   = 80;
 
 
 	private StreamRealSenseVisDepth realsense;
@@ -304,7 +304,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					init("Exception");
 				}
 
-				quality = (int)(visualOdometry.getQuality() * 80f / MAXTRACKS);
+				quality = (int)(visualOdometry.getQuality());
 				if(quality > 100) quality = 100;
 
 				// get Measurement from odometry
