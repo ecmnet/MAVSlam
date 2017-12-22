@@ -318,7 +318,7 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 			inlierTracks.add(t);
 		}
 
-		this.quality = (quality + motionEstimator.getFitQuality())/2f;
+		this.quality = (3* quality + motionEstimator.getFitQuality())/4f;
 
 		return true;
 	}
