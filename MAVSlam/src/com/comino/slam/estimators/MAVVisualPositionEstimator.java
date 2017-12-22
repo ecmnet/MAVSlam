@@ -292,8 +292,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					for(IVisualStreamHandler stream : streams)
 						stream.addToStream(gray, depth, model, System.currentTimeMillis()*1000);
 
-
-
 					if( !visualOdometry.process(gray,depth,setAttitudeToState(model, current))) {
 						init("Odometry");
 						return;
@@ -318,9 +316,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 					if(Float.isNaN(model.state.l_x) || Float.isNaN(model.state.l_y) || Float.isNaN(model.state.l_z))
 						pos_ned.reset();
-					else {
+					else
 						setPositionToState(model,pos_ned);
-					}
 
 					// reset speed and old measurements
 					pos_raw_old.set(0,0,0);
@@ -339,7 +336,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						initialized_count = 0;
 					return;
 				}
-
 
 				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
 				estTimeDepth_us = System.currentTimeMillis()*1000;
