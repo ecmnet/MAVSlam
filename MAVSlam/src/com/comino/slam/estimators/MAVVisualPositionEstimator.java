@@ -210,7 +210,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					case MSP_COMPONENT_CTRL.ENABLE:
 						do_odometry = true; init("Init"); break;
 					case MSP_COMPONENT_CTRL.DISABLE:
-						do_odometry = false;  break;
+						do_odometry = false; break;
 					case MSP_COMPONENT_CTRL.RESET:
 						reset(); break;
 					}
@@ -273,6 +273,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
+				if(!do_odometry)
+					return;
 
 				if(dt >0) {
 					fpm += (int)(1f/dt+0.5f);
