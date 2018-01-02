@@ -38,6 +38,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
+import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 
@@ -48,6 +49,7 @@ import com.comino.msp.execution.autopilot.Autopilot2D;
 import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
+import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.CPUTemperature;
 import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.WifiQuality;
@@ -70,6 +72,7 @@ public class StartUp implements Runnable {
 
 	IPositionEstimator vision = null;
 	private boolean publish_microslam;
+	final private DataModel model;
 
 	public StartUp(String[] args) {
 
@@ -90,10 +93,28 @@ public class StartUp implements Runnable {
 
 		commander = new MSPCommander(control,config);
 
+		model  = control.getCurrentModel();
+
+		control.start();
+
+		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
+		Thread worker = new Thread(this);
+		worker.setPriority(Thread.MIN_PRIORITY);
+		worker.setName("Main");
+		worker.start();
+
 		// Start services if required
 
 		try {
 			if(config.getBoolProperty("vision_enabled", "false")) {
+
+				Thread.sleep(500);
+				// GPS cold start detection => delay vision startup
+				if(model.gps.numsat==0 && model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)) {
+					MSPLogger.getInstance().writeLocalMsg("[msp] Vision startup delayed", MAV_SEVERITY.MAV_SEVERITY_INFO);
+					while(model.gps.numsat<4)
+						Thread.sleep(500);
+				}
 
 				if(config.getBoolProperty("vision_highres", "false"))
 					info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
@@ -139,22 +160,15 @@ public class StartUp implements Runnable {
 		}
 
 		// Experimental circle mode disabled for safety. Test JumpBack first
-//		control.addStatusChangeListener((o,n) -> {
-//			if(n.isAutopilotModeChanged(o, MSP_AUTOCONTROL_MODE.CIRCLE_MODE)) {
-//				commander.getOffBoardUpdater().setExperimentalCirleMode(n.isAutopilotMode(MSP_AUTOCONTROL_MODE.CIRCLE_MODE));
-//
-//			}
-//		});
+		//		control.addStatusChangeListener((o,n) -> {
+		//			if(n.isAutopilotModeChanged(o, MSP_AUTOCONTROL_MODE.CIRCLE_MODE)) {
+		//				commander.getOffBoardUpdater().setExperimentalCirleMode(n.isAutopilotMode(MSP_AUTOCONTROL_MODE.CIRCLE_MODE));
+		//
+		//			}
+		//		});
 
 		// register MSP commands here
 
-		control.start();
-
-		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
-		Thread worker = new Thread(this);
-		worker.setPriority(Thread.MIN_PRIORITY);
-		worker.setName("Main");
-		worker.start();
 
 		Autopilot2D.getInstance().reset(true);
 
