@@ -44,6 +44,7 @@ import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_format;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_intrinsics;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_option;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_stream;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
 
@@ -92,8 +93,7 @@ public class StreamRealSenseVisDepth {
 			LibRealSenseWrapper.INSTANCE.rs_delete_context(ctx, error);
 			throw new IllegalArgumentException("No device connected: "+error.getValue().getString(0));
 		}
-
-        this.listeners = new ArrayList();
+		this.listeners = new ArrayList<Listener>();
 
 		this.info = info;
 
@@ -105,7 +105,7 @@ public class StreamRealSenseVisDepth {
 		System.out.println("Firmware version: "+ch.getString(0));
 
 		LibRealSenseUtils.rs_apply_depth_control_preset(dev, LibRealSenseUtils.PRESET_DEPTH_HIGH);
-       	LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_WHITE_BALANCE, 1, error);
+		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_WHITE_BALANCE, 0, error);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_EMITTER_ENABLED, 1, error);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_EXPOSURE, 0, error);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED, 0, error);
@@ -116,8 +116,8 @@ public class StreamRealSenseVisDepth {
 				info.width,info.height,rs_format.RS_FORMAT_RGB8, info.framerate, error);
 
 		if(info.mode==RealSenseInfo.MODE_INFRARED) {
-		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH,
-				info.width,info.height,rs_format.RS_FORMAT_ANY, info.framerate, error);
+			LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH,
+					info.width,info.height,rs_format.RS_FORMAT_ANY, info.framerate, error);
 		}
 
 		LibRealSenseWrapper.INSTANCE.rs_enable_stream(dev, rs_stream.RS_STREAM_DEPTH,
@@ -184,49 +184,55 @@ public class StreamRealSenseVisDepth {
 
 			while( !requestStop ) {
 
-				LibRealSenseWrapper.INSTANCE.rs_wait_for_frames(dev, error);
+				try {
 
-				time = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-						rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
+					LibRealSenseWrapper.INSTANCE.rs_wait_for_frames(dev, error);
 
-				if(time!=timeOld) {
-					synchronized (this ) {
-						timeDepth = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-								rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
-						depthData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-								rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
-						if(depthData!=null)
-							bufferDepthToU16(depthData,depth);
-					}
+					time = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+							rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
 
-					switch(info.mode) {
-					case RealSenseInfo.MODE_RGB:
-						synchronized ( this ) {
-							timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-									rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
-							rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-									rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
-							if(rgbData!=null)
-								bufferRgbToMsU8(rgbData,rgb);
+					if(time!=timeOld) {
+						synchronized (this ) {
+							timeDepth = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+									rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
+							depthData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+									rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
+							if(depthData!=null)
+								bufferDepthToU16(depthData,depth);
 						}
-						break;
-					case RealSenseInfo.MODE_INFRARED:
-						synchronized ( this ) {
-							timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-									rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
-							rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-									rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
-							if(rgbData!=null)
-								bufferGrayToMsU8(rgbData,rgb);
+
+						switch(info.mode) {
+						case RealSenseInfo.MODE_RGB:
+							synchronized ( this ) {
+								timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+										rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
+								rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+										rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
+								if(rgbData!=null)
+									bufferRgbToMsU8(rgbData,rgb);
+							}
+							break;
+						case RealSenseInfo.MODE_INFRARED:
+							synchronized ( this ) {
+								timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+										rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
+								rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+										rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
+								if(rgbData!=null)
+									bufferGrayToMsU8(rgbData,rgb);
+							}
+							break;
 						}
-						break;
+
+						timeOld = time;
+						if(listeners.size()>0) {
+							for(Listener listener : listeners)
+								listener.process(rgb, depth, timeRgb, timeDepth);
+						}
 					}
 
-					timeOld = time;
-					if(listeners.size()>0) {
-					   for(Listener listener : listeners)
-					     listener.process(rgb, depth, timeRgb, timeDepth);
-					}
+				} catch(Exception e) {
+					e.printStackTrace();
 				}
 			}
 
@@ -241,7 +247,7 @@ public class StreamRealSenseVisDepth {
 
 
 	public void bufferDepthToU16(Pointer input , GrayU16 output ) {
-	    short[] inp = input.getShortArray(0, output.width * output.height);
+		short[] inp = input.getShortArray(0, output.width * output.height);
 		System.arraycopy(inp, 0, output.data, 0, output.width * output.height);
 	}
 
