@@ -108,12 +108,14 @@ public class StartUp implements Runnable {
 		try {
 			if(config.getBoolProperty("vision_enabled", "false")) {
 
-				Thread.sleep(500);
-				// GPS cold start detection => delay vision startup
-				if(model.gps.numsat==0 && model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)) {
-					MSPLogger.getInstance().writeLocalMsg("[msp] Vision startup delayed", MAV_SEVERITY.MAV_SEVERITY_INFO);
-					while(model.gps.numsat<4)
-						Thread.sleep(500);
+				if(config.getBoolProperty("vision_startup_delay", "true")) {
+					Thread.sleep(1000);
+					// GPS cold start detection => delay vision startup
+					if(model.gps.numsat==0 && model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)) {
+						MSPLogger.getInstance().writeLocalMsg("[msp] Vision startup delayed", MAV_SEVERITY.MAV_SEVERITY_INFO);
+						while(model.gps.numsat<4)
+							Thread.sleep(1500);
+					}
 				}
 
 				if(config.getBoolProperty("vision_highres", "false"))
@@ -126,10 +128,7 @@ public class StartUp implements Runnable {
 
 				// Start HTTP Service with MJPEG streamer
 
-
 				vision = new MAVVisualPositionEstimator(info, control, config, streamer);
-				//			vision = new RealSensePositionEstimator(info, control, config, streamer);
-				//	vision.registerDetector(new SimpleCollisionDetector(control,config,streamer));
 				vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
 
 				HttpServer server;
@@ -143,9 +142,7 @@ public class StartUp implements Runnable {
 				}
 
 			}
-		} catch(Exception e) {
-			System.out.println("[vis] Vision not available: "+e.getMessage());
-		}
+		} catch(Exception e) { }
 
 		//		if(config.getBoolProperty("file_stream_enabled", "false"))
 		//			vision.registerStreams(new CombinedFileStreamHandler(info, control));
