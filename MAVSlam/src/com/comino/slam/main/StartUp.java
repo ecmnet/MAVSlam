@@ -109,12 +109,12 @@ public class StartUp implements Runnable {
 			if(config.getBoolProperty("vision_enabled", "false")) {
 
 				if(config.getBoolProperty("vision_startup_delay", "true")) {
-					Thread.sleep(1000);
+					Thread.sleep(2000);
 					// GPS cold start detection => delay vision startup
 					if(model.gps.numsat==0 && model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)) {
-						MSPLogger.getInstance().writeLocalMsg("[msp] Vision startup delayed", MAV_SEVERITY.MAV_SEVERITY_INFO);
+						MSPLogger.getInstance().writeLocalMsg("[msp] GPS cold start", MAV_SEVERITY.MAV_SEVERITY_INFO);
 						while(model.gps.numsat<4)
-							Thread.sleep(1500);
+							Thread.sleep(2000);
 					}
 				}
 
