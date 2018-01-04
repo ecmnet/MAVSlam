@@ -46,7 +46,7 @@ import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.execution.autopilot.Autopilot2D;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
-import com.comino.msp.slam.map.ILocalMap;
+import com.comino.msp.slam.map2D.ILocalMap;
 import com.comino.msp.utils.MSP3DUtils;
 import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
