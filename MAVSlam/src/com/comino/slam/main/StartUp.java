@@ -113,7 +113,7 @@ public class StartUp implements Runnable {
 					// GPS cold start detection => delay vision startup
 					if(model.gps.numsat==0 && model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)) {
 						MSPLogger.getInstance().writeLocalMsg("[msp] GPS cold start", MAV_SEVERITY.MAV_SEVERITY_INFO);
-						while(model.gps.numsat<4)
+						while(model.gps.fixtype<3)
 							Thread.sleep(2000);
 					}
 				}
