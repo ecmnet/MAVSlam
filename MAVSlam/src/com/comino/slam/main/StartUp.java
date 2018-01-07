@@ -115,6 +115,7 @@ public class StartUp implements Runnable {
 						MSPLogger.getInstance().writeLocalMsg("[msp] GPS cold start", MAV_SEVERITY.MAV_SEVERITY_INFO);
 						while(model.gps.fixtype<3)
 							Thread.sleep(2000);
+						Thread.sleep(10000);
 					}
 				}
 
