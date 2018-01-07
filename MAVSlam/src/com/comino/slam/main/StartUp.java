@@ -190,7 +190,7 @@ public class StartUp implements Runnable {
 
 		while(true) {
 			try {
-				Thread.sleep(200);
+				Thread.sleep(100);
 
 				if(!control.isConnected()) {
 					control.connect();
@@ -201,11 +201,12 @@ public class StartUp implements Runnable {
 				temp.getTemperature();
 
 				if(publish_microslam) {
-					grid.resolution = 0;
+					grid.resolution = 0.05f;
 					grid.extension  = 0;
 					grid.cx  = model.grid.getIndicatorX();
 					grid.cy  = model.grid.getIndicatorY();
-					grid.tms  = System.nanoTime() / 1000;
+					grid.cz  = model.grid.getIndicatorZ();
+					grid.tms = model.sys.getSynchronizedPX4Time_us();
 					grid.count = model.grid.count;
 					if(model.grid.toArray(grid.data))
 						control.sendMAVLinkMessage(grid);
