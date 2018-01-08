@@ -190,17 +190,17 @@ public class StartUp implements Runnable {
 
 		while(true) {
 			try {
+
 				Thread.sleep(100);
 
 				if(!control.isConnected()) {
+					Thread.sleep(100);
 					control.connect();
 					continue;
 				}
 
-				wifi.getQuality();
-				temp.getTemperature();
 
-				if(publish_microslam) {
+				if(publish_microslam && model.grid.hasTransfers()) {
 					grid.resolution = 0.05f;
 					grid.extension  = 0;
 					grid.cx  = model.grid.getIndicatorX();
@@ -208,9 +208,17 @@ public class StartUp implements Runnable {
 					grid.cz  = model.grid.getIndicatorZ();
 					grid.tms = model.sys.getSynchronizedPX4Time_us();
 					grid.count = model.grid.count;
-					if(model.grid.toArray(grid.data))
-						control.sendMAVLinkMessage(grid);
+					model.grid.toArray(grid.data);
+					control.sendMAVLinkMessage(grid);
 				}
+
+				if((System.currentTimeMillis()-tms) < 1000)
+					continue;
+
+				tms = System.currentTimeMillis();
+
+				wifi.getQuality();
+				temp.getTemperature();
 
 				msg.load = (int)(osBean.getSystemLoadAverage()*100)/4;
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
