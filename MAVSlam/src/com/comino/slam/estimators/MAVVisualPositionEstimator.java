@@ -390,8 +390,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				pos_raw_old.set(pos_raw);
 
 				if(control!=null) {
-					if(error_count < MAX_ERRORS)
+					if(error_count < MAX_ERRORS) {
 						publishPX4Vision();
+						model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
+					}
 					error_count=0;
 				}
 
@@ -497,6 +499,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		if(do_odometry) {
 			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
+				 model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, false);
 			}
 			setAttitudeToState(model, current);
 			visualOdometry.reset(current);
