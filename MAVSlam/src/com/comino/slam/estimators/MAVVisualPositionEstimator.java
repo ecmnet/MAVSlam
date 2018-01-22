@@ -41,6 +41,8 @@ import java.util.List;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
+import org.mavlink.messages.lquac.msg_gps_global_origin;
+import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
 import org.mavlink.messages.lquac.msg_vision_position_estimate;
@@ -518,15 +520,34 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
 			last_pos_tms = System.currentTimeMillis();
-			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-			sms.usec = (long)estTimeDepth_us;
-			sms.x = (float) pos_ned.T.z;
-			sms.y = (float) pos_ned.T.x;
-			sms.z = (float) pos_ned.T.y;
-			sms.roll  = (float)visAttitude[0];
-			sms.pitch = (float)visAttitude[1];
-			sms.yaw   = (float)visAttitude[2];
-			control.sendMAVLinkMessage(sms);
+
+
+			if(!model.sys.isStatus(Status.MSP_GPOS_VALID)) {
+				// setting the global origin to the current GPS position if GPOS not available
+				// TODO: might need smoothing for global reference
+				msg_gps_global_origin cmd = new msg_gps_global_origin(1,2);
+				cmd.latitude  = (long)(model.gps.latitude  * 1e7);
+				cmd.longitude = (long)(model.gps.longitude * 1e7);
+				cmd.altitude  = (short)(model.gps.altitude * 1e3);
+				cmd.time_usec = model.sys.getSynchronizedPX4Time_us();
+				control.sendMAVLinkMessage(cmd);
+				msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
+				cov.time_usec = (long)estTimeDepth_us;
+				cov.x = (float) pos_ned.T.z;
+				cov.y = (float) pos_ned.T.x;
+				cov.z = (float) pos_ned.T.y;
+				control.sendMAVLinkMessage(cov);
+			} else {
+				msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+				sms.usec = (long)estTimeDepth_us;
+				sms.x = (float) pos_ned.T.z;
+				sms.y = (float) pos_ned.T.x;
+				sms.z = (float) pos_ned.T.y;
+				sms.roll  = (float)visAttitude[0];
+				sms.pitch = (float)visAttitude[1];
+				sms.yaw   = (float)visAttitude[2];
+				control.sendMAVLinkMessage(sms);
+			}
 		}
 
 		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > PUBLISH_RATE_PX4) {
