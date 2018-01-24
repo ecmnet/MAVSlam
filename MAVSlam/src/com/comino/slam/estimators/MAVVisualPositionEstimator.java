@@ -278,6 +278,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				if(!do_odometry)
 					return;
 
+
 				if(dt >0) {
 					fpm += (int)(1f/dt+0.5f);
 					if((System.currentTimeMillis() - fps_tms) > 500) {
@@ -295,6 +296,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 					for(IVisualStreamHandler stream : streams)
 						stream.addToStream(gray, depth, model, System.currentTimeMillis()*1000);
+
 
 					if( !visualOdometry.process(gray,depth,setAttitudeToState(model, current))) {
 						init("Odometry");
@@ -425,7 +427,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			if(points.isInlier(i))
 				ctx.drawRect((int)points.getAllTracks().get(i).x,(int)points.getAllTracks().get(i).y, 1, 1);
 		}
-		if(quality <  min_quality)
+
+		if(points.getAllTracks().size()==0)
+			ctx.drawString("No odometry", info.width-90, 20);
+		else if(quality <  min_quality)
 			ctx.drawString("Low quality", info.width-85, 20);
 		else
 			ctx.drawString((int)fps+" fps", info.width-50, 20);
