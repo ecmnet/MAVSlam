@@ -39,6 +39,8 @@ import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
 import org.mavlink.messages.MAV_SEVERITY;
+import org.mavlink.messages.lquac.msg_gps_global_origin;
+import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 
@@ -115,9 +117,10 @@ public class StartUp implements Runnable {
 						MSPLogger.getInstance().writeLocalMsg("[msp] GPS cold start", MAV_SEVERITY.MAV_SEVERITY_INFO);
 						while(model.gps.fixtype<3)
 							Thread.sleep(2000);
-						Thread.sleep(10000);
 					}
 				}
+
+
 
 				if(config.getBoolProperty("vision_highres", "false"))
 					info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
@@ -199,7 +202,6 @@ public class StartUp implements Runnable {
 					continue;
 				}
 
-
 				if(publish_microslam && model.grid.hasTransfers()) {
 					grid.resolution = 0.05f;
 					grid.extension  = 0;
@@ -214,8 +216,14 @@ public class StartUp implements Runnable {
 
 				if((System.currentTimeMillis()-tms) < 1000)
 					continue;
-
 				tms = System.currentTimeMillis();
+
+				if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
+						&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)
+						&& model.gps.eph < 5 && model.gps.epv < 5) {
+					System.out.println("Try to set home position");
+					publishHome();
+				}
 
 				wifi.getQuality();
 				temp.getTemperature();
@@ -239,5 +247,25 @@ public class StartUp implements Runnable {
 				control.close();
 			}
 		}
+	}
+
+	private void publishHome() {
+
+		// setting the global origin to the current GPS position if GPOS not available
+
+		msg_gps_global_origin cmd = new msg_gps_global_origin(1,2);
+		cmd.latitude  = (long)(model.gps.latitude  * 1e7);
+		cmd.longitude = (long)(model.gps.longitude * 1e7);
+		cmd.altitude  = (short)(model.gps.altitude * 1e3);
+		cmd.time_usec = model.sys.getSynchronizedPX4Time_us();
+		control.sendMAVLinkMessage(cmd);
+
+		msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
+		cov.time_usec = model.sys.getSynchronizedPX4Time_us();
+		cov.x = 0 ;
+		cov.y = 0;
+		cov.z = 0;
+		control.sendMAVLinkMessage(cov);
+
 	}
 }
