@@ -260,12 +260,5 @@ public class StartUp implements Runnable {
 		cmd.time_usec = model.sys.getSynchronizedPX4Time_us();
 		control.sendMAVLinkMessage(cmd);
 
-		msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
-		cov.time_usec = model.sys.getSynchronizedPX4Time_us();
-		cov.x = 0 ;
-		cov.y = 0;
-		cov.z = 0;
-		control.sendMAVLinkMessage(cov);
-
 	}
 }

@@ -331,6 +331,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					if( quality > min_quality) {
 						if(++initialized_count == INIT_COUNT) {
 							oldTimeDepth_us = 0;
+
 							if(debug) {
 								System.out.println("[vis] Odometry init at [m]: "+MSP3DUtils.vector3D_F64ToString(pos_ned.T));
 								control.writeLogMessage(new LogMessage("[vis] odometry re-init: "+last_reason,
@@ -510,7 +511,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			}
 			setAttitudeToState(model, current);
 			visualOdometry.reset(current);
-			publisMSPVision();
+
+			publishVisionCov();
 
 			if(detectors.size()>0) {
 				detector_tms = System.currentTimeMillis();
@@ -522,6 +524,16 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	}
 
 
+	private void publishVisionCov() {
+
+		msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
+		cov.time_usec = (long)estTimeDepth_us;
+		cov.x = (float) pos_ned.T.z;
+		cov.y = (float) pos_ned.T.x;
+		cov.z = (float) pos_ned.T.y;
+		control.sendMAVLinkMessage(cov);
+
+	}
 
 	private void publishPX4Vision() {
 
