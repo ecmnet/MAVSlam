@@ -218,8 +218,10 @@ public class StartUp implements Runnable {
 					continue;
 				tms = System.currentTimeMillis();
 
+				//System.out.println(model.sys.getSensorString()+":"+model.sys.isStatus(Status.MSP_GPOS_VALID));
 				if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
 						&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)
+						&& model.sys.isSensorAvailable(Status.MSP_OPCV_AVAILABILITY)
 						&& model.gps.eph < 5 && model.gps.epv < 5) {
 					System.out.println("Try to set home position");
 					publishHome();
@@ -259,6 +261,13 @@ public class StartUp implements Runnable {
 		cmd.altitude  = (short)(model.gps.altitude * 1e3);
 		cmd.time_usec = model.sys.getSynchronizedPX4Time_us();
 		control.sendMAVLinkMessage(cmd);
+
+//		msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
+//		cov.time_usec = model.sys.getSynchronizedPX4Time_us();
+//		cov.x = (float) 0;
+//		cov.y = (float) 0;
+//		cov.z = (float) 0;
+//		control.sendMAVLinkMessage(cov);
 
 	}
 }
