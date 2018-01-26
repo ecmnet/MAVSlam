@@ -31,8 +31,8 @@
 
 				<attribute name="Class-Path" value="jna-4.2.2.jar
 					                                jna-platform-4.2.2.jar
-									    	        BoofCV-calibration-0.23.jar
-					                                BoofCV-feature-0.23.jar
+									    	            BoofCV-calibration-0.23.jar
+					                                 BoofCV-feature-0.23.jar
 													BoofCV-geo-0.23.jar
 													BoofCV-io-0.23.jar
 													BoofCV-ip-0.23.jar
@@ -51,7 +51,7 @@
 													xpp3_min-1.1.4c.jar
 													jssc.jar
 													xstream-1.4.7.jar
-                                                    mavcomm.jar
+                                                     mavcomm.jar
 													mavmq.jar
 													fastcast-3.0.jar
 													fst-2.42-onejar.jar
