@@ -41,7 +41,6 @@ import java.util.List;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
-import org.mavlink.messages.lquac.msg_gps_global_origin;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
@@ -100,6 +99,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int    RETIRE_THRESHOLD    = 10;
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 80;
+
+	private static final float[] cov = new float[45];
 
 
 	private StreamRealSenseVisDepth realsense;
@@ -169,6 +170,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
 		this.streams   = new ArrayList<IVisualStreamHandler>();
+
+		buildDefaultCovarianceMatrix(cov);
 
 		System.out.println("Vision position estimator: "+this.getClass().getSimpleName());
 		this.debug = config.getBoolProperty("vision_debug", "false");
@@ -427,6 +430,27 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		});
 	}
 
+	private void buildDefaultCovarianceMatrix(float[] cov2) {
+		for (int i=0; i< 3; i++) {
+			// linear velocity
+			cov[i + 6*i] = 1e-4f;
+			// angular velocity
+			cov[(i + 3) + 6*(i + 3)] = 1e-4f;
+			// position/ attitude
+			if (i==2) {
+				// z
+				cov[i + 6*i] = 1e-6f;
+				// yaw
+				cov[(i + 3) + 6*(i + 3)] = 1e-6f;
+			} else {
+				// x, y
+				cov[i + 6*i] = 1e-6f;
+				// roll, pitch
+				cov[(i + 3) + 6*(i + 3)] = 1e-6f;
+			}
+		}
+	}
+
 	private void overlayFeatures(Graphics ctx) {
 
 		AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
@@ -537,6 +561,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		cov.x = (float) pos_ned.T.z;
 		cov.y = (float) pos_ned.T.x;
 		cov.z = (float) pos_ned.T.y;
+		cov.covariance = this.cov;
 		control.sendMAVLinkMessage(cov);
 
 	}
@@ -599,7 +624,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	}
 
 	public static void main(String[] args) {
-		new MAVVisualPositionEstimator();
+		MAVVisualPositionEstimator p = new MAVVisualPositionEstimator();
 	}
 
 }
