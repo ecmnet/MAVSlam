@@ -396,7 +396,13 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 				if(control!=null) {
 					if(error_count < MAX_ERRORS) {
-						publishPX4Vision();
+
+
+						if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
+								&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY))
+							publishVisionCov();
+						else
+							publishPX4Vision();
 						model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
 					}
 					error_count=0;
@@ -502,17 +508,18 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		if(visualOdometry==null)
 			return;
 
+		this.last_pos_tms = 0;
 		this.last_reason = reason;
 
 		if(do_odometry) {
 			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
-				 model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, false);
+				model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, false);
 			}
 			setAttitudeToState(model, current);
 			visualOdometry.reset(current);
 
-			publishVisionCov();
+			publishPX4Vision();
 
 			if(detectors.size()>0) {
 				detector_tms = System.currentTimeMillis();
@@ -522,7 +529,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			initialized_count = 0;
 		}
 	}
-
 
 	private void publishVisionCov() {
 
@@ -537,17 +543,21 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private void publishPX4Vision() {
 
+		if(!model.sys.isStatus(Status.MSP_GPOS_VALID))
+			return;
+
 		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
 			last_pos_tms = System.currentTimeMillis();
-				msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-				sms.usec = (long)estTimeDepth_us;
-				sms.x = (float) pos_ned.T.z;
-				sms.y = (float) pos_ned.T.x;
-				sms.z = (float) pos_ned.T.y;
-				sms.roll  = (float)visAttitude[0];
-				sms.pitch = (float)visAttitude[1];
-				sms.yaw   = (float)visAttitude[2];
-				control.sendMAVLinkMessage(sms);
+
+			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+			sms.usec = (long)estTimeDepth_us;
+			sms.x = (float) pos_ned.T.z;
+			sms.y = (float) pos_ned.T.x;
+			sms.z = (float) pos_ned.T.y;
+			sms.roll  = (float)visAttitude[0];
+			sms.pitch = (float)visAttitude[1];
+			sms.yaw   = (float)visAttitude[2];
+			control.sendMAVLinkMessage(sms);
 		}
 
 		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > PUBLISH_RATE_PX4) {
