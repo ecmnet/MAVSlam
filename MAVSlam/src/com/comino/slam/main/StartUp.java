@@ -214,18 +214,13 @@ public class StartUp implements Runnable {
 					control.sendMAVLinkMessage(grid);
 				}
 
-				if((System.currentTimeMillis()-tms) < 1000)
+				if((System.currentTimeMillis()-tms) < 2000)
 					continue;
 				tms = System.currentTimeMillis();
 
-				//System.out.println(model.sys.getSensorString()+":"+model.sys.isStatus(Status.MSP_GPOS_VALID));
 				if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
-						&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)
-						&& model.sys.isSensorAvailable(Status.MSP_OPCV_AVAILABILITY)
-						&& model.gps.eph < 5 && model.gps.epv < 5) {
-					System.out.println("Try to set home position");
-					publishHome();
-				}
+						&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY))
+					publishGPSOrigin();
 
 				wifi.getQuality();
 				temp.getTemperature();
@@ -251,9 +246,7 @@ public class StartUp implements Runnable {
 		}
 	}
 
-	private void publishHome() {
-
-		// setting the global origin to the current GPS position if GPOS not available
+	private void publishGPSOrigin() {
 
 		msg_gps_global_origin cmd = new msg_gps_global_origin(1,2);
 		cmd.latitude  = (long)(model.gps.latitude  * 1e7);
@@ -262,12 +255,7 @@ public class StartUp implements Runnable {
 		cmd.time_usec = model.sys.getSynchronizedPX4Time_us();
 		control.sendMAVLinkMessage(cmd);
 
-//		msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
-//		cov.time_usec = model.sys.getSynchronizedPX4Time_us();
-//		cov.x = (float) 0;
-//		cov.y = (float) 0;
-//		cov.z = (float) 0;
-//		control.sendMAVLinkMessage(cov);
-
 	}
+
+
 }
