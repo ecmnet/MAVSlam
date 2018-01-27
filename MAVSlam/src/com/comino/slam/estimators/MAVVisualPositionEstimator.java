@@ -171,7 +171,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.detectors = new ArrayList<ISLAMDetector>();
 		this.streams   = new ArrayList<IVisualStreamHandler>();
 
-		buildDefaultCovarianceMatrix(cov);
+     	buildDefaultCovarianceMatrix(cov);
 
 		System.out.println("Vision position estimator: "+this.getClass().getSimpleName());
 		this.debug = config.getBoolProperty("vision_debug", "false");
@@ -561,7 +561,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		cov.x = (float) pos_ned.T.z;
 		cov.y = (float) pos_ned.T.x;
 		cov.z = (float) pos_ned.T.y;
-		cov.covariance = this.cov;
+//		cov.covariance = MAVVisualPositionEstimator.cov;
 		control.sendMAVLinkMessage(cov);
 
 	}
