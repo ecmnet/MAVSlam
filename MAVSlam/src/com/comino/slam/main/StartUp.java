@@ -43,6 +43,7 @@ import org.mavlink.messages.lquac.msg_gps_global_origin;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
+import org.mavlink.messages.lquac.msg_vision_position_estimate;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
@@ -115,8 +116,13 @@ public class StartUp implements Runnable {
 					// GPS cold start detection => delay vision startup
 					if(model.gps.numsat==0 && model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)) {
 						MSPLogger.getInstance().writeLocalMsg("[msp] GPS cold start", MAV_SEVERITY.MAV_SEVERITY_INFO);
-						while(model.gps.fixtype<3)
-							Thread.sleep(2000);
+						while(model.gps.fixtype<3) {
+							Thread.sleep(200);
+							// send dummy vision estimates to prevent lpe drift until GPS-fix
+							msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+							sms.usec = System.currentTimeMillis()*1000;
+							control.sendMAVLinkMessage(sms);
+						}
 					}
 				}
 
