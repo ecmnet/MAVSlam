@@ -150,7 +150,7 @@ public class VfhFeatureDetector implements ISLAMDetector {
 
 
 				SePointOps_F64.transform(current,p,rel_ned);
-				MSP3DUtils.swap(rel_ned);
+				MSP3DUtils.toNED(rel_ned);
 
 
 				// Search highest point (note: NED coordinate system)
