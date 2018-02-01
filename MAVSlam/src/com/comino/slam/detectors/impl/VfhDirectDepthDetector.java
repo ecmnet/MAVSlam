@@ -99,22 +99,22 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 	@Override
 	public void process(MAVDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
 
-		getAttitudeToState(model,current);
+		getModelToState(model,current);
 
-		int y = gray.getHeight()/2;
+	//	int y = gray.getHeight()/2;
 
-//		int y0 = gray.getHeight()/2 - 5; int y1 = y0 + 10;
-//		for(int y = y0;y<y1;y++)
+				int y0 = gray.getHeight()/2 - 5; int y1 = y0 + 10;
+				for(int y = y0;y<y1;y++)
 
-		for(int x = 0;x < gray.getWidth();x=x+2) {
+		for(int x = 0;x < gray.getWidth();x++) {
 			point = odometry.getPoint3DFromPixel(x, y);
 
-			if(point.y > 4)
+			if(point==null || point.z > 6.0f)
 				continue;
 
 			SePointOps_F64.transform(current,point,point_ned);
 			MSP3DUtils.toNED(point_ned);
-			map.update(point);
+			map.update(model.state.l_x, model.state.l_y,point_ned);
 		}
 	}
 
@@ -123,12 +123,17 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 	}
 
-	private Se3_F64 getAttitudeToState(DataModel m, Se3_F64 state) {
+	private Se3_F64 getModelToState(DataModel m, Se3_F64 state) {
 		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
 				m.attitude.r,
 				m.attitude.p,
 				m.attitude.y,
 				state.getRotation());
+
+		state.getTranslation().y = m.state.l_z;
+		state.getTranslation().x = m.state.l_y;
+		state.getTranslation().z = m.state.l_x;
+
 		return state;
 	}
 

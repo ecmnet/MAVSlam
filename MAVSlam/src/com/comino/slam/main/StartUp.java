@@ -140,8 +140,8 @@ public class StartUp implements Runnable {
 				// Start HTTP Service with MJPEG streamer
 
 				vision = new MAVVisualPositionEstimator(info, control, config, streamer);
-				vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
-		//		vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
+		//		vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
+				vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
 
 				HttpServer server;
 				try {
