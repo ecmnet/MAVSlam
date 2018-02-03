@@ -103,7 +103,7 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 	//	int y = gray.getHeight()/2;
 
-				int y0 = gray.getHeight()/2 - 5; int y1 = y0 + 10;
+				int y0 = 2*gray.getHeight()/3; int y1 = y0 + 10;
 				for(int y = y0;y<y1;y++)
 
 		for(int x = 0;x < gray.getWidth();x++) {

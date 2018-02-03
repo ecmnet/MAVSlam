@@ -171,7 +171,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.detectors = new ArrayList<ISLAMDetector>();
 		this.streams   = new ArrayList<IVisualStreamHandler>();
 
-     	buildDefaultCovarianceMatrix(cov);
+		buildDefaultCovarianceMatrix(cov);
 
 		System.out.println("Vision position estimator: "+this.getClass().getSimpleName());
 		this.debug = config.getBoolProperty("vision_debug", "false");
@@ -318,7 +318,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				pos_raw = visualOdometry.getCameraToWorld().getT();
 
 				// Correct camera offset to pos_raw
-				cam_offset.concat(current, cam_offset_ned);
 				pos_raw.plusIP(cam_offset_ned.T);
 
 				if(initialized_count < INIT_COUNT) {
@@ -401,11 +400,11 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					if(error_count < MAX_ERRORS) {
 
 
-						if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
-								&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY))
-							publishVisionCov();
-						else
-							publishPX4Vision();
+						//						if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
+						//								&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY))
+						publishVisionCov();
+						//						else
+						//							publishPX4Vision();
 						model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
 					}
 					error_count=0;
@@ -425,6 +424,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						}
 					}
 				}
+
 				publisMSPVision();
 			}
 		});
@@ -512,18 +512,21 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	}
 
 	private Se3_F64 setAttitudeToState(DataModel m, Se3_F64 state) {
-		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-				m.attitude.r,
-				m.attitude.p,
-				m.attitude.y,
-				state.getRotation());
+		if(!Float.isNaN(m.attitude.r) && !Float.isNaN(m.attitude.p))
+			ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+					m.attitude.r,
+					m.attitude.p,
+					m.attitude.y,
+					state.getRotation());
 		return state;
 	}
 
 	private Se3_F64 setPositionToState(DataModel m, Se3_F64 state) {
-		state.getTranslation().y = m.state.l_z;
-		state.getTranslation().x = m.state.l_y;
-		state.getTranslation().z = m.state.l_x;
+		if(!Float.isNaN(m.state.l_y) && !Float.isNaN(m.state.l_x)) {
+			state.getTranslation().y = m.state.l_z;
+			state.getTranslation().x = m.state.l_y;
+			state.getTranslation().z = m.state.l_x;
+		}
 		return state;
 	}
 
@@ -543,8 +546,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			setAttitudeToState(model, current);
 			visualOdometry.reset(current);
 
-			publishPX4Vision();
-
 			if(detectors.size()>0) {
 				detector_tms = System.currentTimeMillis();
 				for(ISLAMDetector d : detectors)
@@ -561,7 +562,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		cov.x = (float) pos_ned.T.z;
 		cov.y = (float) pos_ned.T.x;
 		cov.z = (float) pos_ned.T.y;
-//		cov.covariance = MAVVisualPositionEstimator.cov;
+		cov.vx = (float) speed_ned.T.z;
+		cov.vy = (float) speed_ned.T.x;
+		cov.vz = (float) speed_ned.T.y;
+		//		cov.covariance = MAVVisualPositionEstimator.cov;
 		control.sendMAVLinkMessage(cov);
 
 	}

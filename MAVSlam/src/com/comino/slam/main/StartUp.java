@@ -43,6 +43,8 @@ import org.mavlink.messages.lquac.msg_gps_global_origin;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
+import org.mavlink.messages.lquac.msg_set_gps_global_origin;
+import org.mavlink.messages.lquac.msg_set_home_position;
 import org.mavlink.messages.lquac.msg_vision_position_estimate;
 
 import com.comino.main.MSPConfig;
@@ -112,23 +114,6 @@ public class StartUp implements Runnable {
 		try {
 			if(config.getBoolProperty("vision_enabled", "false")) {
 
-				if(config.getBoolProperty("vision_startup_delay", "true")) {
-					Thread.sleep(2000);
-					// GPS cold start detection => delay vision startup
-					if(model.gps.numsat==0 && model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY)) {
-						MSPLogger.getInstance().writeLocalMsg("[msp] GPS cold start", MAV_SEVERITY.MAV_SEVERITY_INFO);
-						while(model.gps.fixtype<3) {
-							Thread.sleep(200);
-							// send dummy vision estimates to prevent lpe drift until GPS-fix
-							msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-							sms.usec = System.currentTimeMillis()*1000;
-							control.sendMAVLinkMessage(sms);
-						}
-					}
-				}
-
-
-
 				if(config.getBoolProperty("vision_highres", "false"))
 					info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 				else
@@ -167,6 +152,8 @@ public class StartUp implements Runnable {
 			vision.start();
 
 		}
+
+		publishGPSOrigin();
 
 		// register MSP commands here
 
@@ -252,8 +239,11 @@ public class StartUp implements Runnable {
 		cmd.latitude  = (long)(model.gps.latitude  * 1e7);
 		cmd.longitude = (long)(model.gps.longitude * 1e7);
 		cmd.altitude  = (short)(model.gps.altitude * 1e3);
-		cmd.time_usec = model.sys.getSynchronizedPX4Time_us();
+		cmd.time_usec = System.currentTimeMillis() * 1000;
 		control.sendMAVLinkMessage(cmd);
+
+	//	System.out.println(cmd);
+
 
 	}
 
