@@ -38,14 +38,9 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
-import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.lquac.msg_gps_global_origin;
-import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
-import org.mavlink.messages.lquac.msg_set_gps_global_origin;
-import org.mavlink.messages.lquac.msg_set_home_position;
-import org.mavlink.messages.lquac.msg_vision_position_estimate;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
@@ -55,13 +50,12 @@ import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.Status;
-import com.comino.msp.utils.CPUTemperature;
-import com.comino.msp.utils.ExecutorService;
-import com.comino.msp.utils.WifiQuality;
+import com.comino.msp.utils.upboard.CPUTemperature;
+import com.comino.msp.utils.upboard.UpLEDControl;
+import com.comino.msp.utils.upboard.WifiQuality;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.VfhDirectDepthDetector;
-import com.comino.slam.detectors.impl.VfhFeatureDetector;
 import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.MAVVisualPositionEstimator;
 import com.sun.net.httpserver.HttpServer;
@@ -163,6 +157,7 @@ public class StartUp implements Runnable {
 	}
 
 	public static void main(String[] args) {
+		UpLEDControl.clear();
 		new StartUp(args);
 
 	}
@@ -204,6 +199,11 @@ public class StartUp implements Runnable {
 				if((System.currentTimeMillis()-tms) < 2000)
 					continue;
 				tms = System.currentTimeMillis();
+
+				if(control.isConnected())
+					UpLEDControl.flash("green", 10);
+				else
+					UpLEDControl.flash("red", 10);
 
 				if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
 						&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY))
