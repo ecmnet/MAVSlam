@@ -132,6 +132,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private long last_pos_tms        = 0;
 	private long last_speed_tms      = 0;
 	private long last_msp_tms        = 0;
+	private long last_msg            = 0;
 
 	private DataModel model;
 
@@ -334,7 +335,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						if(++initialized_count == INIT_COUNT) {
 							oldTimeDepth_us = 0;
 
-							if(debug) {
+							if(debug && (System.currentTimeMillis() - last_msg) > 500) {
+								last_msg = System.currentTimeMillis();
 								System.out.println("[vis] Odometry init at [m]: "+MSP3DUtils.vector3D_F64ToString(pos_ned.T));
 								control.writeLogMessage(new LogMessage("[vis] odometry re-init: "+last_reason,
 										MAV_SEVERITY.MAV_SEVERITY_NOTICE));
