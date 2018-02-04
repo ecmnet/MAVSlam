@@ -119,7 +119,7 @@ public class StartUp implements Runnable {
 				// Start HTTP Service with MJPEG streamer
 
 				vision = new MAVVisualPositionEstimator(info, control, config, streamer);
-		//		vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
+				//		vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
 				vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
 
 				HttpServer server;
@@ -200,10 +200,6 @@ public class StartUp implements Runnable {
 					continue;
 				tms = System.currentTimeMillis();
 
-				if(control.isConnected())
-					UpLEDControl.flash("green", 10);
-				else
-					UpLEDControl.flash("red", 10);
 
 				if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
 						&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY))
@@ -226,6 +222,8 @@ public class StartUp implements Runnable {
 				msg.unix_time_us = System.currentTimeMillis() * 1000;
 				control.sendMAVLinkMessage(msg);
 
+				UpLEDControl.flash("green", 10);
+
 			} catch (Exception e) {
 				e.printStackTrace();
 				control.close();
@@ -242,7 +240,7 @@ public class StartUp implements Runnable {
 		cmd.time_usec = System.currentTimeMillis() * 1000;
 		control.sendMAVLinkMessage(cmd);
 
-	//	System.out.println(cmd);
+		//	System.out.println(cmd);
 
 
 	}
