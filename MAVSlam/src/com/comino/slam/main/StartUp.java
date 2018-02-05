@@ -222,7 +222,10 @@ public class StartUp implements Runnable {
 				msg.unix_time_us = System.currentTimeMillis() * 1000;
 				control.sendMAVLinkMessage(msg);
 
-				UpLEDControl.flash("green", 10);
+				if(model.sys.isStatus(Status.MSP_ACTIVE))
+				   UpLEDControl.flash("green", 10);
+				else
+				   UpLEDControl.flash("red", 10);
 
 			} catch (Exception e) {
 				e.printStackTrace();
