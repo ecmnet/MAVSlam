@@ -196,7 +196,7 @@ public class StartUp implements Runnable {
 					control.sendMAVLinkMessage(grid);
 				}
 
-				if((System.currentTimeMillis()-tms) < 750)
+				if((System.currentTimeMillis()-tms) < 500)
 					continue;
 				tms = System.currentTimeMillis();
 
