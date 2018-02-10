@@ -166,6 +166,8 @@ public class StartUp implements Runnable {
 	@Override
 	public void run() {
 		long tms = System.currentTimeMillis();
+		long blink = tms;
+
 		DataModel model = control.getCurrentModel();
 
 		WifiQuality wifi = new WifiQuality();
@@ -221,6 +223,10 @@ public class StartUp implements Runnable {
 				msg.setArch(osBean.getArch());
 				msg.unix_time_us = System.currentTimeMillis() * 1000;
 				control.sendMAVLinkMessage(msg);
+
+				if((System.currentTimeMillis()-blink) < 5000)
+					continue;
+				blink = System.currentTimeMillis();
 
 				if(model.sys.isStatus(Status.MSP_ACTIVE))
 				   UpLEDControl.flash("green", 10);
