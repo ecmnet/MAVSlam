@@ -194,8 +194,8 @@ public class StartUp implements Runnable {
 					grid.cz  = model.grid.getIndicatorZ();
 					grid.tms = model.sys.getSynchronizedPX4Time_us();
 					grid.count = model.grid.count;
-					model.grid.toArray(grid.data);
-					control.sendMAVLinkMessage(grid);
+					if(model.grid.toArray(grid.data))
+						control.sendMAVLinkMessage(grid);
 				}
 
 				if((System.currentTimeMillis()-tms) < 500)
@@ -229,9 +229,9 @@ public class StartUp implements Runnable {
 				blink = System.currentTimeMillis();
 
 				if(model.sys.isStatus(Status.MSP_ACTIVE))
-				   UpLEDControl.flash("green", 10);
+					UpLEDControl.flash("green", 10);
 				else
-				   UpLEDControl.flash("red", 10);
+					UpLEDControl.flash("red", 10);
 
 			} catch (Exception e) {
 				e.printStackTrace();
