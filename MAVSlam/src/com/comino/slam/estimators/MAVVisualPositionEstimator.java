@@ -132,7 +132,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private double[] visAttitude     = new double[3];
 	private long fps_tms             =0;
 
-	private long last_publish_tms    = 0;
+	private long last_px4_tms  	 	= 0;
 	private long last_msp_tms        = 0;
 	private long last_msg            = 0;
 
@@ -516,7 +516,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		if(visualOdometry==null)
 			return;
 
-		this.last_publish_tms = 0;
+		this.last_px4_tms = 0;
 		this.last_reason = reason;
 
 		if(do_odometry) {
@@ -538,8 +538,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private void publishPX4Vision() {
 
-		if(do_odometry && (System.currentTimeMillis()-last_publish_tms) > PUBLISH_RATE_PX4) {
-			last_publish_tms = System.currentTimeMillis();
+		if(do_odometry && (System.currentTimeMillis()-last_px4_tms) > PUBLISH_RATE_PX4) {
+			last_px4_tms = System.currentTimeMillis();
 
 			msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
 			cov.time_usec = (long)estTimeDepth_us;
