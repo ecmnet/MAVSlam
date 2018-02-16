@@ -58,24 +58,25 @@ import georegression.transform.se.SePointOps_F64;
 
 public class VfhDirectDepthDetector implements ISLAMDetector {
 
-	private float     	max_distance     = 3.0f;
-	private float     	min_altitude     = 0.35f;
+	private static final float MAX_DEPTH		= 4.0f;
 
-	private DataModel   model        	= null;
-	private ILocalMap 	map 				= null;
+	private float     	max_distance     	= 3.0f;
+	private float     	min_altitude     	= 0.35f;
 
-	private Point3D_F64	point			= null;
-	private Point3D_F64  point_ned       = new Point3D_F64();
+	private DataModel   model        		= null;
+	private ILocalMap 	map 					= null;
 
-	private Se3_F64 		current 		 	= new Se3_F64();
+	private Point3D_F64	point				= null;
+	private Point3D_F64 point_min      		= new Point3D_F64();
+	private Point3D_F64 point_ned       		= new Point3D_F64();
 
-	private IMAVMSPController control = null;
+	private Se3_F64 		current 		 		= new Se3_F64();
+
 
 	public VfhDirectDepthDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler streamer) {
 
-		this.model   = control.getCurrentModel();
-		this.control  = control;
-		this.map = Autopilot2D.getInstance().getMap2D();
+		this.model	= control.getCurrentModel();
+		this.map 	= Autopilot2D.getInstance().getMap2D();
 
 		this.max_distance = config.getFloatProperty("feature_max_distance", "3.00f");
 		System.out.println("[col] Max planning distance set to "+max_distance);
@@ -93,7 +94,6 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 				}
 			}
 		});
-
 	}
 
 	@Override
@@ -101,18 +101,16 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 		getModelToState(model,current);
 
-	//	int y = gray.getHeight()/2;
-
-				int y0 = 2*gray.getHeight()/3; int y1 = y0 + 10;
-				for(int y = y0;y<y1;y++)
-
 		for(int x = 0;x < gray.getWidth();x++) {
-			point = odometry.getPoint3DFromPixel(x, y);
 
-			if(point==null || point.z > 6.0f)
-				continue;
+			point_min.set(0,0,99);
+			for(int dy = -5; dy <= 5;dy=dy+5) {
+				point = odometry.getPoint3DFromPixel(x,180+dy);
+				if(point != null && point.z < point_min.z)
+					point_min.set(point);
+			}
 
-			SePointOps_F64.transform(current,point,point_ned);
+			SePointOps_F64.transform(current,point_min,point_ned);
 			MSP3DUtils.toNED(point_ned);
 			map.update(model.state.l_x, model.state.l_y,point_ned);
 		}
@@ -120,7 +118,7 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 
 	public void reset(float x, float y, float z) {
-
+           map.reset();
 	}
 
 	private Se3_F64 getModelToState(DataModel m, Se3_F64 state) {
@@ -136,8 +134,4 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 		return state;
 	}
-
-
-
-
 }
