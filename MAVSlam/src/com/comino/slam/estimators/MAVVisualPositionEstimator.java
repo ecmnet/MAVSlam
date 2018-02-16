@@ -44,6 +44,8 @@ import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
+import org.mavlink.messages.lquac.msg_vision_position_estimate;
+import org.mavlink.messages.lquac.msg_vision_speed_estimate;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
@@ -87,7 +89,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int    INIT_COUNT           = 1;
 	private static final int    MAX_ERRORS    	    = 3;
 
-	private static final int    MAX_SPEED    	    = 20;
+	private static final int    MAX_SPEED    	    = 50;
 
 	private static final float  INLIER_PIXEL_TOL    = 1.3f;
 	private static final int    MAXTRACKS   		   = 150;
@@ -98,12 +100,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int    INLIER_THRESHOLD    = 120;
 	private static final int    REFINE_ITERATIONS   = 80;
 
-	// cov[0]	X Covariance
-	// cov[9]	Y Covariance
-	// cov[17] 	Z Covariance
-	// cov[24] 	VX Covariance
-	// cov[30] 	VY Covariance
-	// cov[35]	VZ Covariance
+	private static final float[] cov = new float[45];
 
 
 	private StreamRealSenseVisDepth realsense;
@@ -132,7 +129,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private double[] visAttitude     = new double[3];
 	private long fps_tms             =0;
 
-	private long last_px4_tms  	 	= 0;
+	private long last_pos_tms        = 0;
+	private long last_speed_tms      = 0;
 	private long last_msp_tms        = 0;
 	private long last_msg            = 0;
 
@@ -154,12 +152,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private int error_count = 0;
 
+	private boolean do_position = false;
 	private boolean do_odometry = true;
-
-	private boolean do_xy_position = false;
-	private boolean do_z_position  = false;
-	private boolean do_xy_speed    = false;
-	private boolean do_z_speed     = false;
+	private boolean do_speed    = true;
 
 	private long detector_tms = 0;
 	private int  detector_cycle_ms = 250;
@@ -177,6 +172,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.detectors = new ArrayList<ISLAMDetector>();
 		this.streams   = new ArrayList<IVisualStreamHandler>();
 
+		buildDefaultCovarianceMatrix(cov);
+
 		System.out.println("Vision position estimator: "+this.getClass().getSimpleName());
 		this.debug = config.getBoolProperty("vision_debug", "false");
 		this.heading_init_enabled = config.getBoolProperty("vision_heading_init", "true");
@@ -188,14 +185,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 		this.do_odometry = config.getBoolProperty("vision_enable", "true");
 		System.out.println("Vision Odometry enabled: "+do_odometry);
-		this.do_xy_speed    = config.getBoolProperty("vision_pub_xy_speed", "false");
-		if(this.do_xy_speed) System.out.println("...Vision publishes XY speed ");
-		this.do_z_speed    = config.getBoolProperty("vision_pub_z_speed", "false");
-		if(this.do_z_speed) System.out.println("...Vision publishes Z speed ");
-		this.do_xy_position = config.getBoolProperty("vision_pub_xy_pos", "true");
-		if(this.do_xy_position) System.out.println("...Vision publishes XY position ");
-		this.do_z_position = config.getBoolProperty("vision_pub_z_pos", "false");
-		if(this.do_z_position) System.out.println("...Vision publishes Z position ");
+		this.do_speed    = config.getBoolProperty("vision_pub_speed", "true");
+		System.out.println("Vision publishes speed: "+do_speed);
+		this.do_position = config.getBoolProperty("vision_pub_pos", "true");
+		System.out.println("Vision publishes position: "+do_position);
 
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
@@ -319,23 +312,21 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					init("Exception");
 				}
 
-				if(fps>0) {
-					quality = (int)(visualOdometry.getQuality() * fps/60f);
-				} else
-					quality = (int)(visualOdometry.getQuality());
+				quality = (int)(visualOdometry.getQuality());
 				if(quality > 100) quality = 100;
-
 
 				// get Measurement from odometry
 				pos_raw = visualOdometry.getCameraToWorld().getT();
 
 				// Correct camera offset to pos_raw
-				pos_raw.plusIP(cam_offset_ned.T);
+			//	pos_raw.plusIP(cam_offset_ned.T);
 
 				if(initialized_count < INIT_COUNT) {
 
-					// Reset for EKF2
-					pos_ned.reset();
+					if(Float.isNaN(model.state.l_x) || Float.isNaN(model.state.l_y) || Float.isNaN(model.state.l_z))
+						pos_ned.reset();
+					else
+						setPositionToState(model,pos_ned);
 
 					// reset speed and old measurements
 					pos_raw_old.set(0,0,0);
@@ -360,8 +351,11 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
 				estTimeDepth_us = System.currentTimeMillis()*1000;
 
-				if(oldTimeDepth_us>0)
-					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
+				if(oldTimeDepth_us==0) {
+					oldTimeDepth_us = estTimeDepth_us;
+					return;
+				}
+				dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
 				oldTimeDepth_us = estTimeDepth_us;
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
@@ -373,7 +367,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						speed_ned.T.scale(1d/dt);
 
 						// Check XY speed
-						if(Math.sqrt(speed_ned.getX()*speed_ned.getX()+speed_ned.getZ()*speed_ned.getZ())>MAX_SPEED) {
+						if(Math.sqrt(speed_ned.T.x*speed_ned.T.x+speed_ned.T.z*speed_ned.T.z)>MAX_SPEED) {
+							System.out.println("dt="+dt+" v="+(int)Math.sqrt(speed_ned.T.x*speed_ned.T.x+speed_ned.T.z*speed_ned.T.z));
 							init("Speed");
 							return;
 						}
@@ -409,7 +404,13 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 				if(control!=null) {
 					if(error_count < MAX_ERRORS) {
-						publishPX4Vision();
+
+
+						//						if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
+						//								&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY))
+						publishVisionCov();
+						//						else
+						//							publishPX4Vision();
 						model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
 					}
 					error_count=0;
@@ -433,6 +434,27 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				publisMSPVision();
 			}
 		});
+	}
+
+	private void buildDefaultCovarianceMatrix(float[] cov2) {
+		for (int i=0; i< 3; i++) {
+			// linear velocity
+			cov[i + 6*i] = 1e-4f;
+			// angular velocity
+			cov[(i + 3) + 6*(i + 3)] = 1e-4f;
+			// position/ attitude
+			if (i==2) {
+				// z
+				cov[i + 6*i] = 1e-6f;
+				// yaw
+				cov[(i + 3) + 6*(i + 3)] = 1e-6f;
+			} else {
+				// x, y
+				cov[i + 6*i] = 1e-6f;
+				// roll, pitch
+				cov[(i + 3) + 6*(i + 3)] = 1e-6f;
+			}
+		}
 	}
 
 	private void overlayFeatures(Graphics ctx) {
@@ -505,7 +527,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		return state;
 	}
 
-	@SuppressWarnings("unused")
 	private Se3_F64 setPositionToState(DataModel m, Se3_F64 state) {
 		if(!Float.isNaN(m.state.l_y) && !Float.isNaN(m.state.l_x)) {
 			state.getTranslation().y = m.state.l_z;
@@ -520,7 +541,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		if(visualOdometry==null)
 			return;
 
-		this.last_px4_tms = 0;
+		this.last_pos_tms = 0;
 		this.last_reason = reason;
 
 		if(do_odometry) {
@@ -540,71 +561,51 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		}
 	}
 
-	private void publishPX4Vision() {
+	private void publishVisionCov() {
 
-		if(do_odometry && (System.currentTimeMillis()-last_px4_tms) > PUBLISH_RATE_PX4) {
-			last_px4_tms = System.currentTimeMillis();
-
-			msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
-			cov.time_usec = (long)estTimeDepth_us;
-			if(do_xy_position) {
-				cov.x = (float) pos_ned.T.z;
-				cov.y = (float) pos_ned.T.x;
-			} else {
-				cov.covariance[0]  = 999;
-				cov.covariance[9]  = 999;
-			}
-
-			if(do_z_position) {
-				cov.z = (float) pos_ned.T.y;
-			} else
-				cov.covariance[17] = 999;
-
-			if(do_xy_speed) {
-				cov.vx = (float) speed_ned.T.z;
-				cov.vy = (float) speed_ned.T.x;
-			} else {
-				cov.covariance[24]  = 999;
-				cov.covariance[30]  = 999;
-			}
-
-			if(do_z_speed) {
-				cov.vz = (float) speed_ned.T.y;
-			} else
-				cov.covariance[35]  = 999;
-
-			control.sendMAVLinkMessage(cov);
-		}
+		msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
+		cov.time_usec = (long)estTimeDepth_us;
+		cov.x = (float) pos_ned.T.z;
+		cov.y = (float) pos_ned.T.x;
+		cov.z = (float) pos_ned.T.y;
+		cov.vx = (float) speed_ned.T.z;
+		cov.vy = (float) speed_ned.T.x;
+		cov.vz = (float) speed_ned.T.y;
+		//		cov.covariance = MAVVisualPositionEstimator.cov;
+		control.sendMAVLinkMessage(cov);
 
 	}
 
-	//	private void publishPX4Vision() {
-	//
-	//		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
-	//			last_pos_tms = System.currentTimeMillis();
-	//
-	//			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-	//			sms.usec = (long)estTimeDepth_us;
-	//			sms.x = (float) pos_ned.T.z;
-	//			sms.y = (float) pos_ned.T.x;
-	//			sms.z = (float) pos_ned.T.y;
-	//			sms.roll  = (float)visAttitude[0];
-	//			sms.pitch = (float)visAttitude[1];
-	//			sms.yaw   = (float)visAttitude[2];
-	//			control.sendMAVLinkMessage(sms);
-	//		}
-	//
-	//		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > PUBLISH_RATE_PX4) {
-	//			last_speed_tms = System.currentTimeMillis();
-	//			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
-	//			sse.usec = (long)estTimeDepth_us;
-	//			sse.x = (float) speed_ned.T.z;
-	//			sse.y = (float) speed_ned.T.x;
-	//			sse.z = (float) speed_ned.T.y;
-	//			sse.isValid = true;
-	//			control.sendMAVLinkMessage(sse);
-	//		}
-	//	}
+	private void publishPX4Vision() {
+
+		if(!model.sys.isStatus(Status.MSP_GPOS_VALID))
+			return;
+
+		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
+			last_pos_tms = System.currentTimeMillis();
+
+			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+			sms.usec = (long)estTimeDepth_us;
+			sms.x = (float) pos_ned.T.z;
+			sms.y = (float) pos_ned.T.x;
+			sms.z = (float) pos_ned.T.y;
+			sms.roll  = (float)visAttitude[0];
+			sms.pitch = (float)visAttitude[1];
+			sms.yaw   = (float)visAttitude[2];
+			control.sendMAVLinkMessage(sms);
+		}
+
+		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > PUBLISH_RATE_PX4) {
+			last_speed_tms = System.currentTimeMillis();
+			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
+			sse.usec = (long)estTimeDepth_us;
+			sse.x = (float) speed_ned.T.z;
+			sse.y = (float) speed_ned.T.x;
+			sse.z = (float) speed_ned.T.y;
+			sse.isValid = true;
+			control.sendMAVLinkMessage(sse);
+		}
+	}
 
 	private void publisMSPVision() {
 		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
@@ -623,21 +624,17 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			msg.fps = fps;
 			msg.tms = (long)estTimeDepth_us;
 			msg.errors = error_count;
-			if(do_xy_position && do_odometry)
+			if(do_position && do_odometry)
 				msg.flags = msg.flags | 1;
-			if(do_z_position && do_odometry)
+			if(do_speed && do_odometry)
 				msg.flags = msg.flags | 2;
-			if(do_xy_speed && do_odometry)
-				msg.flags = msg.flags | 4;
-			if(do_z_speed && do_odometry)
-				msg.flags = msg.flags | 8;
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
 		}
 	}
 
 	public static void main(String[] args) {
-		new MAVVisualPositionEstimator();
+		MAVVisualPositionEstimator p = new MAVVisualPositionEstimator();
 	}
 
 }
