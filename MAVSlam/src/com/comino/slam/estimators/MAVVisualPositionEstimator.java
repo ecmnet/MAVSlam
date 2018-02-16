@@ -89,7 +89,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int    INIT_COUNT           = 1;
 	private static final int    MAX_ERRORS    	    = 3;
 
-	private static final int    MAX_SPEED    	    = 50;
+	private static final int    MAX_SPEED    	    = 20;
 
 	private static final float  INLIER_PIXEL_TOL    = 1.3f;
 	private static final int    MAXTRACKS   		   = 150;
@@ -319,7 +319,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				pos_raw = visualOdometry.getCameraToWorld().getT();
 
 				// Correct camera offset to pos_raw
-			//	pos_raw.plusIP(cam_offset_ned.T);
+				pos_raw.plusIP(cam_offset_ned.T);
 
 				if(initialized_count < INIT_COUNT) {
 
@@ -351,11 +351,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
 				estTimeDepth_us = System.currentTimeMillis()*1000;
 
-				if(oldTimeDepth_us==0) {
-					oldTimeDepth_us = estTimeDepth_us;
-					return;
-				}
-				dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
+				if(oldTimeDepth_us>0)
+					dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
 				oldTimeDepth_us = estTimeDepth_us;
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
@@ -367,8 +364,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						speed_ned.T.scale(1d/dt);
 
 						// Check XY speed
-						if(Math.sqrt(speed_ned.T.x*speed_ned.T.x+speed_ned.T.z*speed_ned.T.z)>MAX_SPEED) {
-							System.out.println("dt="+dt+" v="+(int)Math.sqrt(speed_ned.T.x*speed_ned.T.x+speed_ned.T.z*speed_ned.T.z));
+						if(Math.sqrt(speed_ned.getX()*speed_ned.getX()+speed_ned.getZ()*speed_ned.getZ())>MAX_SPEED) {
 							init("Speed");
 							return;
 						}
