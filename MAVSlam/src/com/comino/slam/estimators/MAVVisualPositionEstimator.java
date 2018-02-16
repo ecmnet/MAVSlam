@@ -319,8 +319,12 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					init("Exception");
 				}
 
-				quality = (int)(visualOdometry.getQuality());
+				if(fps>0) {
+					quality = (int)(visualOdometry.getQuality() * fps/60f);
+				} else
+					quality = (int)(visualOdometry.getQuality());
 				if(quality > 100) quality = 100;
+
 
 				// get Measurement from odometry
 				pos_raw = visualOdometry.getCameraToWorld().getT();
@@ -574,33 +578,33 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	}
 
-//	private void publishPX4Vision() {
-//
-//		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
-//			last_pos_tms = System.currentTimeMillis();
-//
-//			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-//			sms.usec = (long)estTimeDepth_us;
-//			sms.x = (float) pos_ned.T.z;
-//			sms.y = (float) pos_ned.T.x;
-//			sms.z = (float) pos_ned.T.y;
-//			sms.roll  = (float)visAttitude[0];
-//			sms.pitch = (float)visAttitude[1];
-//			sms.yaw   = (float)visAttitude[2];
-//			control.sendMAVLinkMessage(sms);
-//		}
-//
-//		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > PUBLISH_RATE_PX4) {
-//			last_speed_tms = System.currentTimeMillis();
-//			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
-//			sse.usec = (long)estTimeDepth_us;
-//			sse.x = (float) speed_ned.T.z;
-//			sse.y = (float) speed_ned.T.x;
-//			sse.z = (float) speed_ned.T.y;
-//			sse.isValid = true;
-//			control.sendMAVLinkMessage(sse);
-//		}
-//	}
+	//	private void publishPX4Vision() {
+	//
+	//		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
+	//			last_pos_tms = System.currentTimeMillis();
+	//
+	//			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+	//			sms.usec = (long)estTimeDepth_us;
+	//			sms.x = (float) pos_ned.T.z;
+	//			sms.y = (float) pos_ned.T.x;
+	//			sms.z = (float) pos_ned.T.y;
+	//			sms.roll  = (float)visAttitude[0];
+	//			sms.pitch = (float)visAttitude[1];
+	//			sms.yaw   = (float)visAttitude[2];
+	//			control.sendMAVLinkMessage(sms);
+	//		}
+	//
+	//		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > PUBLISH_RATE_PX4) {
+	//			last_speed_tms = System.currentTimeMillis();
+	//			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
+	//			sse.usec = (long)estTimeDepth_us;
+	//			sse.x = (float) speed_ned.T.z;
+	//			sse.y = (float) speed_ned.T.x;
+	//			sse.z = (float) speed_ned.T.y;
+	//			sse.isValid = true;
+	//			control.sendMAVLinkMessage(sse);
+	//		}
+	//	}
 
 	private void publisMSPVision() {
 		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
