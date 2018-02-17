@@ -118,10 +118,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private Se3_F64 rot_ned          = new Se3_F64();
 
-	private Se3_F64 cam_offset       = new Se3_F64();
-	private Se3_F64 cam_offset_ned   = new Se3_F64();
-
-
 	private Se3_F64 current          = new Se3_F64();
 
 	private double[] visAttitude     = new double[3];
@@ -199,11 +195,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		if(this.detector_cycle_ms > 0)
 			System.out.printf("Vision detectors enablied with %d [ms] cycle \n",detector_cycle_ms);
 
-		this.cam_offset.T.z = -config.getFloatProperty("vision_x_offset", "0.0");
-		this.cam_offset.T.x = -config.getFloatProperty("vision_y_offset", "0.0");
-		this.cam_offset.T.y = -config.getFloatProperty("vision_z_offset", "0.0");
-
-		System.out.printf("Vision position offset [m]: %s\n\n",MSP3DUtils.vector3D_F64ToString(cam_offset.T));
 		System.out.println("Resolution: "+info.width+"x"+info.height);
 
 		this.model = control.getCurrentModel();
@@ -322,9 +313,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				// get Measurement from odometry
 				pos_raw = visualOdometry.getCameraToWorld().getT();
 
-				// Correct camera offset to pos_raw
-				pos_raw.plusIP(cam_offset_ned.T);
-
 				if(initialized_count < INIT_COUNT) {
 
 					if(Float.isNaN(model.state.l_x) || Float.isNaN(model.state.l_y) || Float.isNaN(model.state.l_z))
@@ -378,8 +366,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 							if(debug)
 								System.out.println(timeDepth+"[vis] Quality "+quality+" < Min");
 							init("Quality");
+							pos_raw_old.set(0,0,0);
 						}
-						pos_raw_old.set(0,0,0);
 						return;
 					}
 
@@ -424,7 +412,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						});
 					}
 				}
-
 				publisMSPVision();
 			}
 		});
