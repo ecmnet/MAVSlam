@@ -88,7 +88,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private static final int    INIT_COUNT           = 1;
 	private static final int    MAX_ERRORS    	    = 3;
-	private static final int    MAX_QUALITY_ERRORS   = 5;
+	private static final int    MAX_QUALITY_ERRORS   = 15;
 
 	private static final int    MAX_SPEED    	    = 20;
 
