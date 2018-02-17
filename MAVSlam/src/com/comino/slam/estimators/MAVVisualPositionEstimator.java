@@ -396,6 +396,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					error_count=0;
 				}
 
+				// TODO: Call detectors, even when odometry fails. This is reasonable for the DirectDepthDetector
+				// at least.
+
 				if(detectors.size()>0 && detector_cycle_ms>0 && do_odometry) {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();

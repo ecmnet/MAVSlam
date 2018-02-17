@@ -58,6 +58,7 @@ import georegression.transform.se.SePointOps_F64;
 
 public class VfhDirectDepthDetector implements ISLAMDetector {
 
+	private static final float MIN_ALTITUDE  = -0.2f;
 	private static final float MAX_DEPTH		= 4.0f;
 
 	private float     	max_distance     	= 3.0f;
@@ -112,7 +113,8 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 			SePointOps_F64.transform(current,point_min,point_ned);
 			MSP3DUtils.toNED(point_ned);
-			map.update(model.state.l_x, model.state.l_y,point_ned);
+			if(point_ned.z > MIN_ALTITUDE)
+			  map.update(model.state.l_x, model.state.l_y,point_ned);
 		}
 	}
 
