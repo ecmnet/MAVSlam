@@ -118,6 +118,8 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 
 	public void reset(float x, float y, float z) {
+		// reset map if local position was set to 0
+		if(x==0 && y==0)
            map.reset();
 	}
 
