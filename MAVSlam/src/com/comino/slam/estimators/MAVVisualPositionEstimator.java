@@ -44,6 +44,7 @@ import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
+import org.tools4j.meanvar.MeanVarianceSlidingWindow;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
@@ -109,6 +110,13 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private double oldTimeDepth_us	= 0;
 	private double estTimeDepth_us	= 0;
+
+	private MeanVarianceSlidingWindow stat_x  = new MeanVarianceSlidingWindow(10);
+	private MeanVarianceSlidingWindow stat_y  = new MeanVarianceSlidingWindow(10);
+	private MeanVarianceSlidingWindow stat_z  = new MeanVarianceSlidingWindow(10);
+	private MeanVarianceSlidingWindow stat_vx = new MeanVarianceSlidingWindow(10);
+	private MeanVarianceSlidingWindow stat_vy = new MeanVarianceSlidingWindow(10);
+	private MeanVarianceSlidingWindow stat_vz = new MeanVarianceSlidingWindow(10);
 
 	private Vector3D_F64 	pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
@@ -304,6 +312,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					if(debug)
 						System.out.println("[vis] Odometry failure: "+e.getMessage());
 					init("Exception");
+					return;
 				}
 
 				quality = (int)(visualOdometry.getQuality());
@@ -315,7 +324,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				if(initialized_count < INIT_COUNT) {
 
 					// reset speed and old measurements
-					pos_raw_old.set(0,0,0);
+					speed_ned.reset();
+					pos_raw_old.set(pos_raw);
 
 					if( quality > min_quality) {
 						if(++initialized_count == INIT_COUNT) {
@@ -362,7 +372,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 							if(debug)
 								System.out.println(timeDepth+"[vis] Quality "+quality+" < Min");
 							init("Quality");
-							pos_raw_old.set(0,0,0);
 						}
 						return;
 					}
@@ -411,6 +420,11 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						});
 					}
 				}
+				// Update statistics
+				stat_x.update(pos_ned.T.x);    stat_y.update(pos_ned.T.y);    stat_z.update(pos_ned.T.z);
+				stat_vx.update(speed_ned.T.x); stat_vy.update(speed_ned.T.y); stat_vz.update(speed_ned.T.z);
+
+				// Publish MSP data
 				publisMSPVision();
 			}
 		});
@@ -531,33 +545,42 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			if(do_xy_position)  {
 				cov.x = (float) pos_ned.T.z;
 				cov.y = (float) pos_ned.T.x;
+				cov.covariance[MAV_COV.VIS_COV_X] = (float)stat_z.getVariance();
+				cov.covariance[MAV_COV.VIS_COV_Y] = (float)stat_x.getVariance();
 			}
 			else {
 				cov.covariance[MAV_COV.VIS_COV_X] = 99;
 				cov.covariance[MAV_COV.VIS_COV_Y] = 99;
 			}
 
-			if(do_z_position)
+			if(do_z_position) {
 				cov.z = (float) pos_ned.T.y;
+				cov.covariance[MAV_COV.VIS_COV_Z] = (float)stat_y.getVariance();
+			}
 			else
 				cov.covariance[MAV_COV.VIS_COV_Z] = 99;
 
 			if(do_xy_speed)  {
 				cov.vx = (float) speed_ned.T.z;
 				cov.vy = (float) speed_ned.T.x;
+				cov.covariance[MAV_COV.VIS_COV_VX] = (float)stat_vz.getVariance();
+				cov.covariance[MAV_COV.VIS_COV_VY] = (float)stat_vx.getVariance();
 			}
 			else {
 				cov.covariance[MAV_COV.VIS_COV_VX] = 99;
 				cov.covariance[MAV_COV.VIS_COV_VY] = 99;
 			}
 
-			if(do_z_speed)
+			if(do_z_speed) {
 				cov.vz = (float) speed_ned.T.y;
+				cov.covariance[MAV_COV.VIS_COV_VZ] = (float)stat_vy.getVariance();
+			}
 			else
 				cov.covariance[MAV_COV.VIS_COV_VZ] = 99;
 
 			control.sendMAVLinkMessage(cov);
 			model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
+
 		}
 
 	}
