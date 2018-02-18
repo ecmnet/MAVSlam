@@ -67,8 +67,8 @@ public class LibRealSenseUtils {
 	 public static final int PRESET_DEPTH_OFF 		= 1;
 	 public static final int PRESET_DEPTH_LOW 		= 2;
 	 public static final int PRESET_DEPTH_MEDIUM 	= 3;
-	 public static final int PRESET_DEPTH_OPTIMIZED = 4;
-	 public static final int PRESET_DEPTH_HIGH      = 5;
+	 public static final int PRESET_DEPTH_OPTIMIZED  = 4;
+	 public static final int PRESET_DEPTH_HIGH       = 5;
 
 
 	/* Provide access to several recommend sets of depth control parameters */
