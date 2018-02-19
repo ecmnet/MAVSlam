@@ -41,6 +41,7 @@ import java.util.List;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
+import org.mavlink.messages.lquac.msg_debug_vect;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
@@ -90,6 +91,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int    INIT_COUNT           = 1;
 	private static final int    MAX_ERRORS    	    = 3;
 	private static final int    MAX_QUALITY_ERRORS   = 15;
+	private static final float  MAX_VARIANCE			= 0.5f;
 
 	private static final int    MAX_SPEED    	    = 20;
 
@@ -330,7 +332,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					if( quality > min_quality) {
 						if(++initialized_count == INIT_COUNT) {
 							oldTimeDepth_us = 0;
-							if(debug && (System.currentTimeMillis() - last_msg) > 500) {
+							if(debug && (System.currentTimeMillis() - last_msg) > 500 && last_reason != null) {
 								last_msg = System.currentTimeMillis();
 								System.out.println("[vis] Odometry init at [m]: "+MSP3DUtils.vector3D_F64ToString(pos_ned.T));
 								control.writeLogMessage(new LogMessage("[vis] odometry re-init: "+last_reason,
@@ -353,6 +355,11 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				oldTimeDepth_us = estTimeDepth_us;
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
+
+					if(stat_vz.getVariance() > MAX_VARIANCE || stat_vx.getVariance() > MAX_VARIANCE) {
+						init();
+						return;
+					}
 
 					if(quality > min_quality ) {
 
@@ -448,7 +455,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		if(!Float.isNaN(model.sys.t_armed_ms) && model.sys.isStatus(Status.MSP_ARMED))
 			ctx.drawString(String.format("%.1f sec",model.sys.t_armed_ms/1000), 20, 20);
 
-
 	}
 
 	public MAVVisualPositionEstimator() {
@@ -509,13 +515,17 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		return state;
 	}
 
+	private void init() {
+		init(null);
+	}
+
 	private void init(String reason) {
 
 		if(visualOdometry==null)
 			return;
 
 		this.last_pos_tms = 0;
-		this.last_reason = reason;
+	    this.last_reason = reason;
 
 		if(do_odometry) {
 			if(++error_count > MAX_ERRORS) {
@@ -532,6 +542,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
 			}
 			initialized_count = 0;
+			stat_x.reset(); stat_y.reset(); stat_z.reset();
 		}
 	}
 
@@ -643,6 +654,14 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				msg.flags = msg.flags | 8;
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
+
+
+//			msg_debug_vect v = new msg_debug_vect(2,1);
+//			v.x = (float)stat_vz.getVariance();
+//			v.y = (float)stat_vx.getVariance();
+//			v.z = (float)stat_vy.getVariance();
+//			control.sendMAVLinkMessage(v);
+
 		}
 	}
 
