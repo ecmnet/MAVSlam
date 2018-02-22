@@ -166,6 +166,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private boolean do_z_position 	= false;
 	private boolean do_xy_speed 		= false;
 	private boolean do_z_speed 		= false;
+	private boolean do_attitude		= false;
 
 	private IMAVMSPController 			control		= null;
 	private List<ISLAMDetector> 			detectors 	= null;
@@ -201,6 +202,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		System.out.println("Vision publishes XY speed: "+do_xy_speed);
 		this.do_z_speed = config.getBoolProperty("vision_pub_speed_z", "true");
 		System.out.println("Vision publishes Z speed: "+do_z_speed);
+
+		this.do_attitude = config.getBoolProperty("vision_pub_attitude", "false");
+		System.out.println("Vision publishes attitude: "+do_attitude);
 
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
@@ -532,7 +536,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			return;
 
 		this.last_pos_tms = 0;
-	    this.last_reason = reason;
+		this.last_reason = reason;
 
 		if(do_odometry) {
 			if(++error_count > MAX_ERRORS) {
@@ -598,14 +602,15 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 			control.sendMAVLinkMessage(cov);
 
+			if(do_attitude) {
+				msg_attitude_quaternion_cov att = new msg_attitude_quaternion_cov(1,2);
+				att.q[0] = (float)att_q.w;
+				att.q[1] = (float)att_q.x;
+				att.q[2] = (float)att_q.y;
+				att.q[3] = (float)att_q.z;
 
-			msg_attitude_quaternion_cov att = new msg_attitude_quaternion_cov(1,2);
-			att.q[0] = (float)att_q.w;
-			att.q[1] = (float)att_q.x;
-			att.q[2] = (float)att_q.y;
-			att.q[3] = (float)att_q.z;
-
-			control.sendMAVLinkMessage(att);
+				control.sendMAVLinkMessage(att);
+			}
 
 			model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
 
