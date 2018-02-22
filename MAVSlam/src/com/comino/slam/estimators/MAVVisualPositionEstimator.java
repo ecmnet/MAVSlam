@@ -41,10 +41,12 @@ import java.util.List;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
+import org.mavlink.messages.lquac.msg_attitude_quaternion_cov;
 import org.mavlink.messages.lquac.msg_debug_vect;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
+import org.mavlink.messages.lquac.msg_vision_position_estimate;
 import org.tools4j.meanvar.MeanVarianceSlidingWindow;
 
 import com.comino.main.MSPConfig;
@@ -82,6 +84,7 @@ import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
+import georegression.struct.so.Quaternion_F64;
 
 public class MAVVisualPositionEstimator implements IPositionEstimator {
 
@@ -131,6 +134,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private Se3_F64 current          = new Se3_F64();
 
+	private Quaternion_F64 att_q		= new Quaternion_F64();
 	private double[] visAttitude     = new double[3];
 
 	private long last_pos_tms        = 0;
@@ -389,7 +393,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					// pos.T = pos.T + pos_delta.T
 					pos_ned.T.plusIP(pos_delta.T);
 
+					// Todo: get Rid of visAttitude
 					ConvertRotation3D_F64.matrixToEuler(rot_ned.R, EulerType.ZXY, visAttitude);
+					ConvertRotation3D_F64.eulerToQuaternion(EulerType.XYZ,visAttitude[0],visAttitude[1], visAttitude[2], att_q);
+
 
 					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)
 							&& heading_init_enabled) {
@@ -590,42 +597,38 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				cov.covariance[MAV_COV.VIS_COV_VZ] = 99;
 
 			control.sendMAVLinkMessage(cov);
+
+
+			msg_attitude_quaternion_cov att = new msg_attitude_quaternion_cov(1,2);
+			att.q[0] = (float)att_q.w;
+			att.q[1] = (float)att_q.x;
+			att.q[2] = (float)att_q.y;
+			att.q[3] = (float)att_q.z;
+
+			control.sendMAVLinkMessage(att);
+
 			model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
 
 		}
 
 	}
 
-	//	private void publishPX4Vision() {
-	//
-	//		if(!model.sys.isStatus(Status.MSP_GPOS_VALID))
-	//			return;
-	//
-	//		if(do_position && do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
-	//			last_pos_tms = System.currentTimeMillis();
-	//
-	//			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-	//			sms.usec = (long)estTimeDepth_us;
-	//			sms.x = (float) pos_ned.T.z;
-	//			sms.y = (float) pos_ned.T.x;
-	//			sms.z = (float) pos_ned.T.y;
-	//			sms.roll  = (float)visAttitude[0];
-	//			sms.pitch = (float)visAttitude[1];
-	//			sms.yaw   = (float)visAttitude[2];
-	//			control.sendMAVLinkMessage(sms);
-	//		}
-	//
-	//		if(do_speed && do_odometry && (System.currentTimeMillis()-last_speed_tms) > PUBLISH_RATE_PX4) {
-	//			last_speed_tms = System.currentTimeMillis();
-	//			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
-	//			sse.usec = (long)estTimeDepth_us;
-	//			sse.x = (float) speed_ned.T.z;
-	//			sse.y = (float) speed_ned.T.x;
-	//			sse.z = (float) speed_ned.T.y;
-	//			sse.isValid = true;
-	//			control.sendMAVLinkMessage(sse);
-	//		}
-	//	}
+//		private void publishPX4Vision() {
+//
+//			if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
+//				last_pos_tms = System.currentTimeMillis();
+//
+//				msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+//				sms.usec = (long)estTimeDepth_us;
+//				sms.x = (float) pos_ned.T.z;
+//				sms.y = (float) pos_ned.T.x;
+//				sms.z = (float) pos_ned.T.y;
+//				sms.roll  = (float)visAttitude[0];
+//				sms.pitch = (float)visAttitude[1];
+//				sms.yaw   = (float)visAttitude[2];
+//				control.sendMAVLinkMessage(sms);
+//			}
+//		}
 
 	private void publisMSPVision() {
 		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
