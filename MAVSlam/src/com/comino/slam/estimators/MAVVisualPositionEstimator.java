@@ -613,23 +613,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	}
 
-//		private void publishPX4Vision() {
-//
-//			if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
-//				last_pos_tms = System.currentTimeMillis();
-//
-//				msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-//				sms.usec = (long)estTimeDepth_us;
-//				sms.x = (float) pos_ned.T.z;
-//				sms.y = (float) pos_ned.T.x;
-//				sms.z = (float) pos_ned.T.y;
-//				sms.roll  = (float)visAttitude[0];
-//				sms.pitch = (float)visAttitude[1];
-//				sms.yaw   = (float)visAttitude[2];
-//				control.sendMAVLinkMessage(sms);
-//			}
-//		}
-
 	private void publisMSPVision() {
 		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
 			last_msp_tms = System.currentTimeMillis();
@@ -657,14 +640,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				msg.flags = msg.flags | 8;
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
-
-
-//			msg_debug_vect v = new msg_debug_vect(2,1);
-//			v.x = (float)stat_vz.getVariance();
-//			v.y = (float)stat_vx.getVariance();
-//			v.z = (float)stat_vy.getVariance();
-//			control.sendMAVLinkMessage(v);
-
 		}
 	}
 
