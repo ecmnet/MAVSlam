@@ -603,6 +603,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			control.sendMAVLinkMessage(cov);
 
 			if(do_attitude) {
+
 				msg_attitude_quaternion_cov att = new msg_attitude_quaternion_cov(1,2);
 				att.time_usec = (long)estTimeDepth_us;
 				att.q[0] = (float)att_q.w;
@@ -610,6 +611,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				att.q[2] = (float)att_q.y;
 				att.q[3] = (float)att_q.z;
 
+				// TODO: Rotation speeds
 
 				control.sendMAVLinkMessage(att);
 			}
@@ -645,6 +647,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				msg.flags = msg.flags | 4;
 			if(do_z_speed && do_odometry)
 				msg.flags = msg.flags | 8;
+			if(do_attitude && do_odometry)
+				msg.flags = msg.flags | 16;
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
 		}
