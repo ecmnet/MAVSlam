@@ -604,10 +604,12 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 			if(do_attitude) {
 				msg_attitude_quaternion_cov att = new msg_attitude_quaternion_cov(1,2);
+				att.time_usec = (long)estTimeDepth_us;
 				att.q[0] = (float)att_q.w;
 				att.q[1] = (float)att_q.x;
 				att.q[2] = (float)att_q.y;
 				att.q[3] = (float)att_q.z;
+
 
 				control.sendMAVLinkMessage(att);
 			}
