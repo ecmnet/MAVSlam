@@ -42,11 +42,9 @@ import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_attitude_quaternion_cov;
-import org.mavlink.messages.lquac.msg_debug_vect;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
-import org.mavlink.messages.lquac.msg_vision_position_estimate;
 import org.tools4j.meanvar.MeanVarianceSlidingWindow;
 
 import com.comino.main.MSPConfig;
@@ -57,7 +55,6 @@ import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.ExecutorService;
-import com.comino.msp.utils.MSP3DUtils;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
@@ -92,8 +89,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int  	PUBLISH_RATE_PX4    	= 20 - 5;
 
 	private static final int    INIT_COUNT           = 1;
-	private static final int    MAX_ERRORS    	    = 3;
-	private static final int    MAX_QUALITY_ERRORS   = 15;
+	private static final int    MAX_ERRORS    	    = 5;
+	private static final int    MAX_QUALITY_ERRORS   = 5;
 	private static final float  MAX_VARIANCE			= 0.5f;
 
 	private static final int    MAX_SPEED    	    = 20;
@@ -335,14 +332,14 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 					// reset speed and old measurements
 					speed_ned.reset();
-					pos_raw_old.set(pos_raw);
+					pos_raw_old.set(0,0,0);
 
 					if( quality > min_quality) {
 						if(++initialized_count == INIT_COUNT) {
-							oldTimeDepth_us = 0;
+							oldTimeDepth_us = estTimeDepth_us;
+							publishPX4Vision();
 							if(debug && (System.currentTimeMillis() - last_msg) > 500 && last_reason != null) {
 								last_msg = System.currentTimeMillis();
-								System.out.println("[vis] Odometry init at [m]: "+MSP3DUtils.vector3D_F64ToString(pos_ned.T));
 								control.writeLogMessage(new LogMessage("[vis] odometry re-init: "+last_reason,
 										MAV_SEVERITY.MAV_SEVERITY_NOTICE));
 							}
@@ -384,8 +381,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					} else {
 						if(++qual_error_count > MAX_QUALITY_ERRORS) {
 							qual_error_count=0;
-							if(debug)
-								System.out.println(timeDepth+"[vis] Quality "+quality+" < Min");
 							init("Quality");
 						}
 						return;
@@ -404,20 +399,14 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)
 							&& heading_init_enabled) {
-						if(debug)
-							System.out.println(timeDepth+"[vis] Heading not valid");
 						init("Heading div.");
 						return;
 					}
 				}
 				pos_raw_old.set(pos_raw);
 
-				if(control!=null) {
-					if(error_count < MAX_ERRORS) {
-						publishPX4Vision();
-					}
-					error_count=0;
-				}
+				publishPX4Vision();
+				error_count=0;
 
 				// TODO: Call detectors, even when odometry fails. This is reasonable for the DirectDepthDetector
 				// at least.
@@ -432,7 +421,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 									d.process(visualOdometry, depth, gray);
 								} catch(Exception e) {
 									model.sys.setSensor(Status.MSP_SLAM_AVAILABILITY, false);
-									System.out.println(timeDepth+"[vis] SLAM exception: "+e.getMessage());
+									//System.out.println(timeDepth+"[vis] SLAM exception: "+e.getMessage());
 								}
 							}
 						});
@@ -543,9 +532,12 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				fps=0; quality=0;
 				model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, false);
 			}
-			setPositionToState(model,pos_ned);
-			setAttitudeToState(model, current);
+
 			visualOdometry.reset(current);
+
+			speed_ned.reset();
+			setAttitudeToState(model, current);
+			setPositionToState(model,pos_ned);
 
 			if(detectors.size()>0) {
 				detector_tms = System.currentTimeMillis();
