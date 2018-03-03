@@ -45,8 +45,6 @@ import org.mavlink.messages.lquac.msg_attitude_quaternion_cov;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
-import org.mavlink.messages.lquac.msg_vision_position_estimate;
-import org.mavlink.messages.lquac.msg_vision_speed_estimate;
 import org.tools4j.meanvar.MeanVarianceSlidingWindow;
 
 import com.comino.main.MSPConfig;
@@ -167,8 +165,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private boolean do_z_speed 		= false;
 	private boolean do_attitude		= false;
 
-	private boolean do_cov_msg       = true;
-
 	private IMAVMSPController 			control		= null;
 	private List<ISLAMDetector> 			detectors 	= null;
 	private List<IVisualStreamHandler>	streams 		= null;
@@ -207,11 +203,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.do_attitude = config.getBoolProperty("vision_pub_attitude", "false");
 		System.out.println("Vision publishes attitude: "+do_attitude);
 
-		this.do_cov_msg = config.getBoolProperty("vision_send_covmsg", "false");
-		if(this.do_cov_msg)
-			System.out.println("Vision sends LOCAL_POSITION_NED_COV messages");
-		else
-			System.out.println("Vision sends VISION_POSITION_ESTIMATE messages");
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
 		if(this.detector_cycle_ms > 0)
@@ -436,12 +427,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						});
 					}
 				}
-
-				if(do_cov_msg) {
-					// Update statistics in cov mode
-					stat_x.update(pos_ned.T.x);    stat_y.update(pos_ned.T.y);    stat_z.update(pos_ned.T.z);
-					stat_vx.update(speed_ned.T.x); stat_vy.update(speed_ned.T.y); stat_vz.update(speed_ned.T.z);
-				}
+				// Update statistics
+				stat_x.update(pos_ned.T.x);    stat_y.update(pos_ned.T.y);    stat_z.update(pos_ned.T.z);
+				stat_vx.update(speed_ned.T.x); stat_vy.update(speed_ned.T.y); stat_vz.update(speed_ned.T.z);
 
 				// Publish MSP data
 				publisMSPVision();
@@ -562,49 +550,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	}
 
 	private void publishPX4Vision() {
-		if(do_cov_msg)
-			publishPX4Vision_cov();
-		else
-			publishPX4Vision_vis();
-	}
-
-	private void publishPX4Vision_vis() {
-		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
-			last_pos_tms = System.currentTimeMillis();
-
-			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-			sms.usec = (long)estTimeDepth_us;
-			if(do_xy_position)  {
-				sms.x = (float) pos_ned.T.z;
-				sms.y = (float) pos_ned.T.x;
-			}
-			if(do_z_position) {
-				sms.z = (float) pos_ned.T.y;
-			}
-			if(do_attitude) {
-				sms.roll  = (float)visAttitude[0];
-				sms.pitch = (float)visAttitude[1];
-				sms.yaw   = (float)visAttitude[2];
-			}
-			control.sendMAVLinkMessage(sms);
-
-			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
-			sse.usec = (long)estTimeDepth_us;
-			if(do_xy_speed)  {
-				sse.x = (float) speed_ned.T.z;
-				sse.y = (float) speed_ned.T.x;
-			}
-			if(do_z_speed) {
-				sse.z = (float) speed_ned.T.y;
-			}
-			sse.isValid = true;
-			control.sendMAVLinkMessage(sse);
-		}
-
-		model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
-	}
-
-	private void publishPX4Vision_cov() {
 
 		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
 			last_pos_tms = System.currentTimeMillis();
