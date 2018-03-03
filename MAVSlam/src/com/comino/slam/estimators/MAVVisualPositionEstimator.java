@@ -164,6 +164,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private boolean do_xy_speed 		= false;
 	private boolean do_z_speed 		= false;
 	private boolean do_attitude		= false;
+	private boolean do_covariances   = false;
 
 	private IMAVMSPController 			control		= null;
 	private List<ISLAMDetector> 			detectors 	= null;
@@ -202,6 +203,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 		this.do_attitude = config.getBoolProperty("vision_pub_attitude", "false");
 		System.out.println("Vision publishes attitude: "+do_attitude);
+
+		this.do_covariances = config.getBoolProperty("vision_pub_covariance", "false");
+		System.out.println("Vision publishes covariances: "+do_covariances);
 
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
@@ -428,8 +432,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					}
 				}
 				// Update statistics
-				stat_x.update(pos_ned.T.x);    stat_y.update(pos_ned.T.y);    stat_z.update(pos_ned.T.z);
-				stat_vx.update(speed_ned.T.x); stat_vy.update(speed_ned.T.y); stat_vz.update(speed_ned.T.z);
+				if(do_covariances) {
+					stat_x.update(pos_ned.T.x);    stat_y.update(pos_ned.T.y);    stat_z.update(pos_ned.T.z);
+					stat_vx.update(speed_ned.T.x); stat_vy.update(speed_ned.T.y); stat_vz.update(speed_ned.T.z);
+				}
 
 				// Publish MSP data
 				publisMSPVision();
