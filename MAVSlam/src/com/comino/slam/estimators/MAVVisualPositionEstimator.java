@@ -209,9 +209,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 		this.do_cov_msg = config.getBoolProperty("vision_send_covmsg", "false");
 		if(this.do_cov_msg)
-		  System.out.println("Vision sends LOCAL_POSITION_NED_COV messages");
+			System.out.println("Vision sends LOCAL_POSITION_NED_COV messages");
 		else
-		  System.out.println("Vision sends VISION_POSITION_ESTIMATE messages");
+			System.out.println("Vision sends VISION_POSITION_ESTIMATE messages");
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
 		if(this.detector_cycle_ms > 0)
@@ -436,9 +436,12 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						});
 					}
 				}
-				// Update statistics
-				stat_x.update(pos_ned.T.x);    stat_y.update(pos_ned.T.y);    stat_z.update(pos_ned.T.z);
-				stat_vx.update(speed_ned.T.x); stat_vy.update(speed_ned.T.y); stat_vz.update(speed_ned.T.z);
+
+				if(do_cov_msg) {
+					// Update statistics in cov mode
+					stat_x.update(pos_ned.T.x);    stat_y.update(pos_ned.T.y);    stat_z.update(pos_ned.T.z);
+					stat_vx.update(speed_ned.T.x); stat_vy.update(speed_ned.T.y); stat_vz.update(speed_ned.T.z);
+				}
 
 				// Publish MSP data
 				publisMSPVision();
@@ -560,9 +563,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private void publishPX4Vision() {
 		if(do_cov_msg)
-			   publishPX4Vision_cov();
-			else
-			   publishPX4Vision_vis();
+			publishPX4Vision_cov();
+		else
+			publishPX4Vision_vis();
 	}
 
 	private void publishPX4Vision_vis() {
