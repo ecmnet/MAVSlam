@@ -148,10 +148,7 @@ public class StartUp implements Runnable {
 
 		}
 
-		publishGPSOrigin();
-
 		// register MSP commands here
-
 
 		Autopilot2D.getInstance().reset(true);
 
@@ -203,11 +200,6 @@ public class StartUp implements Runnable {
 					continue;
 				tms = System.currentTimeMillis();
 
-
-				if(!model.sys.isStatus(Status.MSP_GPOS_VALID)
-						&& model.sys.isSensorAvailable(Status.MSP_GPS_AVAILABILITY))
-					publishGPSOrigin();
-
 				wifi.getQuality();
 				temp.getTemperature();
 
@@ -240,20 +232,4 @@ public class StartUp implements Runnable {
 			}
 		}
 	}
-
-	private void publishGPSOrigin() {
-
-		msg_gps_global_origin cmd = new msg_gps_global_origin(1,2);
-		cmd.latitude  = (long)(model.gps.latitude  * 1e7);
-		cmd.longitude = (long)(model.gps.longitude * 1e7);
-		cmd.altitude  = (short)(model.gps.altitude * 1e3);
-		cmd.time_usec = System.currentTimeMillis() * 1000;
-		control.sendMAVLinkMessage(cmd);
-
-		//	System.out.println(cmd);
-
-
-	}
-
-
 }
