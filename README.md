@@ -7,7 +7,7 @@
 Integrate  Intel® RealSense™ R200 depth camera as an oboard visual input source for PX4 using the [UP-Board]( http://www.up-board.org) as companion:
 
 - Estimate position and speed based on stereo depth images up to 60 fps for LPE /EKF2
-- Stream video to MAVGCL with overlays with local recording
+- Stream video to MAVGCL with overlays 
 - Feature-based or depth obstacle detection
 - Integration with PX4 via MAVLink ([MAVComm](https://github.com/ecmnet/MAVComm) required)
 
