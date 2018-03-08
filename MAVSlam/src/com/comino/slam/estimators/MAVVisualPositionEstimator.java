@@ -93,7 +93,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int    MAX_QUALITY_ERRORS   = 5;
 	private static final float  MAX_VARIANCE			= 0.5f;
 
-	private static final int    MAX_SPEED    	    = 20;
+	private static final int    MAX_SPEED    	    = 50;
 
 	private static final float  INLIER_PIXEL_TOL    = 1.3f;
 	private static final int    MAXTRACKS   		   = 150;
@@ -244,10 +244,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		});
 
 		// reset vision when GPOS gets valid
-		control.getStatusManager().addListener(Status.MSP_GPOS_VALID, (o,n) -> {
-			if((n.isStatus(Status.MSP_GPOS_VALID)))
-				reset();
-		});
+//		control.getStatusManager().addListener(Status.MSP_GPOS_VALID, (o,n) -> {
+//			if((n.isStatus(Status.MSP_GPOS_VALID)))
+//				reset();
+//		});
 
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
@@ -365,7 +365,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
-					if(stat_vz.getVariance() > MAX_VARIANCE || stat_vx.getVariance() > MAX_VARIANCE) {
+					if(stat_vz.getVariance() > MAX_VARIANCE || stat_vx.getVariance() > MAX_VARIANCE
+							&& do_covariances) {
 						init();
 						return;
 					}

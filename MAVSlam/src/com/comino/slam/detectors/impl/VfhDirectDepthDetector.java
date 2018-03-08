@@ -106,9 +106,13 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 			point_min.set(0,0,99);
 			for(int dy = -5; dy <= 5;dy=dy+5) {
+				try {
 				point = odometry.getPoint3DFromPixel(x,180+dy);
 				if(point != null && point.z < point_min.z)
 					point_min.set(point);
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
 			}
 
 			SePointOps_F64.transform(current,point_min,point_ned);
