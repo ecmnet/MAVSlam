@@ -41,6 +41,7 @@ import java.net.InetSocketAddress;
 import org.mavlink.messages.lquac.msg_gps_global_origin;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
+import org.mavlink.messages.lquac.msg_timesync;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
@@ -199,6 +200,11 @@ public class StartUp implements Runnable {
 				if((System.currentTimeMillis()-tms) < 500)
 					continue;
 				tms = System.currentTimeMillis();
+
+				msg_timesync sync_s = new msg_timesync(255,1);
+				sync_s.tc1 = 0;
+				sync_s.ts1 = control.getCurrentModel().sys.getSynchronizedPX4Time_us()*1000;
+				control.sendMAVLinkMessage(sync_s);
 
 				wifi.getQuality();
 				temp.getTemperature();
