@@ -45,6 +45,8 @@ import org.mavlink.messages.lquac.msg_attitude_quaternion_cov;
 import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
+import org.mavlink.messages.lquac.msg_vision_position_estimate;
+import org.mavlink.messages.lquac.msg_vision_speed_estimate;
 import org.tools4j.meanvar.MeanVarianceSlidingWindow;
 
 import com.comino.main.MSPConfig;
@@ -620,6 +622,42 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		}
 
 	}
+
+//	private void publishPX4Vision_vis() {
+//		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
+//			last_pos_tms = System.currentTimeMillis();
+//
+//			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+//			sms.usec = (long)estTimeDepth_us;
+//			if(do_xy_position)  {
+//				sms.x = (float) pos_ned.T.z;
+//				sms.y = (float) pos_ned.T.x;
+//			}
+//			if(do_z_position) {
+//				sms.z = (float) pos_ned.T.y;
+//			}
+//			if(do_attitude) {
+//				sms.roll  = (float)visAttitude[0];
+//				sms.pitch = (float)visAttitude[1];
+//				sms.yaw   = (float)visAttitude[2];
+//			}
+//			control.sendMAVLinkMessage(sms);
+//
+//			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
+//			sse.usec = (long)estTimeDepth_us;
+//			if(do_xy_speed)  {
+//				sse.x = (float) speed_ned.T.z;
+//				sse.y = (float) speed_ned.T.x;
+//			}
+//			if(do_z_speed) {
+//				sse.z = (float) speed_ned.T.y;
+//			}
+//			sse.isValid = true;
+//			control.sendMAVLinkMessage(sse);
+//		}
+//
+//		model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
+//	}
 
 	private void publisMSPVision() {
 		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {

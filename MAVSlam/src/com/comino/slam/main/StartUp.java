@@ -203,7 +203,7 @@ public class StartUp implements Runnable {
 
 				msg_timesync sync_s = new msg_timesync(255,1);
 				sync_s.tc1 = 0;
-				sync_s.ts1 = control.getCurrentModel().sys.getSynchronizedPX4Time_us()*1000;
+				sync_s.ts1 = System.currentTimeMillis()*1000000L;//control.getCurrentModel().sys.getSynchronizedPX4Time_us()*1000;
 				control.sendMAVLinkMessage(sync_s);
 
 				wifi.getQuality();
