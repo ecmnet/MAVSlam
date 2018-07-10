@@ -71,10 +71,10 @@ public class StartUp implements Runnable {
 	private MemoryMXBean mxBean = null;
 
 	private MSPCommander  commander = null;
+	private final long startTime_ms = System.currentTimeMillis();
 
 	IPositionEstimator vision = null;
 	private boolean publish_microslam;
-	final private DataModel model;
 
 	public StartUp(String[] args) {
 
@@ -94,8 +94,6 @@ public class StartUp implements Runnable {
 		MSPLogger.getInstance(control);
 
 		commander = new MSPCommander(control,config);
-
-		model  = control.getCurrentModel();
 
 		control.start();
 
@@ -216,7 +214,7 @@ public class StartUp implements Runnable {
 				msg.cpu_temp = (byte)temp.get();
 				msg.com_error = control.getErrorCount();
 				msg.autopilot_mode =control.getCurrentModel().sys.autopilot;
-				msg.uptime_ms = System.currentTimeMillis() - tms;
+				msg.uptime_ms = System.currentTimeMillis() - startTime_ms;
 				msg.status = control.getCurrentModel().sys.getStatus();
 				msg.setVersion(config.getVersion());
 				msg.setArch(osBean.getArch());
