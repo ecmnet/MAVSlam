@@ -45,6 +45,7 @@ import org.mavlink.messages.lquac.msg_timesync;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
+import com.comino.mav.control.impl.MAVController;
 import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.execution.autopilot.Autopilot2D;
 import com.comino.msp.execution.commander.MSPCommander;
@@ -83,10 +84,7 @@ public class StartUp implements Runnable {
 		config  = MSPConfig.getInstance("/home/up","msp.properties");
 		System.out.println("MSPControlService version "+config.getVersion());
 
-		if(args.length>0)
-			control = new MAVProxyController(true);
-		else
-			control = new MAVProxyController(false);
+		control = new MAVProxyController(MAVController.MODE_NORMAL);
 
 		osBean =  java.lang.management.ManagementFactory.getOperatingSystemMXBean();
 		mxBean = java.lang.management.ManagementFactory.getMemoryMXBean();
@@ -119,7 +117,7 @@ public class StartUp implements Runnable {
 				// Start HTTP Service with MJPEG streamer
 
 				vision = new MAVVisualPositionEstimator(info, control, config, streamer);
-			//	vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
+				//	vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
 				vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
 
 				HttpServer server;
