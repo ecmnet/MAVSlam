@@ -109,7 +109,7 @@ public class StreamRealSenseVisDepth {
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_WHITE_BALANCE, 0, error);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_EMITTER_ENABLED, 1, error);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_EXPOSURE, 1, error);
-		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED,1 , error);
+		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED,0 , error);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_BACKLIGHT_COMPENSATION, 0, error);
 
 
@@ -180,57 +180,43 @@ public class StreamRealSenseVisDepth {
 		@Override
 		public void run() {
 			running = true;
-			long timeDepth = 0,timeRgb = 0;
-			long time = 0,timeOld = 1;
 
 			while( !requestStop ) {
 
 				try {
 
+
 					LibRealSenseWrapper.INSTANCE.rs_wait_for_frames(dev, error);
 
-					time = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+					depthData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
 							rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
+					if(depthData!=null)
+						bufferDepthToU16(depthData,depth);
 
-					if(time!=timeOld) {
-						synchronized (this ) {
-							timeDepth = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-									rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
-							depthData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-									rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
-							if(depthData!=null)
-								bufferDepthToU16(depthData,depth);
+					switch(info.mode) {
+					case RealSenseInfo.MODE_RGB:
+						synchronized ( this ) {
+							rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+									rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
+							if(rgbData!=null)
+								bufferRgbToMsU8(rgbData,rgb);
 						}
-
-						switch(info.mode) {
-						case RealSenseInfo.MODE_RGB:
-							synchronized ( this ) {
-								timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-										rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
-								rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-										rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
-								if(rgbData!=null)
-									bufferRgbToMsU8(rgbData,rgb);
-							}
-							break;
-						case RealSenseInfo.MODE_INFRARED:
-							synchronized ( this ) {
-								timeRgb = LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
-										rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
-								rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
-										rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
-								if(rgbData!=null)
-									bufferGrayToMsU8(rgbData,rgb);
-							}
-							break;
+						break;
+					case RealSenseInfo.MODE_INFRARED:
+						synchronized ( this ) {
+							rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
+									rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
+							if(rgbData!=null)
+								bufferGrayToMsU8(rgbData,rgb);
 						}
-
-						timeOld = time;
-						if(listeners.size()>0) {
-							for(Listener listener : listeners)
-								listener.process(rgb, depth, timeRgb, timeDepth);
-						}
+						break;
 					}
+
+					if(listeners.size()>0) {
+						for(Listener listener : listeners)
+							listener.process(rgb, depth, System.currentTimeMillis(), System.currentTimeMillis());
+					}
+					//		}
 
 				} catch(Exception e) {
 					e.printStackTrace();
@@ -264,9 +250,9 @@ public class StreamRealSenseVisDepth {
 		for( y = 0; y < output.height; y++ ) {
 			indexOut = output.startIndex + y*output.stride;
 			for( x = 0; x < output.width; x++ , indexOut++ ) {
-				band0.data[indexOut] = input[indexIn++];
-				band1.data[indexOut] = input[indexIn++];
 				band2.data[indexOut] = input[indexIn++];
+				band1.data[indexOut] = input[indexIn++];
+				band0.data[indexOut] = input[indexIn++];
 			}
 		}
 	}

@@ -99,8 +99,8 @@ public class StreamRealSenseTest extends Application  {
 		});
 
 
-//		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
+//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 
 		try {
 
