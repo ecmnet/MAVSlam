@@ -85,12 +85,13 @@ public class StreamRealSenseVisDepth {
 	public StreamRealSenseVisDepth(int devno , RealSenseInfo info)
 	{
 
-		ctx = LibRealSenseWrapper.INSTANCE.rs_create_context(5, error);
+		ctx = LibRealSenseWrapper.INSTANCE.rs_create_context(11201, error);
 		if(LibRealSenseWrapper.INSTANCE.rs_get_device_count(ctx, error)<1)
 			ctx = LibRealSenseWrapper.INSTANCE.rs_create_context(4, error);
 
 		if(LibRealSenseWrapper.INSTANCE.rs_get_device_count(ctx, error)<1) {
 			LibRealSenseWrapper.INSTANCE.rs_delete_context(ctx, error);
+			System.out.println("No device connected");
 			throw new IllegalArgumentException("No device connected: "+error.getValue().getString(0));
 		}
 		this.listeners = new ArrayList<Listener>();
@@ -107,7 +108,7 @@ public class StreamRealSenseVisDepth {
 		LibRealSenseUtils.rs_apply_depth_control_preset(dev, LibRealSenseUtils.PRESET_DEPTH_HIGH);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_WHITE_BALANCE, 0, error);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_EMITTER_ENABLED, 1, error);
-		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_EXPOSURE, 0, error);
+		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_ENABLE_AUTO_EXPOSURE, 1, error);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_R200_LR_AUTO_EXPOSURE_ENABLED,1 , error);
 		LibRealSenseWrapper.INSTANCE.rs_set_device_option(dev, rs_option.RS_OPTION_COLOR_BACKLIGHT_COMPENSATION, 0, error);
 
