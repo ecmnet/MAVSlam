@@ -220,7 +220,6 @@ public class StartUp implements Runnable {
 				msg.setVersion(config.getVersion());
 				msg.setArch(osBean.getArch());
 				msg.unix_time_us = System.currentTimeMillis() * 1000;
-				msg.msp_status = 0;
 				control.sendMAVLinkMessage(msg);
 
 				if((System.currentTimeMillis()-blink) < 5000)
