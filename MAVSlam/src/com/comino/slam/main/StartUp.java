@@ -38,6 +38,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
+import org.mavlink.messages.MSP_SYSTEM_STATUS;
 import org.mavlink.messages.lquac.msg_gps_global_origin;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
@@ -173,7 +174,6 @@ public class StartUp implements Runnable {
 		while(true) {
 			try {
 
-				Thread.sleep(100);
 
 				if(!control.isConnected()) {
 					Thread.sleep(100);
@@ -193,8 +193,11 @@ public class StartUp implements Runnable {
 						control.sendMAVLinkMessage(grid);
 				}
 
+				Thread.sleep(100);
+
 				if((System.currentTimeMillis()-tms) < 500)
 					continue;
+
 				tms = System.currentTimeMillis();
 
 				msg_timesync sync_s = new msg_timesync(255,1);
@@ -217,6 +220,7 @@ public class StartUp implements Runnable {
 				msg.setVersion(config.getVersion());
 				msg.setArch(osBean.getArch());
 				msg.unix_time_us = System.currentTimeMillis() * 1000;
+				msg.msp_status = 0;
 				control.sendMAVLinkMessage(msg);
 
 				if((System.currentTimeMillis()-blink) < 5000)
