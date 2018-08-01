@@ -96,6 +96,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final float  MAX_VARIANCE			= 0.5f;
 
 	private static final int    MAX_SPEED    	    = 50;
+	private static final float  VISION_POS_GATE     = 0.25f;
 
 	private static final float  INLIER_PIXEL_TOL    = 1.3f;
 	private static final int    MAXTRACKS   		   = 150;
@@ -245,11 +246,11 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			}
 		});
 
-		// reset vision when GPOS gets valid
-//		control.getStatusManager().addListener(Status.MSP_GPOS_VALID, (o,n) -> {
-//			if((n.isStatus(Status.MSP_GPOS_VALID)))
-//				reset();
-//		});
+		//reset vision when GPOS gets valid
+		control.getStatusManager().addListener(Status.MSP_GPOS_VALID, (o,n) -> {
+			if((n.isStatus(Status.MSP_GPOS_VALID)))
+				reset();
+		});
 
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
@@ -337,7 +338,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				if(initialized_count < INIT_COUNT) {
 
 					// reset speed and old measurements
-					speed_ned.reset();
+					speed_ned.T.set(0,0,0);;
 					pos_raw_old.set(0,0,0);
 
 					if( quality > min_quality) {
@@ -353,12 +354,12 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						}
 					}  else
 						initialized_count = 0;
-					return;
+					//	return;
 				}
 
 				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
-				estTimeDepth_us = System.currentTimeMillis()*1000;
-				dt = (estTimeDepth_us - oldTimeDepth_us)/1000000f;
+				estTimeDepth_us = System.currentTimeMillis()*1000d;
+				dt = (estTimeDepth_us - oldTimeDepth_us)/1000000d;
 				if(oldTimeDepth_us==0) {
 					oldTimeDepth_us = estTimeDepth_us;
 					return;
@@ -378,6 +379,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 						// speed.T = (pos_raw - pos_raw_old ) / dt
 						GeometryMath_F64.sub(pos_raw, pos_raw_old, speed_ned.T);
 						speed_ned.T.scale(1d/dt);
+
 
 						// Check XY speed
 						if(Math.sqrt(speed_ned.getX()*speed_ned.getX()+speed_ned.getZ()*speed_ned.getZ())>MAX_SPEED) {
@@ -411,6 +413,14 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					}
 				}
 				pos_raw_old.set(pos_raw);
+
+
+				if(	 Math.abs(pos_ned.T.z- model.state.l_x) > VISION_POS_GATE ||
+					 Math.abs(pos_ned.T.x- model.state.l_y) > VISION_POS_GATE)   {
+					  System.out.println(Math.abs(pos_ned.T.z)- model.state.l_x+":"+pos_ned.T.z+":"+model.state.l_x);
+					  init("Vision pos. gate");
+					  return;
+				}
 
 				publishPX4Vision();
 				error_count=0;
@@ -537,15 +547,13 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.last_reason = reason;
 
 		if(do_odometry) {
+			initialized_count = 0;
 			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
 				model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, false);
 			}
 
 			visualOdometry.reset(current);
-
-			speed_ned.reset();
-			setAttitudeToState(model, current);
 			setPositionToState(model,pos_ned);
 
 			if(detectors.size()>0) {
@@ -553,12 +561,15 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				for(ISLAMDetector d : detectors)
 					d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
 			}
-			initialized_count = 0;
-			stat_x.reset(); stat_y.reset(); stat_z.reset();
+
+			if(do_covariances) {
+				stat_x.reset(); stat_y.reset(); stat_z.reset();
+			}
 		}
 	}
 
 	private void publishPX4Vision() {
+
 
 		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
 			last_pos_tms = System.currentTimeMillis();
@@ -623,41 +634,41 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	}
 
-//	private void publishPX4Vision_vis() {
-//		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
-//			last_pos_tms = System.currentTimeMillis();
-//
-//			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-//			sms.usec = (long)estTimeDepth_us;
-//			if(do_xy_position)  {
-//				sms.x = (float) pos_ned.T.z;
-//				sms.y = (float) pos_ned.T.x;
-//			}
-//			if(do_z_position) {
-//				sms.z = (float) pos_ned.T.y;
-//			}
-//			if(do_attitude) {
-//				sms.roll  = (float)visAttitude[0];
-//				sms.pitch = (float)visAttitude[1];
-//				sms.yaw   = (float)visAttitude[2];
-//			}
-//			control.sendMAVLinkMessage(sms);
-//
-//			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
-//			sse.usec = (long)estTimeDepth_us;
-//			if(do_xy_speed)  {
-//				sse.x = (float) speed_ned.T.z;
-//				sse.y = (float) speed_ned.T.x;
-//			}
-//			if(do_z_speed) {
-//				sse.z = (float) speed_ned.T.y;
-//			}
-//			sse.isValid = true;
-//			control.sendMAVLinkMessage(sse);
-//		}
-//
-//		model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
-//	}
+	//	private void publishPX4Vision_vis() {
+	//		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
+	//			last_pos_tms = System.currentTimeMillis();
+	//
+	//			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+	//			sms.usec = (long)estTimeDepth_us;
+	//			if(do_xy_position)  {
+	//				sms.x = (float) pos_ned.T.z;
+	//				sms.y = (float) pos_ned.T.x;
+	//			}
+	//			if(do_z_position) {
+	//				sms.z = (float) pos_ned.T.y;
+	//			}
+	//			if(do_attitude) {
+	//				sms.roll  = (float)visAttitude[0];
+	//				sms.pitch = (float)visAttitude[1];
+	//				sms.yaw   = (float)visAttitude[2];
+	//			}
+	//			control.sendMAVLinkMessage(sms);
+	//
+	//			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
+	//			sse.usec = (long)estTimeDepth_us;
+	//			if(do_xy_speed)  {
+	//				sse.x = (float) speed_ned.T.z;
+	//				sse.y = (float) speed_ned.T.x;
+	//			}
+	//			if(do_z_speed) {
+	//				sse.z = (float) speed_ned.T.y;
+	//			}
+	//			sse.isValid = true;
+	//			control.sendMAVLinkMessage(sse);
+	//		}
+	//
+	//		model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
+	//	}
 
 	private void publisMSPVision() {
 		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {

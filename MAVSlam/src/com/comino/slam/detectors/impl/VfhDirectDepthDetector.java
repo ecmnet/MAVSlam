@@ -58,7 +58,7 @@ import georegression.transform.se.SePointOps_F64;
 
 public class VfhDirectDepthDetector implements ISLAMDetector {
 
-	private static final float MIN_ALTITUDE  = -0.2f;
+	private static final float MIN_ALTITUDE  = -0.4f;
 	private static final float MAX_DEPTH		= 4.0f;
 
 	private float     	max_distance     	= 3.0f;
@@ -105,7 +105,7 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 		for(int x = 0;x < gray.getWidth();x++) {
 
 			point_min.set(0,0,99);
-			for(int dy = -5; dy <= 5;dy=dy+5) {
+			for(int dy = -15; dy <= 15;dy=dy+5) {
 				try {
 				point = odometry.getPoint3DFromPixel(x,180+dy);
 				if(point != null && point.z < point_min.z)
