@@ -193,7 +193,7 @@ public class StartUp implements Runnable {
 						control.sendMAVLinkMessage(grid);
 				}
 
-				Thread.sleep(100);
+				Thread.sleep(50);
 
 				if((System.currentTimeMillis()-tms) < 500)
 					continue;
@@ -226,7 +226,7 @@ public class StartUp implements Runnable {
 					continue;
 				blink = System.currentTimeMillis();
 
-				if(model.sys.isStatus(Status.MSP_ACTIVE))
+				if(model.sys.isStatus(Status.MSP_CONNECTED))
 					UpLEDControl.flash("green", 10);
 				else
 					UpLEDControl.flash("red", 10);
