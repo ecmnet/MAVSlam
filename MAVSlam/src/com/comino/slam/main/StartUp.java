@@ -110,12 +110,12 @@ public class StartUp implements Runnable {
 		});
 
 		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
-		if(!is_simulation) {
+		//if(!is_simulation) {
 			Thread worker = new Thread(this);
 			worker.setPriority(Thread.MIN_PRIORITY);
 			worker.setName("Main");
 			worker.start();
-		}
+	//	}
 
 		// Start services if required
 
@@ -239,7 +239,7 @@ public class StartUp implements Runnable {
 				msg.unix_time_us = System.currentTimeMillis() * 1000;
 				control.sendMAVLinkMessage(msg);
 
-				if((System.currentTimeMillis()-blink) < 5000)
+				if((System.currentTimeMillis()-blink) < 5000 || is_simulation)
 					continue;
 
 				blink = System.currentTimeMillis();

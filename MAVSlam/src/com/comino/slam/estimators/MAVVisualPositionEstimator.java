@@ -570,7 +570,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private void publishPX4Vision() {
 
 
-		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4 && !control.isSimulation()) {
+		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
 			last_pos_tms = System.currentTimeMillis();
 
 			msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
@@ -670,7 +670,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	//	}
 
 	private void publisMSPVision() {
-		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP && !control.isSimulation()) {
+		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
 			last_msp_tms = System.currentTimeMillis();
 			msg_msp_vision msg = new msg_msp_vision(2,1);
 			msg.x =  (float) pos_ned.T.z;
