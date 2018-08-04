@@ -77,15 +77,21 @@ public class StartUp implements Runnable {
 
 	IPositionEstimator vision = null;
 	private boolean publish_microslam;
+	private boolean is_simulation;
 
 	public StartUp(String[] args) {
+
+		is_simulation = args.length != 0;
 
 		RealSenseInfo info = null;
 
 		config  = MSPConfig.getInstance("/home/up","msp.properties");
 		System.out.println("MSPControlService version "+config.getVersion());
 
-		control = new MAVProxyController(MAVController.MODE_NORMAL);
+		if(is_simulation)
+			control = new MAVProxyController(MAVController.MODE_SITL);
+		else
+			control = new MAVProxyController(MAVController.MODE_NORMAL);
 
 		osBean =  java.lang.management.ManagementFactory.getOperatingSystemMXBean();
 		mxBean = java.lang.management.ManagementFactory.getMemoryMXBean();
@@ -96,16 +102,25 @@ public class StartUp implements Runnable {
 
 		control.start();
 
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+		    public void run() {
+		       if(vision!=null)
+		    	   vision.stop();
+		    }
+		});
+
 		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
-		Thread worker = new Thread(this);
-		worker.setPriority(Thread.MIN_PRIORITY);
-		worker.setName("Main");
-		worker.start();
+		if(!is_simulation) {
+			Thread worker = new Thread(this);
+			worker.setPriority(Thread.MIN_PRIORITY);
+			worker.setName("Main");
+			worker.start();
+		}
 
 		// Start services if required
 
 		try {
-			if(config.getBoolProperty("vision_enabled", "false")) {
+			if(config.getBoolProperty("vision_enabled", "true")) {
 
 				if(config.getBoolProperty("vision_highres", "false"))
 					info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
@@ -152,8 +167,11 @@ public class StartUp implements Runnable {
 
 	}
 
-	public static void main(String[] args) {
-		UpLEDControl.clear();
+	public static void main(String[] args)  {
+
+		if(args.length==0)
+			UpLEDControl.clear();
+
 		new StartUp(args);
 
 	}
@@ -174,9 +192,8 @@ public class StartUp implements Runnable {
 		while(true) {
 			try {
 
-
 				if(!control.isConnected()) {
-					Thread.sleep(100);
+					Thread.sleep(200);
 					control.connect();
 					continue;
 				}
@@ -224,6 +241,7 @@ public class StartUp implements Runnable {
 
 				if((System.currentTimeMillis()-blink) < 5000)
 					continue;
+
 				blink = System.currentTimeMillis();
 
 				if(model.sys.isStatus(Status.MSP_CONNECTED))

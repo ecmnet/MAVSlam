@@ -34,6 +34,7 @@
 
 package com.comino.server.mjpeg.impl;
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -65,7 +66,6 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 	private DataModel model = null;
 
 	private  List<BufferedImage>imageByteList;
-	private Graphics gr;
 	private long last_image_tms = 0;
 
 	public HttpMJPEGHandler(RealSenseInfo info, DataModel model) {
@@ -73,7 +73,11 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 		this.imageByteList = new ArrayList<BufferedImage>(0);
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
 		this.image = new BufferedImage(info.width, info.height, BufferedImage.TYPE_BYTE_GRAY);
-		this.gr =  image.getGraphics();
+
+		this.registerOverlayListener((a) -> {
+			//			a.setColor(Color.WHITE);
+			//			a.drawString("hallo", 10, 10);
+		});
 	}
 
 	@Override
@@ -87,9 +91,10 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 				ImageIO.write(imageByteList.get(0), "jpg", os );
 				os.write("\r\n\r\n".getBytes());
 				imageByteList.remove(0);
-			}
+			} else
+				os.write("response".getBytes());
 			try {
-				TimeUnit.MILLISECONDS.sleep(20);
+				TimeUnit.MILLISECONDS.sleep(MAX_VIDEO_RATE_MS);
 			} catch (InterruptedException e) {	}
 		}
 	}
@@ -107,18 +112,17 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 
 		last_image_tms = System.currentTimeMillis();
 
-		if(imageByteList.size()>10) {
+		while(imageByteList.size()>10) {
 			imageByteList.remove(0);
-			return;
 		}
 
-		ExecutorService.get().execute(() -> {
-			if(listeners.size()>0) {
-				ConvertBufferedImage.convertTo(grayImage, image);
-				for(IMJPEGOverlayListener listener : listeners)
-					listener.processOverlay(gr);
-			}
-			imageByteList.add(image);
-		});
+		//	ExecutorService.get().execute(() -> {
+		if(listeners.size()>0) {
+			ConvertBufferedImage.convertTo(grayImage, image);
+			for(IMJPEGOverlayListener listener : listeners)
+				listener.processOverlay(image.getGraphics());
+		}
+		imageByteList.add(image);
+		//	});
 	}
 }

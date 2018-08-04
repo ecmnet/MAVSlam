@@ -183,7 +183,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.streams   = new ArrayList<IVisualStreamHandler>();
 
 		System.out.println("Vision position estimator: "+this.getClass().getSimpleName());
-		this.debug = config.getBoolProperty("vision_debug", "false");
+		this.debug = config.getBoolProperty("vision_debug", "true");
 		this.heading_init_enabled = config.getBoolProperty("vision_heading_init", "true");
 		System.out.println("Vision debugging: "+debug);
 		System.out.println("Initialize heading when landed: "+heading_init_enabled);
@@ -570,7 +570,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private void publishPX4Vision() {
 
 
-		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
+		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4 && !control.isSimulation()) {
 			last_pos_tms = System.currentTimeMillis();
 
 			msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
@@ -613,7 +613,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 			control.sendMAVLinkMessage(cov);
 
-			if(do_attitude) {
+			if(do_attitude && !control.isSimulation()) {
 
 				msg_attitude_quaternion_cov att = new msg_attitude_quaternion_cov(1,2);
 				att.time_usec = (long)estTimeDepth_us;
@@ -670,7 +670,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	//	}
 
 	private void publisMSPVision() {
-		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
+		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP && !control.isSimulation()) {
 			last_msp_tms = System.currentTimeMillis();
 			msg_msp_vision msg = new msg_msp_vision(2,1);
 			msg.x =  (float) pos_ned.T.z;
