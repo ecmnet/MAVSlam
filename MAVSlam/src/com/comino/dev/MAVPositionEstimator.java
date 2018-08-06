@@ -278,7 +278,7 @@ public class MAVPositionEstimator implements IPositionEstimator {
 					ConvertImage.average(rgb, gray);
 
 					for(IVisualStreamHandler stream : streams)
-						stream.addToStream(gray, depth, model, System.nanoTime()/1000);
+						stream.addToStream(rgb, depth, model, System.nanoTime()/1000);
 
 
 					// Check PX4 rotation and reset odometry if rotating too fast

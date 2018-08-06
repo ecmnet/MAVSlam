@@ -56,6 +56,7 @@ import com.sun.net.httpserver.HttpHandler;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
+import boofcv.struct.image.Planar;
 
 public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 
@@ -72,7 +73,7 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 		this.model = model;
 		this.imageByteList = new ArrayList<BufferedImage>(0);
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
-		this.image = new BufferedImage(info.width, info.height, BufferedImage.TYPE_BYTE_GRAY);
+		this.image = new BufferedImage(info.width, info.height, BufferedImage.TYPE_3BYTE_BGR);
 
 		this.registerOverlayListener((a) -> {
 			//			a.setColor(Color.WHITE);
@@ -105,7 +106,7 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 	}
 
 	@Override
-	public void addToStream(GrayU8 grayImage, GrayU16 depth, DataModel model, long tms_us) {
+	public void addToStream(Planar<GrayU8> grayImage, GrayU16 depth, DataModel model, long tms_us) {
 
 		if((System.currentTimeMillis()-last_image_tms)<MAX_VIDEO_RATE_MS)
 			return;
@@ -118,7 +119,7 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 
 		//	ExecutorService.get().execute(() -> {
 		if(listeners.size()>0) {
-			ConvertBufferedImage.convertTo(grayImage, image);
+			ConvertBufferedImage.convertTo_U8(grayImage, image, true);
 			for(IMJPEGOverlayListener listener : listeners)
 				listener.processOverlay(image.getGraphics());
 		}

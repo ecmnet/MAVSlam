@@ -52,6 +52,7 @@ import org.tools4j.meanvar.MeanVarianceSlidingWindow;
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.mav.mavlink.MAV_COV;
+import com.comino.msp.execution.autopilot.Autopilot2D;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
@@ -211,7 +212,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		System.out.println("Vision publishes covariances: "+do_covariances);
 
 
-		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "0");
+		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "100");
 		if(this.detector_cycle_ms > 0)
 			System.out.printf("Vision detectors enablied with %d [ms] cycle \n",detector_cycle_ms);
 
@@ -312,10 +313,11 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				try {
 
 					ConvertImage.average(rgb, gray);
-					//	ConvertImage.convert(depth, gray);
+				//	ConvertImage.convert(depth, gray);
+
 
 					for(IVisualStreamHandler stream : streams)
-						stream.addToStream(gray, depth, model, System.currentTimeMillis()*1000);
+						stream.addToStream(rgb, depth, model, System.currentTimeMillis()*1000);
 
 					if( !visualOdometry.process(gray,depth,setAttitudeToState(model, current))) {
 						init("Odometry");
