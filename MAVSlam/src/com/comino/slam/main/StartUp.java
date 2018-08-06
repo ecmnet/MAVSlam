@@ -81,7 +81,9 @@ public class StartUp implements Runnable {
 
 	public StartUp(String[] args) {
 
-		is_simulation = args.length != 0;
+		if(args.length != 0) {
+			is_simulation = true;
+		}
 
 		RealSenseInfo info = null;
 
@@ -103,19 +105,19 @@ public class StartUp implements Runnable {
 		control.start();
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
-		    public void run() {
-		       if(vision!=null)
-		    	   vision.stop();
-		    }
+			public void run() {
+				if(vision!=null)
+					vision.stop();
+			}
 		});
 
 		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
 		//if(!is_simulation) {
-			Thread worker = new Thread(this);
-			worker.setPriority(Thread.MIN_PRIORITY);
-			worker.setName("Main");
-			worker.start();
-	//	}
+		Thread worker = new Thread(this);
+		worker.setPriority(Thread.MIN_PRIORITY);
+		worker.setName("Main");
+		worker.start();
+		//	}
 
 		// Start services if required
 
@@ -147,12 +149,12 @@ public class StartUp implements Runnable {
 				}
 
 			}
-		} catch(Exception e) { }
+		} catch(Exception e) { System.out.println("No vision available"); }
 
 		//		if(config.getBoolProperty("file_stream_enabled", "false"))
 		//			vision.registerStreams(new CombinedFileStreamHandler(info, control));
 
-		this.publish_microslam = config.getBoolProperty("slam_publish_microslam", "false");
+		this.publish_microslam = config.getBoolProperty("slam_publish_microslam", "true");
 		System.out.println("[vis] Publishing microSlam enabled: "+publish_microslam);
 
 
