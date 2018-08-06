@@ -34,8 +34,12 @@
 
 package com.comino.realsense.boofcv;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.imageio.ImageIO;
 
 import com.comino.librealsense.wrapper.LibRealSenseIntrinsics;
 import com.comino.librealsense.wrapper.LibRealSenseUtils;
@@ -47,8 +51,10 @@ import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_stream;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
+import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 
 import boofcv.io.image.ConvertBufferedImage;
+import boofcv.io.image.UtilImageIO;
 import boofcv.struct.calib.IntrinsicParameters;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
@@ -239,12 +245,15 @@ public class StreamRealSenseVisDepth {
 	}
 
 	public void bufferRgbToMsU8( Pointer inp , Planar<GrayU8> output ) {
+
 		int x,y,indexOut;
+
 
 		byte[] input = inp.getByteArray(0, output.width * output.height * 3);
 		GrayU8 band0 = output.getBand(0);
 		GrayU8 band1 = output.getBand(1);
 		GrayU8 band2 = output.getBand(2);
+
 
 		int indexIn = 0;
 		for( y = 0; y < output.height; y++ ) {

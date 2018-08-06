@@ -120,6 +120,7 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 		//	ExecutorService.get().execute(() -> {
 		if(listeners.size()>0) {
 			ConvertBufferedImage.convertTo_U8(grayImage, image, true);
+			
 			for(IMJPEGOverlayListener listener : listeners)
 				listener.processOverlay(image.getGraphics());
 		}
