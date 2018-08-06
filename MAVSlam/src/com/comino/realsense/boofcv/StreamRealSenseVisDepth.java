@@ -34,6 +34,7 @@
 
 package com.comino.realsense.boofcv;
 
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -81,7 +82,6 @@ public class StreamRealSenseVisDepth {
 	private PointerByReference ctx;
 
 	private PointerByReference dev;
-
 
 	private RealSenseInfo info;
 	private float scale;
@@ -244,43 +244,36 @@ public class StreamRealSenseVisDepth {
 		System.arraycopy(inp, 0, output.data, 0, output.width * output.height);
 	}
 
+
+	private int x,y,indexOut, indexIn;
+	private byte[] input;
+
 	public void bufferRgbToMsU8( Pointer inp , Planar<GrayU8> output ) {
 
-		int x,y,indexOut;
+		input = inp.getByteArray(0, output.width * output.height * 3);
 
-
-		byte[] input = inp.getByteArray(0, output.width * output.height * 3);
-		GrayU8 band0 = output.getBand(0);
-		GrayU8 band1 = output.getBand(1);
-		GrayU8 band2 = output.getBand(2);
-
-
-		int indexIn = 0;
+		indexIn = 0;
 		for( y = 0; y < output.height; y++ ) {
 			indexOut = output.startIndex + y*output.stride;
 			for( x = 0; x < output.width; x++ , indexOut++ ) {
-				band0.data[indexOut] = input[indexIn++];
-				band1.data[indexOut] = input[indexIn++];
-				band2.data[indexOut] = input[indexIn++];
+				output.getBand(0).data[indexOut] = input[indexIn++];
+				output.getBand(1).data[indexOut] = input[indexIn++];
+				output.getBand(2).data[indexOut] = input[indexIn++];
 			}
 		}
 	}
 
 	public void bufferGrayToMsU8( Pointer inp , Planar<GrayU8> output ) {
 
-		byte[] input = inp.getByteArray(0, output.width * output.height);
-		GrayU8 band0 = output.getBand(0);
-		GrayU8 band1 = output.getBand(1);
-		GrayU8 band2 = output.getBand(2);
+		input = inp.getByteArray(0, output.width * output.height);
 
-
-		int indexIn = 0;
-		for( int y = 0; y < output.height; y++ ) {
+		indexIn = 0;
+		for(y = 0; y < output.height; y++ ) {
 			int indexOut = output.startIndex + y*output.stride;
-			for( int x = 0; x < output.width; x++ , indexOut++ ) {
-				band0.data[indexOut] = input[indexIn];
-				band1.data[indexOut] = input[indexIn];
-				band2.data[indexOut] = input[indexIn++];
+			for(x = 0; x < output.width; x++ , indexOut++ ) {
+				output.getBand(0).data[indexOut] = input[indexIn];
+				output.getBand(1).data[indexOut] = input[indexIn];
+				output.getBand(2).data[indexOut] = input[indexIn++];
 			}
 		}
 	}
