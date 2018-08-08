@@ -81,6 +81,7 @@ public class VfhDepthDetector implements ISLAMDetector {
 			}
 		});
 
+		if(streamer !=null)
 		streamer.registerOverlayListener(ctx -> {
 			ctx.drawOval((int)test.observation.x, (int)test.observation.y, 5, 5);
 

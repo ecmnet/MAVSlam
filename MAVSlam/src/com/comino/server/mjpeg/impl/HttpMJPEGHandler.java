@@ -36,6 +36,7 @@ package com.comino.server.mjpeg.impl;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -56,6 +57,7 @@ import com.sun.net.httpserver.HttpHandler;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
+import boofcv.struct.image.ImageBase;
 import boofcv.struct.image.Planar;
 
 public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
@@ -66,19 +68,14 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 	private BufferedImage image = null;
 	private DataModel model = null;
 
-	private  List<BufferedImage>imageByteList;
+//	private  List<BufferedImage>imageByteList;
 	private long last_image_tms = 0;
 
 	public HttpMJPEGHandler(RealSenseInfo info, DataModel model) {
 		this.model = model;
-		this.imageByteList = new ArrayList<BufferedImage>(0);
+	//	this.imageByteList = new ArrayList<BufferedImage>(0);
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
 		this.image = new BufferedImage(info.width, info.height, BufferedImage.TYPE_3BYTE_BGR);
-
-		this.registerOverlayListener((a) -> {
-			//			a.setColor(Color.WHITE);
-			//			a.drawString("hallo", 10, 10);
-		});
 	}
 
 	@Override
@@ -87,13 +84,18 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 		he.sendResponseHeaders(200, 0);
 		OutputStream os = he.getResponseBody();
 		while(true) {
-			if(imageByteList.size() > 0) {
-				os.write(("--BoundaryString\r\nContent-type:image/jpeg content-length:1\r\n\r\n").getBytes());
-				ImageIO.write(imageByteList.get(0), "jpg", os );
-				os.write("\r\n\r\n".getBytes());
-				imageByteList.remove(0);
-			} else
-				os.write("response".getBytes());
+//			if(imageByteList.size() > 0) {
+//				os.write(("--BoundaryString\r\nContent-type:image/jpeg content-length:1\r\n\r\n").getBytes());
+//				ImageIO.write(imageByteList.get(0), "jpg", os );
+//				os.write("\r\n\r\n".getBytes());
+//				imageByteList.remove(0);
+//			} else
+//				os.write("response".getBytes());
+
+			os.write(("--BoundaryString\r\nContent-type:image/jpeg content-length:1\r\n\r\n").getBytes());
+			ImageIO.write(image, "jpg", os );
+			os.write("\r\n\r\n".getBytes());
+
 			try {
 				TimeUnit.MILLISECONDS.sleep(MAX_VIDEO_RATE_MS);
 			} catch (InterruptedException e) {	}
@@ -105,26 +107,33 @@ public class HttpMJPEGHandler implements HttpHandler, IVisualStreamHandler  {
 		this.listeners.add(listener);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public void addToStream(Planar<GrayU8> grayImage, GrayU16 depth, DataModel model, long tms_us) {
+	public <T> void addToStream(T input, DataModel model, long tms_us) {
+
+		Graphics2D ctx;
 
 		if((System.currentTimeMillis()-last_image_tms)<MAX_VIDEO_RATE_MS)
 			return;
 
 		last_image_tms = System.currentTimeMillis();
 
-		while(imageByteList.size()>10) {
-			imageByteList.remove(0);
-		}
+//		while(imageByteList.size()>10) {
+//			imageByteList.remove(0);
+//		}
 
-		//	ExecutorService.get().execute(() -> {
-		if(listeners.size()>0) {
-			ConvertBufferedImage.convertTo_U8(grayImage, image, true);
-			
-			for(IMJPEGOverlayListener listener : listeners)
-				listener.processOverlay(image.getGraphics());
+		if(input instanceof Planar) {
+			ConvertBufferedImage.convertTo_U8((Planar<GrayU8>)input, image, true);
 		}
-		imageByteList.add(image);
-		//	});
+		else if(input instanceof GrayU8)
+			ConvertBufferedImage.convertTo((GrayU8)input, image, true);
+
+		if(listeners.size()>0) {
+			ctx = image.createGraphics();
+			for(IMJPEGOverlayListener listener : listeners)
+				listener.processOverlay(ctx);
+		}
+//		imageByteList.add(image);
+
 	}
 }

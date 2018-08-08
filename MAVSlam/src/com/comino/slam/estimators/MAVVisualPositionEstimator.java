@@ -109,7 +109,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private MAVDepthVisualOdometry<GrayU8,GrayU16> 	visualOdometry	= null;
 	private RealSenseInfo 							info				= null;
 
-//	private GrayU8 gray 				= null;
+	//	private GrayU8 gray 				= null;
 
 	private double oldTimeDepth_us	= 0;
 	private double estTimeDepth_us	= 0;
@@ -217,7 +217,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 		this.model = control.getCurrentModel();
 
-	//	gray = new GrayU8(info.width,info.height);
+		//	gray = new GrayU8(info.width,info.height);
 
 		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
 			@Override
@@ -252,7 +252,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
-		} catch(Exception e) {	}
+		} catch(Exception e) { return;	}
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{ 1, 4, 8, 32 };
@@ -312,7 +312,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					//	ConvertImage.average(rgb, gray);
 
 					for(IVisualStreamHandler stream : streams)
-						stream.addToStream(rgb, depth, model, System.currentTimeMillis()*1000);
+						stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
 
 					if( !visualOdometry.process(rgb.getBand(0),depth,setAttitudeToState(model, current))) {
 						init("Odometry");

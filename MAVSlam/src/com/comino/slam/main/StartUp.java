@@ -64,6 +64,11 @@ import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.MAVVisualPositionEstimator;
 import com.sun.net.httpserver.HttpServer;
 
+import boofcv.alg.filter.blur.BlurImageOps;
+import boofcv.alg.filter.misc.AverageDownSampleOps;
+import boofcv.factory.filter.blur.FactoryBlurFilter;
+import boofcv.struct.image.GrayU8;
+
 public class StartUp implements Runnable {
 
 	IMAVMSPController    control = null;
@@ -71,6 +76,8 @@ public class StartUp implements Runnable {
 
 	private OperatingSystemMXBean osBean = null;
 	private MemoryMXBean mxBean = null;
+
+	private HttpMJPEGHandler streamer = null;
 
 	private MSPCommander  commander = null;
 	private final long startTime_ms = System.currentTimeMillis();
@@ -130,7 +137,7 @@ public class StartUp implements Runnable {
 					info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
 
 
-				HttpMJPEGHandler streamer = new HttpMJPEGHandler(info, control.getCurrentModel());
+				streamer = new HttpMJPEGHandler(info, control.getCurrentModel());
 
 				// Start HTTP Service with MJPEG streamer
 
@@ -151,8 +158,6 @@ public class StartUp implements Runnable {
 			}
 		} catch(Exception e) { System.out.println("No vision available"); }
 
-		//		if(config.getBoolProperty("file_stream_enabled", "false"))
-		//			vision.registerStreams(new CombinedFileStreamHandler(info, control));
 
 		this.publish_microslam = config.getBoolProperty("slam_publish_microslam", "true");
 		System.out.println("[vis] Publishing microSlam enabled: "+publish_microslam);
@@ -211,6 +216,8 @@ public class StartUp implements Runnable {
 					if(model.grid.toArray(grid.data))
 						control.sendMAVLinkMessage(grid);
 				}
+
+           //     streamer.addToStream(Autopilot2D.getInstance().getMap2D().getMap().subimage(400-160, 400-120, 400+160, 400+120), model, System.currentTimeMillis()*1000);
 
 				Thread.sleep(50);
 
