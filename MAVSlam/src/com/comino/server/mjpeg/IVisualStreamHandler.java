@@ -41,12 +41,12 @@ import boofcv.struct.image.ImageBase;
 import boofcv.struct.image.Planar;
 import jdk.internal.jline.internal.Nullable;
 
-public interface IVisualStreamHandler {
+public  interface  IVisualStreamHandler<T> {
 
 	public final static int HTTPVIDEO = 0;
 	public final static int FILE = 1;
 
-	public <T> void addToStream(T image, DataModel model, long tms_us);
+	public void addToStream(T image, DataModel model, long tms_us);
 	public void registerOverlayListener(IMJPEGOverlayListener listener);
 
 }
