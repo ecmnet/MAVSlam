@@ -34,20 +34,16 @@
 
 package com.comino.server.mjpeg.impl;
 
-import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 
 import com.comino.msp.model.DataModel;
-import com.comino.msp.utils.ExecutorService;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.IMJPEGOverlayListener;
 import com.comino.server.mjpeg.IVisualStreamHandler;
@@ -55,14 +51,12 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import boofcv.io.image.ConvertBufferedImage;
-import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
-import boofcv.struct.image.ImageBase;
 import boofcv.struct.image.Planar;
 
-public class HttpMJPEGHandler<T> implements HttpHandler, IVisualStreamHandler<T>, Runnable  {
+public class HttpMJPEGHandler<T> implements HttpHandler, IVisualStreamHandler<T>  {
 
-	private static final int MAX_VIDEO_RATE_MS = 30;
+	private static final int MAX_VIDEO_RATE_MS = 50;
 
 	private List<IMJPEGOverlayListener> listeners = null;
 	private BufferedImage image = null;
@@ -76,53 +70,17 @@ public class HttpMJPEGHandler<T> implements HttpHandler, IVisualStreamHandler<T>
 		this.model = model;
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
 		this.image = new BufferedImage(info.width, info.height, BufferedImage.TYPE_3BYTE_BGR);
-
-		Thread t = new Thread(this);
-		t.setName("HttpMjpegHandler");
-		t.start();
 	}
 
-	@Override
+	@Override @SuppressWarnings("unchecked")
 	public void handle(HttpExchange he) throws IOException {
+		Graphics2D ctx;
 		he.getResponseHeaders().add("content-type","multipart/x-mixed-replace; boundary=--BoundaryString");
 		he.sendResponseHeaders(200, 0);
 		OutputStream os = he.getResponseBody();
 		while(true) {
 			os.write(("--BoundaryString\r\nContent-type:image/jpeg content-length:1\r\n\r\n").getBytes());
-			ImageIO.write(image, "jpg", os );
-			os.write("\r\n\r\n".getBytes());
 
-			try {
-				TimeUnit.MILLISECONDS.sleep(MAX_VIDEO_RATE_MS);
-			} catch (InterruptedException e) {	}
-		}
-	}
-
-	@Override
-	public void registerOverlayListener(IMJPEGOverlayListener listener) {
-		this.listeners.add(listener);
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public synchronized void addToStream(T input, DataModel model, long tms_us) {
-
-
-		if((System.currentTimeMillis()-last_image_tms)<MAX_VIDEO_RATE_MS)
-			return;
-		last_image_tms = System.currentTimeMillis();
-
-		input_image = input;
-		notify();
-
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public void run() {
-		Graphics2D ctx;
-
-		while(true) {
 			try {
 				synchronized(this) {
 
@@ -139,13 +97,31 @@ public class HttpMJPEGHandler<T> implements HttpHandler, IVisualStreamHandler<T>
 						ctx = image.createGraphics();
 						for(IMJPEGOverlayListener listener : listeners)
 							listener.processOverlay(ctx);
-						input_image = null;
 					}
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+				ImageIO.write(image, "jpg", os );
+				os.write("\r\n\r\n".getBytes());
+
+				input_image = null;
+
+			} catch (Exception e) { }
 		}
+	}
+
+	@Override
+	public void registerOverlayListener(IMJPEGOverlayListener listener) {
+		this.listeners.add(listener);
+	}
+
+	@Override
+	public synchronized void addToStream(T input, DataModel model, long tms_us) {
+
+		if((System.currentTimeMillis()-last_image_tms)<MAX_VIDEO_RATE_MS)
+			return;
+		last_image_tms = System.currentTimeMillis();
+
+		input_image = input;
+		notify();
 
 	}
 }
