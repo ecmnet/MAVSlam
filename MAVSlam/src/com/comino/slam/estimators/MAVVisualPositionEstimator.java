@@ -34,6 +34,7 @@
 package com.comino.slam.estimators;
 
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,28 +89,28 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int   	PUBLISH_RATE_MSP	    = 50 - 5;
 	private static final int  	PUBLISH_RATE_PX4    	= 20 - 5;
 
-	private static final int    INIT_COUNT           = 1;
-	private static final int    MAX_ERRORS    	    = 5;
-	private static final int    MAX_QUALITY_ERRORS   = 5;
+	private static final int    INIT_COUNT           	= 1;
+	private static final int    MAX_ERRORS    	    	= 5;
+	private static final int    MAX_QUALITY_ERRORS   	= 5;
 	private static final float  MAX_VARIANCE			= 0.5f;
 
-	private static final int    MAX_SPEED    	    = 50;
-	private static final float  VISION_POS_GATE     = 0.25f;
+	private static final int    MAX_SPEED    	    	= 50;
+	private static final float  VISION_POS_GATE     	= 0.25f;
 
-	private static final float  INLIER_PIXEL_TOL    = 1.3f;
-	private static final int    MAXTRACKS   		   = 150;
-	private static final int    KLT_RADIUS          = 3;
-	private static final float  KLT_THRESHOLD       = 1f;
-	private static final int    RANSAC_ITERATIONS   = 150;
-	private static final int    RETIRE_THRESHOLD    = 10;
-	private static final int    INLIER_THRESHOLD    = 120;
-	private static final int    REFINE_ITERATIONS   = 50;
+	private static final float  INLIER_PIXEL_TOL    	= 1.3f;
+	private static final int    MAXTRACKS   			= 150;
+	private static final int    KLT_RADIUS          	= 3;
+	private static final float  KLT_THRESHOLD       	= 1f;
+	private static final int    RANSAC_ITERATIONS   	= 150;
+	private static final int    RETIRE_THRESHOLD    	= 10;
+	private static final int    INLIER_THRESHOLD    	= 120;
+	private static final int    REFINE_ITERATIONS   	= 50;
 
-	private StreamRealSenseVisDepth 					realsense		= null;
-	private MAVDepthVisualOdometry<GrayU8,GrayU16> 	visualOdometry	= null;
+	private StreamRealSenseVisDepth 				realsense			= null;
+	private MAVDepthVisualOdometry<GrayU8,GrayU16> 	visualOdometry		= null;
 	private RealSenseInfo 							info				= null;
 
-	private GrayU8 gray 				= null;
+	private GrayU8 gray 			= null;
 
 	private double oldTimeDepth_us	= 0;
 	private double estTimeDepth_us	= 0;
@@ -132,7 +133,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private Se3_F64 current          = new Se3_F64();
 
-	private Quaternion_F64 att_q		= new Quaternion_F64();
+	private Quaternion_F64 att_q	= new Quaternion_F64();
 	private double[] visAttitude     = new double[3];
 
 	private long last_pos_tms        = 0;
@@ -141,44 +142,46 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private DataModel model;
 
-	private boolean debug 				= false;
-	private boolean heading_init_enabled = false;
-	private boolean isRunning    		= false;
+	private boolean debug 					= false;
+	private boolean heading_init_enabled 	= false;
+	private boolean isRunning    			= false;
 
 
 	private int quality				= 0;
-	private int min_quality 			= 0;
+	private int min_quality 		= 0;
 
 	private long detector_tms 		= 0;
 	private int  detector_cycle_ms 	= 250;
 
 	private float fps 				= 0;
-	private long  fps_tms            = 0;
+	private long  fps_tms         	= 0;
 
 	private int initialized_count  	= 0;
-	private int error_count 			= 0;
+	private int error_count 		= 0;
 
-	private boolean do_odometry 		= true;
+	private boolean do_odometry 	= true;
 
 	private boolean do_xy_position 	= false;
 	private boolean do_z_position 	= false;
-	private boolean do_xy_speed 		= false;
+	private boolean do_xy_speed 	= false;
 	private boolean do_z_speed 		= false;
 	private boolean do_attitude		= false;
 	private boolean do_covariances   = false;
 
-	private IMAVMSPController 			control		= null;
-	private List<ISLAMDetector> 			detectors 	= null;
-	private List<IVisualStreamHandler>	streams 		= null;
-	private String 						last_reason	= null;
+	private IMAVMSPController 							control		= null;
+	private List<ISLAMDetector> 						detectors 	= null;
+	private List<IVisualStreamHandler<Planar<GrayU8>>>	streams 	= null;
+	private String 										last_reason	= null;
+
+	private final Color	bgColor = new Color(128,128, 128, 130);
 
 
-	public MAVVisualPositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler stream) {
+	public <T> MAVVisualPositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> stream) {
 
 		this.info    = info;
 		this.control = control;
 		this.detectors = new ArrayList<ISLAMDetector>();
-		this.streams   = new ArrayList<IVisualStreamHandler>();
+		this.streams   = new ArrayList<IVisualStreamHandler<Planar<GrayU8>>>();
 
 		System.out.println("Vision position estimator: "+this.getClass().getSimpleName());
 		this.debug = config.getBoolProperty("vision_debug", "true");
@@ -311,7 +314,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 					ConvertImage.average(rgb, gray);
 
-					for(IVisualStreamHandler stream : streams)
+					for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
 						stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
 
 					if( !visualOdometry.process(gray,depth,setAttitudeToState(model, current))) {
@@ -460,7 +463,11 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				ctx.drawRect((int)points.getAllTracks().get(i).x,(int)points.getAllTracks().get(i).y, 1, 1);
 		}
 
-		if(points.getAllTracks().size()==0)
+		ctx.setColor(bgColor);
+		ctx.fillRect(5, 5, info.width-10, 21);
+		ctx.setColor(Color.white);
+
+	    if(points.getAllTracks().size()==0)
 			ctx.drawString("No odometry", info.width-90, 20);
 		else if(quality <  min_quality)
 			ctx.drawString("Low quality", info.width-85, 20);
@@ -469,6 +476,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 		if(!Float.isNaN(model.sys.t_armed_ms) && model.sys.isStatus(Status.MSP_ARMED))
 			ctx.drawString(String.format("%.1f sec",model.sys.t_armed_ms/1000), 20, 20);
+
+
+		//  ctx.drawString("Message:"+model.msg.msg, 10, 20);
 
 	}
 

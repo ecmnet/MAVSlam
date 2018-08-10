@@ -56,7 +56,7 @@ import boofcv.struct.image.Planar;
 
 public class HttpMJPEGHandler<T> implements HttpHandler, IVisualStreamHandler<T>  {
 
-	private static final int MAX_VIDEO_RATE_MS = 50;
+	private static final int MAX_VIDEO_RATE_MS = 40;
 
 	private List<IMJPEGOverlayListener> listeners = null;
 	private BufferedImage image = null;
