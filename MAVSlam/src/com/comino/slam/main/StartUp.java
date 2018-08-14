@@ -94,13 +94,16 @@ public class StartUp implements Runnable {
 
 		RealSenseInfo info = null;
 
-		config  = MSPConfig.getInstance("/home/up","msp.properties");
-		System.out.println("MSPControlService version "+config.getVersion());
-
-		if(is_simulation)
+		if(is_simulation) {
+			config  = MSPConfig.getInstance(System.getProperty("user.home")+"/","msp.properties");
 			control = new MAVProxyController(MAVController.MODE_SITL);
-		else
+		}
+		else {
+			config  = MSPConfig.getInstance("/home/up","msp.properties");
 			control = new MAVProxyController(MAVController.MODE_NORMAL);
+		}
+
+		System.out.println("MSPControlService version "+config.getVersion());
 
 		osBean =  java.lang.management.ManagementFactory.getOperatingSystemMXBean();
 		mxBean = java.lang.management.ManagementFactory.getMemoryMXBean();
@@ -170,7 +173,7 @@ public class StartUp implements Runnable {
 
 		// register MSP commands here
 
-		Autopilot2D.getInstance().reset(true);
+		Autopilot2D.getInstance().reset(false);
 
 	}
 
