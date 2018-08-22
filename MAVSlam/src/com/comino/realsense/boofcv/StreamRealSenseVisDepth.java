@@ -97,8 +97,7 @@ public class StreamRealSenseVisDepth {
 
 		if(LibRealSenseWrapper.INSTANCE.rs_get_device_count(ctx, error)<1) {
 			LibRealSenseWrapper.INSTANCE.rs_delete_context(ctx, error);
-			System.out.println("No device connected");
-			throw new IllegalArgumentException("No device connected: "+error.getValue().getString(0));
+			throw new IllegalArgumentException("No device found");
 		}
 		this.listeners = new ArrayList<Listener>();
 

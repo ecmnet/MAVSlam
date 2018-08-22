@@ -53,6 +53,7 @@ import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.Status;
+import com.comino.msp.utils.px4.DefaultTunes;
 import com.comino.msp.utils.upboard.CPUTemperature;
 import com.comino.msp.utils.upboard.UpLEDControl;
 import com.comino.msp.utils.upboard.WifiQuality;
@@ -191,6 +192,7 @@ public class StartUp implements Runnable {
 	public void run() {
 		long tms = System.currentTimeMillis();
 		long blink = tms;
+		boolean tune_played = false;
 
 		DataModel model = control.getCurrentModel();
 
@@ -206,6 +208,11 @@ public class StartUp implements Runnable {
 					Thread.sleep(200);
 					control.connect();
 					continue;
+				}
+
+				if(!tune_played) {
+					DefaultTunes.play(control,DefaultTunes.NOTIFY_POSITIVE);
+					tune_played = true;
 				}
 
 				if(publish_microslam && model.grid.hasTransfers()) {
