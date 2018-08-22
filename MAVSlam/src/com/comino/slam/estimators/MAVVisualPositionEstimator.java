@@ -255,7 +255,12 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
-		} catch(Exception e) { return;	}
+		} catch(Exception e) {
+			this.do_odometry = false;
+			this.detector_cycle_ms = 0;
+			System.out.println("Vision disabled due to: "+e.getMessage());
+			return;
+		}
 
 		PkltConfig configKlt = new PkltConfig();
 		configKlt.pyramidScaling = new int[]{ 1, 4, 8, 32 };
@@ -467,7 +472,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		ctx.fillRect(5, 5, info.width-10, 21);
 		ctx.setColor(Color.white);
 
-	    if(points.getAllTracks().size()==0)
+		if(points.getAllTracks().size()==0)
 			ctx.drawString("No odometry", info.width-90, 20);
 		else if(quality <  min_quality)
 			ctx.drawString("Low quality", info.width-85, 20);
