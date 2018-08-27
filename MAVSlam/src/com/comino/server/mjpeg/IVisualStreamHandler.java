@@ -35,12 +35,6 @@ package com.comino.server.mjpeg;
 
 import com.comino.msp.model.DataModel;
 
-import boofcv.struct.image.GrayU16;
-import boofcv.struct.image.GrayU8;
-import boofcv.struct.image.ImageBase;
-import boofcv.struct.image.Planar;
-import jdk.internal.jline.internal.Nullable;
-
 public  interface  IVisualStreamHandler<T> {
 
 	public final static int HTTPVIDEO = 0;

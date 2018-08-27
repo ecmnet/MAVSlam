@@ -34,13 +34,8 @@
 
 package com.comino.realsense.boofcv;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.imageio.ImageIO;
 
 import com.comino.librealsense.wrapper.LibRealSenseIntrinsics;
 import com.comino.librealsense.wrapper.LibRealSenseUtils;
@@ -49,13 +44,9 @@ import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_format;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_intrinsics;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_option;
 import com.comino.librealsense.wrapper.LibRealSenseWrapper.rs_stream;
-import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
-import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 
-import boofcv.io.image.ConvertBufferedImage;
-import boofcv.io.image.UtilImageIO;
 import boofcv.struct.calib.IntrinsicParameters;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;

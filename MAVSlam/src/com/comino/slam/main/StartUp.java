@@ -38,6 +38,8 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
+import org.mavlink.messages.IMAVLinkMessageID;
+import org.mavlink.messages.MAV_CMD;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 import org.mavlink.messages.lquac.msg_timesync;
@@ -107,12 +109,20 @@ public class StartUp implements Runnable {
 
 		control.start();
 
+		if(control.isSimulation()) {
+			System.out.println("Setup MAVLink streams for simulation mode");
+			control.sendMAVLinkCmd(MAV_CMD.MAV_CMD_SET_MESSAGE_INTERVAL, IMAVLinkMessageID.MAVLINK_MSG_ID_HIGHRES_IMU,20000);
+			control.sendMAVLinkCmd(MAV_CMD.MAV_CMD_SET_MESSAGE_INTERVAL, IMAVLinkMessageID.MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE,20000);
+		}
+
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
 				if(vision!=null)
 					vision.stop();
 			}
 		});
+
+
 
 		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
 		//if(!is_simulation) {
@@ -123,6 +133,12 @@ public class StartUp implements Runnable {
 		//	}
 
 		// Start services if required
+
+//		control.addMAVMessageListener((msg) -> {
+//			if(msg.filter("vis"))
+//				System.out.println("MSP Message: "+msg.text);
+//
+//		});
 
 		try {
 			if(config.getBoolProperty("vision_enabled", "true")) {
@@ -140,7 +156,7 @@ public class StartUp implements Runnable {
 				vision = new MAVVisualPositionEstimator(info, control, config, streamer);
 				//	vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
 				vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
-			//	vision.registerDetector(new VfhDynamicDirectDepthDetector(control,config,streamer));
+				//	vision.registerDetector(new VfhDynamicDirectDepthDetector(control,config,streamer));
 
 				HttpServer server;
 				try {
@@ -194,6 +210,8 @@ public class StartUp implements Runnable {
 		msg_msp_micro_grid grid = new msg_msp_micro_grid(2,1);
 		msg_msp_status msg = new msg_msp_status(2,1);
 
+
+
 		while(true) {
 			try {
 
@@ -202,6 +220,7 @@ public class StartUp implements Runnable {
 					control.connect();
 					continue;
 				}
+
 
 				if(!tune_played) {
 					DefaultTunes.play(control,DefaultTunes.NOTIFY_POSITIVE);
@@ -220,7 +239,7 @@ public class StartUp implements Runnable {
 						control.sendMAVLinkMessage(grid);
 				}
 
-           //     streamer.addToStream(Autopilot2D.getInstance().getMap2D().getMap().subimage(400-160, 400-120, 400+160, 400+120), model, System.currentTimeMillis()*1000);
+				//     streamer.addToStream(Autopilot2D.getInstance().getMap2D().getMap().subimage(400-160, 400-120, 400+160, 400+120), model, System.currentTimeMillis()*1000);
 
 				Thread.sleep(33);
 
