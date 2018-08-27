@@ -56,9 +56,10 @@ import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.transform.se.SePointOps_F64;
 
-public class VfhDirectDepthDetector implements ISLAMDetector {
+public class VfhDynamicDirectDepthDetector implements ISLAMDetector {
 
 	private static final float MIN_ALTITUDE  = -0.4f;
+	private static final float MAX_DEPTH	 = 4.0f;
 
 	private float     	max_distance     	= 3.0f;
 	private float     	min_altitude     	= 0.35f;
@@ -68,12 +69,12 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 	private Point3D_F64	point				= null;
 	private Point3D_F64 point_min      		= new Point3D_F64();
-	private Point3D_F64 point_ned       	= new Point3D_F64();
+	private Point3D_F64 point_ned       		= new Point3D_F64();
 
 	private Se3_F64 		current 		 		= new Se3_F64();
 
 
-	public <T> VfhDirectDepthDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> streamer) {
+	public <T> VfhDynamicDirectDepthDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> streamer) {
 
 		this.model	= control.getCurrentModel();
 		this.map 	= Autopilot2D.getInstance().getMap2D();
@@ -99,24 +100,29 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 	@Override
 	public void process(MAVDepthVisualOdometry<GrayU8,GrayU16> odometry, GrayU16 depth, GrayU8 gray) {
 
+		int win_y = 0;
+
 		getModelToState(model,current);
 
-		for(int x = 0;x < gray.getWidth();x++) {
+		// TODO: Narrow down window in Y axis with increasing depth
 
+		for(int x = 0;x < gray.getWidth();x++) {
+			point = odometry.getPoint3DFromPixel(x,180);
+			win_y = (int)(15 / point.z);
 			point_min.set(0,0,99);
-			for(int dy = -15; dy <= 15;dy=dy+5) {
+			for(int dy = -win_y; dy <= win_y;dy=dy+5) {
 				try {
 				point = odometry.getPoint3DFromPixel(x,180+dy);
 				if(point != null && point.z < point_min.z)
 					point_min.set(point);
 				} catch(Exception e) {
-					continue;
+					e.printStackTrace();
 				}
 			}
 
 			SePointOps_F64.transform(current,point_min,point_ned);
 			MSP3DUtils.toNED(point_ned);
-			if(point_ned.z > MIN_ALTITUDE && !map.isLoaded())
+			if(point_ned.z > MIN_ALTITUDE)
 			  map.update(model.state.l_x, model.state.l_y,point_ned);
 		}
 	}
