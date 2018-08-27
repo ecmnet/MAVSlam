@@ -205,7 +205,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.do_z_speed = config.getBoolProperty("vision_pub_speed_z", "true");
 		System.out.println("Vision publishes Z speed: "+do_z_speed);
 
-		this.do_attitude = config.getBoolProperty("vision_pub_attitude", "true");
+		this.do_attitude = config.getBoolProperty("vision_pub_attitude", "false");
 		System.out.println("Vision publishes attitude: "+do_attitude);
 
 		this.do_covariances = config.getBoolProperty("vision_pub_covariance", "false");
@@ -625,7 +625,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 			control.sendMAVLinkMessage(cov);
 
-			if(do_attitude && !control.isSimulation()) {
+			if(do_attitude) {
 
 				msg_attitude_quaternion_cov att = new msg_attitude_quaternion_cov(1,2);
 				att.time_usec = (long)estTimeDepth_us;
