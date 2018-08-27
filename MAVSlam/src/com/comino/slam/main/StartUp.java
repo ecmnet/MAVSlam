@@ -38,8 +38,6 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
-import org.mavlink.messages.MSP_SYSTEM_STATUS;
-import org.mavlink.messages.lquac.msg_gps_global_origin;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 import org.mavlink.messages.lquac.msg_timesync;
@@ -60,16 +58,9 @@ import com.comino.msp.utils.upboard.WifiQuality;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.VfhDirectDepthDetector;
-import com.comino.slam.detectors.impl.VfhDynamicDirectDepthDetector;
-import com.comino.slam.detectors.impl.VfhFeatureDetector;
 import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.MAVVisualPositionEstimator;
 import com.sun.net.httpserver.HttpServer;
-
-import boofcv.alg.filter.blur.BlurImageOps;
-import boofcv.alg.filter.misc.AverageDownSampleOps;
-import boofcv.factory.filter.blur.FactoryBlurFilter;
-import boofcv.struct.image.GrayU8;
 
 public class StartUp implements Runnable {
 
@@ -148,8 +139,8 @@ public class StartUp implements Runnable {
 
 				vision = new MAVVisualPositionEstimator(info, control, config, streamer);
 				//	vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
-				//vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
-				vision.registerDetector(new VfhDynamicDirectDepthDetector(control,config,streamer));
+				vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
+			//	vision.registerDetector(new VfhDynamicDirectDepthDetector(control,config,streamer));
 
 				HttpServer server;
 				try {
