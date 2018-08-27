@@ -421,7 +421,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 
 				if(	 Math.abs(pos_ned.T.z- model.state.l_x) > VISION_POS_GATE ||
-						Math.abs(pos_ned.T.x- model.state.l_y) > VISION_POS_GATE)   {
+					 Math.abs(pos_ned.T.x- model.state.l_y) > VISION_POS_GATE)   {
 					init("Vision pos. gate");
 					return;
 				}
