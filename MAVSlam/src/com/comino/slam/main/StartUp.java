@@ -53,6 +53,7 @@ import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.Status;
+import com.comino.msp.utils.linux.LinuxUtils;
 import com.comino.msp.utils.px4.DefaultTunes;
 import com.comino.msp.utils.upboard.CPUTemperature;
 import com.comino.msp.utils.upboard.UpLEDControl;
@@ -109,11 +110,6 @@ public class StartUp implements Runnable {
 
 		control.start();
 
-		if(control.isSimulation()) {
-			System.out.println("Setup MAVLink streams for simulation mode");
-			control.sendMAVLinkCmd(MAV_CMD.MAV_CMD_SET_MESSAGE_INTERVAL, IMAVLinkMessageID.MAVLINK_MSG_ID_HIGHRES_IMU,20000);
-			control.sendMAVLinkCmd(MAV_CMD.MAV_CMD_SET_MESSAGE_INTERVAL, IMAVLinkMessageID.MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE,20000);
-		}
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
@@ -256,7 +252,7 @@ public class StartUp implements Runnable {
 				wifi.getQuality();
 				temp.getTemperature();
 
-				msg.load = (int)(osBean.getSystemLoadAverage()*100)/4;
+				msg.load = msg.load = LinuxUtils.getProcessCpuLoad();
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
 				msg.wifi_quality = (byte)wifi.get();
 				msg.threads = Thread.activeCount();
