@@ -38,8 +38,6 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
-import org.mavlink.messages.IMAVLinkMessageID;
-import org.mavlink.messages.MAV_CMD;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 import org.mavlink.messages.lquac.msg_timesync;
@@ -73,7 +71,7 @@ public class StartUp implements Runnable {
 	private OperatingSystemMXBean osBean = null;
 	private MemoryMXBean mxBean = null;
 
-	private HttpMJPEGHandler streamer = null;
+	private HttpMJPEGHandler<?> streamer = null;
 
 	private MSPCommander  commander = null;
 	private final long startTime_ms = System.currentTimeMillis();
@@ -246,7 +244,7 @@ public class StartUp implements Runnable {
 
 				msg_timesync sync_s = new msg_timesync(255,1);
 				sync_s.tc1 = 0;
-				sync_s.ts1 = System.currentTimeMillis()*1000000L;//control.getCurrentModel().sys.getSynchronizedPX4Time_us()*1000;
+				sync_s.ts1 = System.currentTimeMillis()*1000000L;
 				control.sendMAVLinkMessage(sync_s);
 
 				wifi.getQuality();
@@ -261,7 +259,7 @@ public class StartUp implements Runnable {
 				msg.autopilot_mode =control.getCurrentModel().sys.autopilot;
 				msg.uptime_ms = System.currentTimeMillis() - startTime_ms;
 				msg.status = control.getCurrentModel().sys.getStatus();
-				msg.setVersion(config.getVersion());
+				msg.setVersion(config.getVersion()+" ("+config.getVersionDate()+")");
 				msg.setArch(osBean.getArch());
 				msg.unix_time_us = System.currentTimeMillis() * 1000;
 				control.sendMAVLinkMessage(msg);
