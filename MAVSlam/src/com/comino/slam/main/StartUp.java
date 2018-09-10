@@ -235,7 +235,7 @@ public class StartUp implements Runnable {
 
 				//     streamer.addToStream(Autopilot2D.getInstance().getMap2D().getMap().subimage(400-160, 400-120, 400+160, 400+120), model, System.currentTimeMillis()*1000);
 
-				Thread.sleep(33);
+				Thread.sleep(50);
 
 				if((System.currentTimeMillis()-tms) < 500)
 					continue;
