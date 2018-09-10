@@ -64,6 +64,9 @@
 
 
 	<target name="UPDEPLOY" depends="build" description="Deploy to UPBOard">
+		<tstamp>
+		    <format property="current.time" pattern="dd.MM.yyyy" />
+		  </tstamp>
 		<copy todir="${deploy.dir}/slam">
 			<fileset dir="${dis.dir}/" />
 		</copy>
@@ -71,6 +74,7 @@
 				<echo>Current build number:${build.number}</echo>
 				<propertyfile file="${deploy.dir}/msp.properties">
 					<entry key="build" value="${build.number}" />
+					<entry key="build_date" value="${current.time}" />
 				</propertyfile>
 	</target>
 
