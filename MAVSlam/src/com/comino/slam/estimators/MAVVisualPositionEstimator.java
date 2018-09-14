@@ -87,11 +87,11 @@ import georegression.struct.so.Quaternion_F64;
 public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private static final int   	PUBLISH_RATE_MSP	    = 50 - 5;
-	private static final int  	PUBLISH_RATE_PX4    	= 20 - 5;
+	private static final int  	PUBLISH_RATE_PX4    	= 15 - 5;
 
 	private static final int    INIT_COUNT           	= 1;
 	private static final int    MAX_ERRORS    	    	= 5;
-	private static final int    MAX_QUALITY_ERRORS   	= 5;
+	private static final int    MAX_QUALITY_ERRORS   	= 10;
 	private static final float  MAX_VARIANCE			= 0.5f;
 
 	private static final int    MAX_SPEED    	    	= 50;
@@ -173,7 +173,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private List<IVisualStreamHandler<Planar<GrayU8>>>	streams 	= null;
 	private String 										last_reason	= null;
 
-	private final Color	bgColor = new Color(128,128, 128, 130);
+	private final Color	bgColor = new Color(128,128,128,130);
 
 
 	public <T> MAVVisualPositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> stream) {
@@ -263,7 +263,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		}
 
 		PkltConfig configKlt = new PkltConfig();
-		configKlt.pyramidScaling = new int[]{ 1, 4, 8, 32 };
+		configKlt.pyramidScaling = new int[]{ 1, 4, 8 };
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
@@ -694,6 +694,15 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			msg.h = MSPMathUtils.fromRad((float)visAttitude[2]);   //MSPMathUtils.fromRad((float)vis_init.getY());
 			msg.p = (float)visAttitude[1];
 			msg.r = (float)visAttitude[0];
+
+			msg.cov_px = (float)stat_z.getVariance();
+			msg.cov_py = (float)stat_x.getVariance();
+			msg.cov_pz = (float)stat_y.getVariance();
+
+			msg.cov_vx = (float)stat_vz.getVariance();
+			msg.cov_vy = (float)stat_vx.getVariance();
+			msg.cov_vz = (float)stat_vy.getVariance();
+
 			msg.quality = quality;
 			msg.fps = fps;
 			msg.tms = (long)estTimeDepth_us;
