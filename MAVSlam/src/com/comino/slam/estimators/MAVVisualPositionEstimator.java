@@ -208,7 +208,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.do_attitude = config.getBoolProperty("vision_pub_attitude", "false");
 		System.out.println("Vision publishes attitude: "+do_attitude);
 
-		this.do_covariances = config.getBoolProperty("vision_pub_covariance", "false");
+		this.do_covariances = config.getBoolProperty("vision_pub_covariance", "true");
 		System.out.println("Vision publishes covariances: "+do_covariances);
 
 
@@ -695,13 +695,13 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			msg.p = (float)visAttitude[1];
 			msg.r = (float)visAttitude[0];
 
-			msg.cov_px = (float)stat_z.getVariance();
-			msg.cov_py = (float)stat_x.getVariance();
-			msg.cov_pz = (float)stat_y.getVariance();
+			msg.covariance[MAV_COV.VIS_COV_X] = (float)stat_z.getVariance();
+			msg.covariance[MAV_COV.VIS_COV_Y] = (float)stat_x.getVariance();
+			msg.covariance[MAV_COV.VIS_COV_X] = (float)stat_z.getVariance();
 
-			msg.cov_vx = (float)stat_vz.getVariance();
-			msg.cov_vy = (float)stat_vx.getVariance();
-			msg.cov_vz = (float)stat_vy.getVariance();
+			msg.covariance[MAV_COV.VIS_COV_VX] = (float)stat_vz.getVariance();
+			msg.covariance[MAV_COV.VIS_COV_VY] = (float)stat_vx.getVariance();
+			msg.covariance[MAV_COV.VIS_COV_VZ] = (float)stat_vz.getVariance();
 
 			msg.quality = quality;
 			msg.fps = fps;
