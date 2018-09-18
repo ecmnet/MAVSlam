@@ -42,15 +42,12 @@ import java.util.List;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
-import org.mavlink.messages.lquac.msg_attitude_quaternion_cov;
-import org.mavlink.messages.lquac.msg_local_position_ned_cov;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
-import org.tools4j.meanvar.MeanVarianceSlidingWindow;
+import org.mavlink.messages.lquac.msg_vision_position_estimate;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
-import com.comino.mav.mavlink.MAV_COV;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.LogMessage;
@@ -92,7 +89,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final int    INIT_COUNT           	= 1;
 	private static final int    MAX_ERRORS    	    	= 5;
 	private static final int    MAX_QUALITY_ERRORS   	= 10;
-	private static final float  MAX_VARIANCE			= 0.5f;
 
 	private static final int    MAX_SPEED    	    	= 50;
 	private static final float  VISION_POS_GATE     	= 0.25f;
@@ -114,13 +110,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private double oldTimeDepth_us	= 0;
 	private double estTimeDepth_us	= 0;
-
-	private MeanVarianceSlidingWindow stat_x  = new MeanVarianceSlidingWindow(10);
-	private MeanVarianceSlidingWindow stat_y  = new MeanVarianceSlidingWindow(10);
-	private MeanVarianceSlidingWindow stat_z  = new MeanVarianceSlidingWindow(10);
-	private MeanVarianceSlidingWindow stat_vx = new MeanVarianceSlidingWindow(10);
-	private MeanVarianceSlidingWindow stat_vy = new MeanVarianceSlidingWindow(10);
-	private MeanVarianceSlidingWindow stat_vz = new MeanVarianceSlidingWindow(10);
 
 	private Vector3D_F64 	pos_raw;
 	private Vector3D_F64 pos_raw_old = new Vector3D_F64();
@@ -166,7 +155,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private boolean do_xy_speed 	= false;
 	private boolean do_z_speed 		= false;
 	private boolean do_attitude		= false;
-	private boolean do_covariances   = false;
+	
+	private boolean do_covariances  = false;
 
 	private IMAVMSPController 							control		= null;
 	private List<ISLAMDetector> 						detectors 	= null;
@@ -373,11 +363,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 				if(!pos_raw_old.isIdentical(0, 0, 0) && dt > 0) {
 
-					if(stat_vz.getVariance() > MAX_VARIANCE || stat_vx.getVariance() > MAX_VARIANCE
-							&& do_covariances) {
-						init();
-						return;
-					}
 
 					if(quality > min_quality ) {
 
@@ -447,11 +432,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 							}
 						});
 					}
-				}
-				// Update statistics
-				if(do_covariances) {
-					stat_x.update(pos_ned.T.x);    stat_y.update(pos_ned.T.y);    stat_z.update(pos_ned.T.z);
-					stat_vx.update(speed_ned.T.x); stat_vy.update(speed_ned.T.y); stat_vz.update(speed_ned.T.z);
 				}
 
 				// Publish MSP data
@@ -545,10 +525,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		return state;
 	}
 
-	private void init() {
-		init(null);
-	}
-
 	private void init(String reason) {
 
 		if(visualOdometry==null)
@@ -573,113 +549,45 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					d.reset(model.state.l_x, model.state.l_y, model.state.l_z);
 			}
 
-			if(do_covariances) {
-				stat_x.reset(); stat_y.reset(); stat_z.reset();
-			}
 		}
 	}
 
-	private void publishPX4Vision() {
 
 
-		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
-			last_pos_tms = System.currentTimeMillis();
+		private void publishPX4Vision() {
+			if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
+				last_pos_tms = System.currentTimeMillis();
 
-			msg_local_position_ned_cov cov = new msg_local_position_ned_cov(1,2);
-			cov.time_usec = (long)estTimeDepth_us;
-			if(do_xy_position)  {
-				cov.x = (float) pos_ned.T.z;
-				cov.y = (float) pos_ned.T.x;
-				cov.covariance[MAV_COV.VIS_COV_X] = (float)stat_z.getVariance();
-				cov.covariance[MAV_COV.VIS_COV_Y] = (float)stat_x.getVariance();
+				msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+				sms.usec = (long)estTimeDepth_us;
+				if(do_xy_position)  {
+					sms.x = (float) pos_ned.T.z;
+					sms.y = (float) pos_ned.T.x;
+				} else {
+					sms.x = Float.NaN;
+					sms.y = Float.NaN;
+				}
+
+				if(do_z_position) {
+					sms.z = (float) pos_ned.T.y;
+				} else {
+					sms.z = Float.NaN;
+				}
+
+				if(do_attitude) {
+					sms.roll  = (float)visAttitude[0];
+					sms.pitch = (float)visAttitude[1];
+					sms.yaw   = (float)visAttitude[2];
+				}
+
+				sms.covariance[0] = Float.NaN;
+
+				control.sendMAVLinkMessage(sms);
+
+				model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
+
 			}
-			else {
-				cov.covariance[MAV_COV.VIS_COV_X] = 99;
-				cov.covariance[MAV_COV.VIS_COV_Y] = 99;
-			}
-
-			if(do_z_position) {
-				cov.z = (float) pos_ned.T.y;
-				cov.covariance[MAV_COV.VIS_COV_Z] = (float)stat_y.getVariance();
-			}
-			else
-				cov.covariance[MAV_COV.VIS_COV_Z] = 99;
-
-			if(do_xy_speed)  {
-				cov.vx = (float) speed_ned.T.z;
-				cov.vy = (float) speed_ned.T.x;
-				cov.covariance[MAV_COV.VIS_COV_VX] = (float)stat_vz.getVariance();
-				cov.covariance[MAV_COV.VIS_COV_VY] = (float)stat_vx.getVariance();
-			}
-			else {
-				cov.covariance[MAV_COV.VIS_COV_VX] = 99;
-				cov.covariance[MAV_COV.VIS_COV_VY] = 99;
-			}
-
-			if(do_z_speed) {
-				cov.vz = (float) speed_ned.T.y;
-				cov.covariance[MAV_COV.VIS_COV_VZ] = (float)stat_vy.getVariance();
-			}
-			else
-				cov.covariance[MAV_COV.VIS_COV_VZ] = 99;
-
-			control.sendMAVLinkMessage(cov);
-
-			if(do_attitude) {
-
-				msg_attitude_quaternion_cov att = new msg_attitude_quaternion_cov(1,2);
-				att.time_usec = (long)estTimeDepth_us;
-				att.q[0] = (float)att_q.w;
-				att.q[1] = (float)att_q.x;
-				att.q[2] = (float)att_q.y;
-				att.q[3] = (float)att_q.z;
-
-				// TODO: Rotation speeds
-
-				control.sendMAVLinkMessage(att);
-			}
-
-			model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
-
 		}
-
-	}
-
-	//	private void publishPX4Vision_vis() {
-	//		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
-	//			last_pos_tms = System.currentTimeMillis();
-	//
-	//			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-	//			sms.usec = (long)estTimeDepth_us;
-	//			if(do_xy_position)  {
-	//				sms.x = (float) pos_ned.T.z;
-	//				sms.y = (float) pos_ned.T.x;
-	//			}
-	//			if(do_z_position) {
-	//				sms.z = (float) pos_ned.T.y;
-	//			}
-	//			if(do_attitude) {
-	//				sms.roll  = (float)visAttitude[0];
-	//				sms.pitch = (float)visAttitude[1];
-	//				sms.yaw   = (float)visAttitude[2];
-	//			}
-	//			control.sendMAVLinkMessage(sms);
-	//
-	//			msg_vision_speed_estimate sse = new msg_vision_speed_estimate(1,2);
-	//			sse.usec = (long)estTimeDepth_us;
-	//			if(do_xy_speed)  {
-	//				sse.x = (float) speed_ned.T.z;
-	//				sse.y = (float) speed_ned.T.x;
-	//			}
-	//			if(do_z_speed) {
-	//				sse.z = (float) speed_ned.T.y;
-	//			}
-	//			sse.isValid = true;
-	//			control.sendMAVLinkMessage(sse);
-	//		}
-	//
-	//		model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
-	//	}
 
 	private void publisMSPVision() {
 		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
@@ -694,14 +602,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			msg.h = MSPMathUtils.fromRad((float)visAttitude[2]);   //MSPMathUtils.fromRad((float)vis_init.getY());
 			msg.p = (float)visAttitude[1];
 			msg.r = (float)visAttitude[0];
-
-			msg.covariance[MAV_COV.VIS_COV_X] = (float)stat_z.getVariance();
-			msg.covariance[MAV_COV.VIS_COV_Y] = (float)stat_x.getVariance();
-			msg.covariance[MAV_COV.VIS_COV_X] = (float)stat_z.getVariance();
-
-			msg.covariance[MAV_COV.VIS_COV_VX] = (float)stat_vz.getVariance();
-			msg.covariance[MAV_COV.VIS_COV_VY] = (float)stat_vx.getVariance();
-			msg.covariance[MAV_COV.VIS_COV_VZ] = (float)stat_vz.getVariance();
 
 			msg.quality = quality;
 			msg.fps = fps;
