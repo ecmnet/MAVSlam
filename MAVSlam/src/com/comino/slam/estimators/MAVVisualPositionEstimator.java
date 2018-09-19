@@ -39,11 +39,13 @@ import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.mavlink.messages.MAV_FRAME;
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_vision;
+import org.mavlink.messages.lquac.msg_odometry;
 import org.mavlink.messages.lquac.msg_vision_position_estimate;
 
 import com.comino.main.MSPConfig;
@@ -552,42 +554,76 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		}
 	}
 
-
-
 	private void publishPX4Vision() {
 		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
 			last_pos_tms = System.currentTimeMillis();
 
-			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-			sms.usec = (long)estTimeDepth_us;
+			msg_odometry odometry = new msg_odometry(1,2);
+
+			odometry.frame_id = MAV_FRAME.MAV_FRAME_LOCAL_NED;
+			odometry.time_usec = (long)estTimeDepth_us;
+
 			if(do_xy_position)  {
-				sms.x = (float) pos_ned.T.z;
-				sms.y = (float) pos_ned.T.x;
+				odometry.x = (float) pos_ned.T.z;
+				odometry.y = (float) pos_ned.T.x;
 			} else {
-				sms.x = Float.NaN;
-				sms.y = Float.NaN;
+				odometry.x = Float.NaN;
+				odometry.y = Float.NaN;
 			}
 
 			if(do_z_position) {
-				sms.z = (float) pos_ned.T.y;
+				odometry.z = (float) pos_ned.T.y;
 			} else {
-				sms.z = Float.NaN;
+				odometry.z = Float.NaN;
 			}
 
-			if(do_attitude) {
-				sms.roll  = (float)visAttitude[0];
-				sms.pitch = (float)visAttitude[1];
-				sms.yaw   = (float)visAttitude[2];
-			}
+			odometry.pose_covariance[0] = Float.NaN;
 
-			sms.covariance[0] = Float.NaN;
+			//TODO: Fill other info from here...
 
-			control.sendMAVLinkMessage(sms);
+
+			control.sendMAVLinkMessage(odometry);
 
 			model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
-
 		}
 	}
+
+
+
+//	private void publishPX4Vision() {
+//		if(do_odometry && (System.currentTimeMillis()-last_pos_tms) > PUBLISH_RATE_PX4) {
+//			last_pos_tms = System.currentTimeMillis();
+//
+//			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
+//			sms.usec = (long)estTimeDepth_us;
+//			if(do_xy_position)  {
+//				sms.x = (float) pos_ned.T.z;
+//				sms.y = (float) pos_ned.T.x;
+//			} else {
+//				sms.x = Float.NaN;
+//				sms.y = Float.NaN;
+//			}
+//
+//			if(do_z_position) {
+//				sms.z = (float) pos_ned.T.y;
+//			} else {
+//				sms.z = Float.NaN;
+//			}
+//
+//			if(do_attitude) {
+//				sms.roll  = (float)visAttitude[0];
+//				sms.pitch = (float)visAttitude[1];
+//				sms.yaw   = (float)visAttitude[2];
+//			}
+//
+//			sms.covariance[0] = Float.NaN;
+//
+//			control.sendMAVLinkMessage(sms);
+//
+//			model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, true);
+//
+//		}
+//	}
 
 	private void publisMSPVision() {
 		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
