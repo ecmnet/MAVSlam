@@ -577,6 +577,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				odometry.z = Float.NaN;
 			}
 
+			//TODO: Check VIO pipeline how to determine the covariance
 			odometry.pose_covariance[0] = Float.NaN;
 
 			if( do_xy_speed) {
@@ -593,6 +594,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				odometry.vz = Float.NaN;
 			}
 
+			//TODO: Check VIO pipeline how to determine the covariance
 			odometry.twist_covariance[0] = Float.NaN;
 
 			//TODO: Fill quaternions
