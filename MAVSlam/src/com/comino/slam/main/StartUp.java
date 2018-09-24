@@ -40,6 +40,7 @@ import java.net.InetSocketAddress;
 
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
+import org.mavlink.messages.lquac.msg_play_tune;
 import org.mavlink.messages.lquac.msg_timesync;
 
 import com.comino.main.MSPConfig;
@@ -216,11 +217,6 @@ public class StartUp implements Runnable {
 				}
 
 
-				if(!tune_played) {
-					DefaultTunes.play(control,DefaultTunes.NOTIFY_POSITIVE);
-					tune_played = true;
-				}
-
 				if(publish_microslam && model.grid.hasTransfers()) {
 					grid.resolution = 0.05f;
 					grid.extension  = 0;
@@ -240,7 +236,13 @@ public class StartUp implements Runnable {
 				if((System.currentTimeMillis()-tms) < 500)
 					continue;
 
+
 				tms = System.currentTimeMillis();
+
+				if(!tune_played) {
+					DefaultTunes.play(control,DefaultTunes.NOTIFY_POSITIVE);
+					tune_played = true;
+				}
 
 				msg_timesync sync_s = new msg_timesync(255,1);
 				sync_s.tc1 = 0;
