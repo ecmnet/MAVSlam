@@ -151,9 +151,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private boolean do_odometry 	= true;
 
 	private boolean do_xy_position 	= false;
-	private boolean do_z_position 	= false;
 	private boolean do_xy_speed 	= false;
-	private boolean do_z_speed 		= false;
 	private boolean do_attitude		= false;
 
 	private boolean do_covariances  = false;
@@ -187,13 +185,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 		this.do_xy_position = config.getBoolProperty("vision_pub_pos_xy", "true");
 		System.out.println("Vision publishes XY position: "+do_xy_position);
-		this.do_z_position = config.getBoolProperty("vision_pub_pos_z", "true");
-		System.out.println("Vision publishes Z position: "+do_z_position);
 
 		this.do_xy_speed = config.getBoolProperty("vision_pub_speed_xy", "true");
 		System.out.println("Vision publishes XY speed: "+do_xy_speed);
-		this.do_z_speed = config.getBoolProperty("vision_pub_speed_z", "true");
-		System.out.println("Vision publishes Z speed: "+do_z_speed);
 
 		this.do_attitude = config.getBoolProperty("vision_pub_attitude", "false");
 		System.out.println("Vision publishes attitude: "+do_attitude);
@@ -563,14 +557,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			if(do_xy_position)  {
 				sms.x = (float) pos_ned.T.z;
 				sms.y = (float) pos_ned.T.x;
+				sms.z = (float) pos_ned.T.y;
 			} else {
 				sms.x = Float.NaN;
 				sms.y = Float.NaN;
-			}
-
-			if(do_z_position) {
-				sms.z = (float) pos_ned.T.y;
-			} else {
 				sms.z = Float.NaN;
 			}
 
@@ -609,14 +599,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			msg.errors = error_count;
 			if(do_xy_position && do_odometry)
 				msg.flags = msg.flags | 1;
-			if(do_z_position && do_odometry)
-				msg.flags = msg.flags | 2;
 			if(do_xy_speed && do_odometry)
-				msg.flags = msg.flags | 4;
-			if(do_z_speed && do_odometry)
-				msg.flags = msg.flags | 8;
+				msg.flags = msg.flags | 2;
 			if(do_attitude && do_odometry)
-				msg.flags = msg.flags | 16;
+				msg.flags = msg.flags | 4;
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
 		}
