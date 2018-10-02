@@ -284,8 +284,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
-				if(!do_odometry)
+				if(!do_odometry || visualOdometry == null ) {
 					return;
+				}
 
 
 				if(dt >0) {
