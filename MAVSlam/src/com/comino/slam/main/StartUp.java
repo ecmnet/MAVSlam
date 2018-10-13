@@ -217,7 +217,7 @@ public class StartUp implements Runnable {
 				}
 
 
-				if(publish_microslam && model.grid.hasTransfers()) {
+				while(publish_microslam && model.grid.hasTransfers()) {
 					grid.resolution = 0.05f;
 					grid.extension  = 0;
 					grid.cx  = model.grid.getIndicatorX();
