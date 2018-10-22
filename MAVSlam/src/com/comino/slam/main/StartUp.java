@@ -239,7 +239,7 @@ public class StartUp implements Runnable {
 
 				tms = System.currentTimeMillis();
 
-				if(!tune_played) {
+				if(!tune_played && !control.isSimulation()) {
 					DefaultTunes.play(control,"MFT200e8a8aE");
 					tune_played = true;
 				}

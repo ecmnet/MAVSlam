@@ -92,6 +92,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private static final int    MAX_SPEED    	    	= 50;
 	private static final float  VISION_POS_GATE     	= 0.25f;
+	private static final float  VISION_SPEED_GATE     	= 0.25f;
 
 	private static final float  INLIER_PIXEL_TOL    	= 1.3f;
 	private static final int    MAXTRACKS   			= 150;
@@ -142,6 +143,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private long detector_tms 		= 0;
 	private int  detector_cycle_ms 	= 250;
 
+	private float vision_pos_gate    = 0;
+	private float vision_speed_gate  = 0;
+
 	private float fps 				= 0;
 	private long  fps_tms         	= 0;
 
@@ -180,6 +184,12 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.min_quality = config.getIntProperty("vision_min_quality", "50");
 		System.out.println("Vision minimum quality: "+min_quality);
 
+		this.vision_pos_gate = config.getFloatProperty("vision_pos_gate", String.valueOf(VISION_POS_GATE));
+		System.out.println("Vision position gate: "+vision_pos_gate+"m");
+
+		this.vision_speed_gate = config.getFloatProperty("vision_speed_gate", String.valueOf(VISION_SPEED_GATE));
+		System.out.println("Vision speed gate: "+vision_speed_gate+"m/s");
+
 		this.do_odometry = config.getBoolProperty("vision_enable", "true");
 		System.out.println("Vision Odometry enabled: "+do_odometry);
 
@@ -189,7 +199,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		this.do_xy_speed = config.getBoolProperty("vision_pub_speed_xy", "true");
 		System.out.println("Vision publishes XY speed: "+do_xy_speed);
 
-		this.do_attitude = config.getBoolProperty("vision_pub_attitude", "false");
+		this.do_attitude = config.getBoolProperty("vision_pub_attitude", "true");
 		System.out.println("Vision publishes attitude: "+do_attitude);
 
 		this.do_covariances = config.getBoolProperty("vision_pub_covariance", "true");
@@ -392,7 +402,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 
 					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)
-							&& heading_init_enabled) {
+							&& heading_init_enabled && !control.isSimulation()) {
 						init("Heading div.");
 						return;
 					}
@@ -400,11 +410,19 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				pos_raw_old.set(pos_raw);
 
 
-				if(	 Math.abs(pos_ned.T.z- model.state.l_x) > VISION_POS_GATE ||
-						Math.abs(pos_ned.T.x- model.state.l_y) > VISION_POS_GATE)   {
+				if(	( Math.abs(pos_ned.T.z - model.state.l_x) > vision_pos_gate ||
+					  Math.abs(pos_ned.T.x - model.state.l_y) > vision_pos_gate ) && !control.isSimulation())   {
 					init("Vision pos. gate");
 					return;
 				}
+
+				// TODO: Replace with vision speed gate -> needs to be tested
+
+//				if(	( Math.abs(speed_ned.T.z - model.state.l_vx) > vision_speed_gate ||
+//					  Math.abs(speed_ned.T.x - model.state.l_vy) > vision_speed_gate ) )   {
+//						init("Vision speed gate");
+//						return;
+//					}
 
 				publishPX4Vision();
 				error_count=0;
