@@ -377,7 +377,7 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 
 	public Se3_F64 getCurrToWorld() {
 		currToKey.concat(keyToWorld, currToWorld);
-//	currToWorld.set(keyToWorld);
+	    currToWorld.set(keyToWorld);
 		return currToWorld;
 	}
 
