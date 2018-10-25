@@ -261,7 +261,7 @@ public class StartUp implements Runnable {
 				msg.autopilot_mode =control.getCurrentModel().sys.autopilot;
 				msg.uptime_ms = System.currentTimeMillis() - startTime_ms;
 				msg.status = control.getCurrentModel().sys.getStatus();
-				msg.setVersion(config.getVersion()+" ("+config.getVersionDate()+")");
+				msg.setVersion(config.getVersion()+"/"+config.getVersionDate().replace(".", ""));
 				msg.setArch(osBean.getArch());
 				msg.unix_time_us = System.currentTimeMillis() * 1000;
 				control.sendMAVLinkMessage(msg);
