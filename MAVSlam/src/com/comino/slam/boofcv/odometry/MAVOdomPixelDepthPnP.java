@@ -97,6 +97,8 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 	// transform from the current camera view to the world frame
 	private Se3_F64 currToWorld = new Se3_F64();
 
+	private Se3_F64 currentState = new Se3_F64();
+
 	// is this the first camera view being processed?
 	private boolean first = true;
 	// number of frames processed.
@@ -183,6 +185,7 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 			if (thresholdAdd <= 0 || N < thresholdAdd) {
 				changePoseToReference();
 				addNewTracks();
+			//	System.out.println("New KeyFrame...");
 			}
 
 			// System.out.println(" num inliers = "+N+" num dropped
@@ -372,12 +375,12 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 	private void concatMotion() {
 		currToKey.concat(keyToWorld, temp);
 		keyToWorld.set(temp);
+		keyToWorld.R.set(currentState.R); // if a new key is set, take currentState into account
 		currToKey.reset();
 	}
 
 	public Se3_F64 getCurrToWorld() {
-	//	currToKey.concat(keyToWorld, currToWorld);
-	    currToWorld.set(keyToWorld);
+		currToKey.concat(keyToWorld, currToWorld);
 		return currToWorld;
 	}
 
@@ -400,17 +403,12 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase> {
 		tick = 0;
 	}
 
-	public void setRotation(Se3_F64 state) {
-		//		ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-		//		0,
-		//		0,
-		//		0,
-		//		currToKey.R);
-		keyToWorld.R.set(state.R);
-
-		//		double[] att     = new double[3];
-		//		ConvertRotation3D_F64.matrixToEuler(state.R, EulerType.ZXY, att);
-		//		System.out.println("Heading is "+MSPMathUtils.fromRad((float)att[2]));
+	/**
+	 * MSP: Stores current state to be used when new keyframe is determined
+	 * needs to be updated permanently
+	 */
+	public void setCurrentState(Se3_F64 state) {
+        currentState.set(state);
 	}
 
 	public PointTracker<T> getTracker() {

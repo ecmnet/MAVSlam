@@ -135,7 +135,7 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends ImageBase, 
 
 	@Override
 	public boolean process(Vis visual, Depth depth, Se3_F64 state) {
-		alg.setRotation(state);
+		alg.setCurrentState(state);  // updates currentState for new KeyFrame
 		sparse3D.setDepthImage(depth);
 		success = alg.process(visual);
 
