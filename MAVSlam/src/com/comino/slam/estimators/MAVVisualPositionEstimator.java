@@ -317,10 +317,19 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
 						stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
 
+					// Using current fused attitude state for next processing step
+
 					if( !visualOdometry.process(gray,depth,setAttitudeToState(model, current))) {
 						init("Odometry");
 						return;
 					}
+
+					// Using current visual attitude estimation for next  processing step
+
+//					if( !visualOdometry.process(gray,depth)) {
+//						init("Odometry");
+//						return;
+//					}
 
 				} catch( Exception e) {
 					if(debug)
@@ -553,6 +562,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, false);
 			}
 
+			setAttitudeToState(model,current);
 			visualOdometry.reset(current);
 			setPositionToState(model,pos_ned);
 
