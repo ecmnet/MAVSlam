@@ -100,7 +100,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final float  KLT_THRESHOLD       	= 1f;
 	private static final int    RANSAC_ITERATIONS   	= 150;
 	private static final int    RETIRE_THRESHOLD    	= 10;
-	private static final int    INLIER_THRESHOLD    	= 120;
+	private static final int    ADD_THRESHOLD       	= 60;
 	private static final int    REFINE_ITERATIONS   	= 50;
 
 	private StreamRealSenseVisDepth 				realsense			= null;
@@ -268,7 +268,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 
 		visualOdometry = FactoryMAVOdometry.depthDepthPnP(INLIER_PIXEL_TOL,
-				INLIER_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
+				ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
@@ -317,19 +317,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
 						stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
 
-					// Using current fused attitude state for next processing step
-
 					if( !visualOdometry.process(gray,depth,setAttitudeToState(model, current))) {
 						init("Odometry");
 						return;
 					}
-
-					// Using current visual attitude estimation for next  processing step
-
-//					if( !visualOdometry.process(gray,depth)) {
-//						init("Odometry");
-//						return;
-//					}
 
 				} catch( Exception e) {
 					if(debug)
