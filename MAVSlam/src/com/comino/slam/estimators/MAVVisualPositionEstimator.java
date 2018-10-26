@@ -84,7 +84,7 @@ import georegression.struct.so.Quaternion_F64;
 public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	private static final int   	PUBLISH_RATE_MSP	    = 50 - 5;
-	private static final int  	PUBLISH_RATE_PX4    	= 15 - 5;
+	private static final int  	PUBLISH_RATE_PX4    	= 10 - 5;
 
 	private static final int    INIT_COUNT           	= 1;
 	private static final int    MAX_ERRORS    	    	= 5;
@@ -317,7 +317,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
 						stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
 
-					if( !visualOdometry.process(gray,depth,setAttitudeToState(model, current))) {
+					if( !visualOdometry.process(gray,depth,setModelToState(model, current))) {
 						init("Odometry");
 						return;
 					}
@@ -529,7 +529,24 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		return state;
 	}
 
+
 	private Se3_F64 setPositionToState(DataModel m, Se3_F64 state) {
+		if(!Float.isNaN(m.state.l_y) && !Float.isNaN(m.state.l_x)) {
+			state.getTranslation().y = m.state.l_z;
+			state.getTranslation().x = m.state.l_y;
+			state.getTranslation().z = m.state.l_x;
+		}
+		return state;
+	}
+
+	private Se3_F64 setModelToState(DataModel m, Se3_F64 state) {
+		if(!Float.isNaN(m.attitude.r) && !Float.isNaN(m.attitude.p))
+			ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
+					m.attitude.r,
+					m.attitude.p,
+					m.attitude.y,
+					state.getRotation());
+
 		if(!Float.isNaN(m.state.l_y) && !Float.isNaN(m.state.l_x)) {
 			state.getTranslation().y = m.state.l_z;
 			state.getTranslation().x = m.state.l_y;
@@ -553,7 +570,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, false);
 			}
 
-			setAttitudeToState(model,current);
+			setModelToState(model,current);
 			visualOdometry.reset(current);
 			setPositionToState(model,pos_ned);
 
@@ -588,6 +605,10 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				sms.roll  = (float)visAttitude[0];
 				sms.pitch = (float)visAttitude[1];
 				sms.yaw   = (float)visAttitude[2];
+			} else {
+				sms.roll  = Float.NaN;
+				sms.pitch = Float.NaN;
+				sms.yaw   = Float.NaN;
 			}
 
 			sms.covariance[0] = Float.NaN;
