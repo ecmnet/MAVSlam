@@ -100,7 +100,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final float  KLT_THRESHOLD       	= 1f;
 	private static final int    RANSAC_ITERATIONS   	= 150;
 	private static final int    RETIRE_THRESHOLD    	= 10;
-	private static final int    ADD_THRESHOLD       	= 60;
+	private static final int    ADD_THRESHOLD       	= 75;
 	private static final int    REFINE_ITERATIONS   	= 50;
 
 	private StreamRealSenseVisDepth 				realsense			= null;
