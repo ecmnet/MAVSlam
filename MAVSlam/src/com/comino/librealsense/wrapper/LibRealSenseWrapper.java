@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 Eike Mansfeld ecm@gmx.de. All rights reserved.
+time *   Copyright (c) 2017 Eike Mansfeld ecm@gmx.de. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1188,7 +1188,7 @@ public interface LibRealSenseWrapper extends Library {
 	 * Original signature : <code>int rs_get_frame_timestamp(const rs_device*, rs_stream, rs_error**)</code><br>
 	 * <i>native declaration : line 390</i>
 	 */
-	int rs_get_frame_timestamp(PointerByReference device, int stream, PointerByReference error);
+	double rs_get_frame_timestamp(PointerByReference device, int stream, PointerByReference error);
 	/**
 	 * retrieve the contents of the latest frame on a stream<br>
 	 * \param[in] stream  the stream whose latest frame we are interested in<br>
