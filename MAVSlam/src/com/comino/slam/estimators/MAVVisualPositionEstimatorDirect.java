@@ -81,7 +81,7 @@ import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.struct.so.Quaternion_F64;
 
-public class MAVVisualPositionEstimator implements IPositionEstimator {
+public class MAVVisualPositionEstimatorDirect implements IPositionEstimator {
 
 	private static final int   	PUBLISH_RATE_MSP	    = 50 - 5;
 	private static final int  	PUBLISH_RATE_PX4    	= 15 - 5;
@@ -168,7 +168,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private final Color	bgColor = new Color(128,128,128,130);
 
 
-	public <T> MAVVisualPositionEstimator(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> stream) {
+	public <T> MAVVisualPositionEstimatorDirect(RealSenseInfo info, IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> stream) {
 
 		this.info    = info;
 		this.control = control;
@@ -267,7 +267,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
 
-		visualOdometry = FactoryMAVOdometry.depthPnP(INLIER_PIXEL_TOL,
+		visualOdometry = FactoryMAVOdometry.directDepthPnP(INLIER_PIXEL_TOL,
 				ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
@@ -427,6 +427,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				publishPX4Vision();
 				error_count=0;
 
+				// TODO: Call detectors, even when odometry fails. This is reasonable for the DirectDepthDetector
+				// at least.
+
 				if(detectors.size()>0 && detector_cycle_ms>0 && do_odometry) {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
@@ -477,7 +480,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 	}
 
-	public MAVVisualPositionEstimator() {
+	public MAVVisualPositionEstimatorDirect() {
 		this(new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB), null, MSPConfig.getInstance(),null);
 	}
 
@@ -646,7 +649,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	}
 
 	public static void main(String[] args) {
-		new MAVVisualPositionEstimator();
+		new MAVVisualPositionEstimatorDirect();
 	}
 
 }

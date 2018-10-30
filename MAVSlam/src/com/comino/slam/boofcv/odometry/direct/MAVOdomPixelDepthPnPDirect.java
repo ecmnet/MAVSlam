@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.comino.slam.boofcv.odometry;
+package com.comino.slam.boofcv.odometry.direct;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +59,7 @@ import georegression.transform.se.SePointOps_F64;
  *
  * @author Peter Abeles, modified by Eike Mansfeld
  */
-public class MAVOdomPixelDepthPnP<T extends ImageBase>  {
+public class MAVOdomPixelDepthPnPDirect<T extends ImageBase>  {
 
 	// when the inlier set is less than this number new features are detected
 	private int thresholdAdd;
@@ -140,7 +140,7 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase>  {
 	 * @param normToPixel
 	 *            Converts from normalized image coordinates into raw pixels
 	 */
-	public MAVOdomPixelDepthPnP(int thresholdAdd, int thresholdRetire, boolean doublePass,
+	public MAVOdomPixelDepthPnPDirect(int thresholdAdd, int thresholdRetire, boolean doublePass,
 			ModelMatcher<Se3_F64, Point2D3D> motionEstimator, ImagePixelTo3D pixelTo3D, RefinePnP refine,
 			PointTrackerTwoPass<T> tracker, PointTransform_F64 pixelToNorm, PointTransform_F64 normToPixel) {
 		this.thresholdAdd = thresholdAdd;
@@ -165,7 +165,6 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase>  {
 	 *            Camera image.
 	 * @return true if successful or false if it failed
 	 */
-
 	public boolean process(T image, Se3_F64 state) {
 
 		if(state!=null)
@@ -181,7 +180,7 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase>  {
 			first = false;
 		} else {
 			if (!estimateMotion()) {
-                keyToWorld.R.set(state.R); // TODO: Try out with pos set
+                keyToWorld.set(state);
 				return false;
 			}
 
@@ -365,7 +364,6 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase>  {
 	}
 
 	//MSP
-
 	public Point2D3D getObservation(int index) {
 		List<PointTrack> active = tracker.getActiveTracks(null);
 		PointTrack t = active.get(index);
@@ -375,19 +373,14 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase>  {
 	}
 
 	// MSP
-
 	public double getQuality() {
 		return this.quality;
 	}
 
 	private void concatMotion() {
-	    currToKey.concat(keyToWorld, temp);
-		keyToWorld.set(temp);
-		// if a new key is set, take currentState rotation into account
-		keyToWorld.R.set(currentState.R);
+		keyToWorld.set(currentState);
 		currToKey.reset();
 	}
-
 
 	public Se3_F64 getCurrToWorld() {
 		currToKey.concat(keyToWorld, currToWorld);
@@ -397,7 +390,6 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase>  {
 	/**
 	 * Resets the algorithm into its original state
 	 */
-
 	public void reset() {
 		tracker.reset();
 		keyToWorld.reset();
@@ -406,41 +398,34 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase>  {
 		tick = 0;
 	}
 
-
 	public void reset(Se3_F64 initialState) {
 		tracker.reset();
 		currentState.set(initialState);
-		keyToWorld.R.set(initialState.R);
+		keyToWorld.set(initialState);
 		currToKey.reset();
 		first = true;
 		tick = 0;
 	}
 
-
 	public PointTracker<T> getTracker() {
 		return tracker;
 	}
-
 
 	public ModelMatcher<Se3_F64, Point2D3D> getMotionEstimator() {
 		return motionEstimator;
 	}
 
-
 	public List<Point2D3DTrack> getInlierTracks() {
 		return inlierTracks;
 	}
-
 
 	public void setPixelToNorm(PointTransform_F64 pixelToNorm) {
 		this.pixelToNorm = pixelToNorm;
 	}
 
-
 	public void setNormToPixel(PointTransform_F64 normToPixel) {
 		this.normToPixel = normToPixel;
 	}
-
 
 	public long getTick() {
 		return tick;

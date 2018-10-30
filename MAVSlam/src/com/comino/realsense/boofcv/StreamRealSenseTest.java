@@ -130,7 +130,7 @@ public class StreamRealSenseTest extends Application  {
 
 		// declares the algorithm
 		MAVDepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
-				FactoryMAVOdometry.depthDepthPnP(1.2, 120, 2, 200, 50, true,
+				FactoryMAVOdometry.depthPnP(1.2, 120, 2, 200, 50, true,
 						sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());

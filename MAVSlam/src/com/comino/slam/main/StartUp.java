@@ -38,6 +38,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
+import org.mavlink.messages.lquac.msg_debug;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 import org.mavlink.messages.lquac.msg_play_tune;
@@ -62,6 +63,7 @@ import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.VfhDirectDepthDetector;
 import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.MAVVisualPositionEstimator;
+import com.comino.slam.estimators.MAVVisualPositionEstimatorDirect;
 import com.sun.net.httpserver.HttpServer;
 
 public class StartUp implements Runnable {
@@ -149,9 +151,10 @@ public class StartUp implements Runnable {
 				// Start HTTP Service with MJPEG streamer
 
 				vision = new MAVVisualPositionEstimator(info, control, config, streamer);
-				//	vision.registerDetector(new VfhFeatureDetector(control,config,streamer));
+		//		vision = new MAVVisualPositionEstimatorDirect(info, control, config, streamer);
+
 				vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
-				//	vision.registerDetector(new VfhDynamicDirectDepthDetector(control,config,streamer));
+
 
 				HttpServer server;
 				try {
@@ -204,7 +207,6 @@ public class StartUp implements Runnable {
 		CPUTemperature temp = new CPUTemperature();
 		msg_msp_micro_grid grid = new msg_msp_micro_grid(2,1);
 		msg_msp_status msg = new msg_msp_status(2,1);
-
 
 
 		while(true) {

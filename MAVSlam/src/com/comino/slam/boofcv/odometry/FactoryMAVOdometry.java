@@ -21,6 +21,9 @@ package com.comino.slam.boofcv.odometry;
 import org.ddogleg.fitting.modelset.ModelMatcher;
 import org.ddogleg.fitting.modelset.ransac.Ransac;
 
+import com.comino.slam.boofcv.odometry.direct.MAVOdomPixelDepthPnPDirect;
+import com.comino.slam.boofcv.odometry.direct.MAVOdomPixelDepthPnP_to_DepthVisualOdometryDirect;
+
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
 import boofcv.abst.geo.Estimate1ofPnP;
 import boofcv.abst.geo.RefinePnP;
@@ -62,7 +65,7 @@ public class FactoryMAVOdometry {
 	 * @return StereoVisualOdometry
 	 */
 	public static <Vis extends ImageGray, Depth extends ImageGray>
-	MAVDepthVisualOdometry<Vis,Depth> depthDepthPnP(double inlierPixelTol,
+	MAVDepthVisualOdometry<Vis,Depth> depthPnP(double inlierPixelTol,
 												 int thresholdAdd,
 												 int thresholdRetire ,
 												 int ransacIterations ,
@@ -97,6 +100,45 @@ public class FactoryMAVOdometry {
 						(thresholdAdd,thresholdRetire ,doublePass,motion,pixelTo3D,refine,tracker,null,null);
 
 		return new MAVOdomPixelDepthPnP_to_DepthVisualOdometry<Vis,Depth>
+				(sparseDepth,alg,distance, ImageType.single(visualType),depthType);
+	}
+
+	public static <Vis extends ImageGray, Depth extends ImageGray>
+	MAVDepthVisualOdometry<Vis,Depth> directDepthPnP(double inlierPixelTol,
+												 int thresholdAdd,
+												 int thresholdRetire ,
+												 int ransacIterations ,
+												 int refineIterations ,
+												 boolean doublePass ,
+												 DepthSparse3D<Depth> sparseDepth,
+												 PointTrackerTwoPass<Vis> tracker ,
+												 Class<Vis> visualType , Class<Depth> depthType ) {
+
+		// Range from sparse disparity
+		ImagePixelTo3D pixelTo3D = new DepthSparse3D_to_PixelTo3D<Depth>(sparseDepth);
+
+		Estimate1ofPnP estimator = FactoryMultiView.computePnP_1(EnumPNP.P3P_FINSTERWALDER,-1,2);
+		final DistanceModelMonoPixels<Se3_F64,Point2D3D> distance = new PnPDistanceReprojectionSq();
+
+		ModelManagerSe3_F64 manager = new ModelManagerSe3_F64();
+		EstimatorToGenerator<Se3_F64,Point2D3D> generator = new EstimatorToGenerator<Se3_F64,Point2D3D>(estimator);
+
+		// 1/2 a pixel tolerance for RANSAC inliers
+		double ransacTOL = inlierPixelTol * inlierPixelTol;
+
+		ModelMatcher<Se3_F64, Point2D3D> motion =
+				new Ransac<Se3_F64, Point2D3D>(2323, manager, generator, distance, ransacIterations, ransacTOL);
+
+		RefinePnP refine = null;
+
+		if( refineIterations > 0 ) {
+			refine = FactoryMultiView.refinePnP(1e-12,refineIterations);
+		}
+
+		MAVOdomPixelDepthPnPDirect<Vis> alg = new MAVOdomPixelDepthPnPDirect<Vis>
+						(thresholdAdd,thresholdRetire ,doublePass,motion,pixelTo3D,refine,tracker,null,null);
+
+		return new MAVOdomPixelDepthPnP_to_DepthVisualOdometryDirect<Vis,Depth>
 				(sparseDepth,alg,distance, ImageType.single(visualType),depthType);
 	}
 
