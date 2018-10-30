@@ -181,7 +181,8 @@ public class MAVOdomPixelDepthPnP<T extends ImageBase>  {
 			first = false;
 		} else {
 			if (!estimateMotion()) {
-                keyToWorld.R.set(state.R); // TODO: Try out with pos set
+				if(state!=null)
+                  keyToWorld.R.set(state.R); // TODO: Try out with pos set
 				return false;
 			}
 
