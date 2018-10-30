@@ -130,11 +130,11 @@ public class StartUp implements Runnable {
 
 		// Start services if required
 
-//		control.addMAVMessageListener((msg) -> {
-//			if(msg.filter("vis"))
-//				System.out.println("MSP Message: "+msg.text);
-//
-//		});
+		//		control.addMAVMessageListener((msg) -> {
+		//			if(msg.filter("vis"))
+		//				System.out.println("MSP Message: "+msg.text);
+		//
+		//		});
 
 		try {
 			if(config.getBoolProperty("vision_enabled", "true")) {
@@ -236,21 +236,24 @@ public class StartUp implements Runnable {
 				if((System.currentTimeMillis()-tms) < 500)
 					continue;
 
-
 				tms = System.currentTimeMillis();
 
-				if(!tune_played && !control.isSimulation()) {
-					DefaultTunes.play(control,"MFT200e8a8aE");
-					tune_played = true;
+
+				if(!control.isSimulation()) {
+
+					if(!tune_played ) {
+						DefaultTunes.play(control,"MFT200e8a8aE");
+						tune_played = true;
+					}
+
+					msg_timesync sync_s = new msg_timesync(2,1);
+					sync_s.tc1 = 0;
+					sync_s.ts1 = System.currentTimeMillis()*1000000L;
+					control.sendMAVLinkMessage(sync_s);
+
+					wifi.getQuality();
+					temp.getTemperature();
 				}
-
-				msg_timesync sync_s = new msg_timesync(255,1);
-				sync_s.tc1 = 0;
-				sync_s.ts1 = System.currentTimeMillis()*1000000L;
-				control.sendMAVLinkMessage(sync_s);
-
-				wifi.getQuality();
-				temp.getTemperature();
 
 				msg.load = msg.load = LinuxUtils.getProcessCpuLoad();
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
