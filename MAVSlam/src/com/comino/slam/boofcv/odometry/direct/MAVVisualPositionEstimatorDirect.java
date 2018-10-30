@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-package com.comino.slam.estimators;
+package com.comino.slam.boofcv.odometry.direct;
 
 
 import java.awt.Color;
@@ -62,6 +62,7 @@ import com.comino.slam.boofcv.odometry.FactoryMAVOdometry;
 import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
 import com.comino.slam.boofcv.tracker.FactoryMAVPointTrackerTwoPass;
 import com.comino.slam.detectors.ISLAMDetector;
+import com.comino.slam.estimators.IPositionEstimator;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;

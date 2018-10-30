@@ -516,25 +516,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 		init("msp reset");
 	}
 
-	private Se3_F64 setAttitudeToState(DataModel m, Se3_F64 state) {
-		if(!Float.isNaN(m.attitude.r) && !Float.isNaN(m.attitude.p))
-			ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
-					m.attitude.r,
-					m.attitude.p,
-					m.attitude.y,
-					state.getRotation());
-		return state;
-	}
-
-
-	private Se3_F64 setPositionToState(DataModel m, Se3_F64 state) {
-		if(!Float.isNaN(m.state.l_y) && !Float.isNaN(m.state.l_x)) {
-			state.getTranslation().y = m.state.l_z;
-			state.getTranslation().x = m.state.l_y;
-			state.getTranslation().z = m.state.l_x;
-		}
-		return state;
-	}
 
 	private Se3_F64 setModelToState(DataModel m, Se3_F64 state) {
 		if(!Float.isNaN(m.attitude.r) && !Float.isNaN(m.attitude.p))
