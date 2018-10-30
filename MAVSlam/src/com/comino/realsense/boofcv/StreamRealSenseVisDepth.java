@@ -173,6 +173,12 @@ public class StreamRealSenseVisDepth {
 		public volatile Pointer depthData;
 		public volatile Pointer rgbData;
 
+		private long timeDepth;
+		private long timeRgb;
+
+		private long tms_offset_depth  = 0;
+		private long tms_offset_rgb    = 0;
+
 		@Override
 		public void run() {
 			running = true;
@@ -186,12 +192,21 @@ public class StreamRealSenseVisDepth {
 
 					depthData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
 							rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
+					timeDepth = (long)LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+							rs_stream.RS_STREAM_DEPTH_ALIGNED_TO_RECTIFIED_COLOR, error);
+					if(tms_offset_depth==0)
+						tms_offset_depth = System.currentTimeMillis() - timeDepth;
+
 					if(depthData!=null)
 						bufferDepthToU16(depthData,depth);
 
 					switch(info.mode) {
 					case RealSenseInfo.MODE_RGB:
 						synchronized ( this ) {
+							timeRgb = (long)LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+									rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
+							if(tms_offset_rgb==0)
+								tms_offset_rgb = System.currentTimeMillis() - timeRgb;
 							rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
 									rs_stream.RS_STREAM_RECTIFIED_COLOR, error);
 							if(rgbData!=null)
@@ -200,6 +215,10 @@ public class StreamRealSenseVisDepth {
 						break;
 					case RealSenseInfo.MODE_INFRARED:
 						synchronized ( this ) {
+							timeRgb = (long)LibRealSenseWrapper.INSTANCE.rs_get_frame_timestamp(dev,
+									rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
+							if(tms_offset_rgb==0)
+								tms_offset_rgb = System.currentTimeMillis() - timeRgb;
 							rgbData = LibRealSenseWrapper.INSTANCE.rs_get_frame_data(dev,
 									rs_stream.RS_STREAM_INFRARED2_ALIGNED_TO_DEPTH, error);
 							if(rgbData!=null)
@@ -210,7 +229,7 @@ public class StreamRealSenseVisDepth {
 
 					if(listeners.size()>0) {
 						for(Listener listener : listeners)
-							listener.process(rgb, depth, System.currentTimeMillis(), System.currentTimeMillis());
+							listener.process(rgb, depth, timeRgb+tms_offset_rgb, timeDepth+tms_offset_depth);
 					}
 					//		}
 
