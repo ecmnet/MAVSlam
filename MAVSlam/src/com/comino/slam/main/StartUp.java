@@ -246,7 +246,7 @@ public class StartUp implements Runnable {
 						tune_played = true;
 					}
 
-					msg_timesync sync_s = new msg_timesync(2,1);
+					msg_timesync sync_s = new msg_timesync(255,1);
 					sync_s.tc1 = 0;
 					sync_s.ts1 = System.currentTimeMillis()*1000000L;
 					control.sendMAVLinkMessage(sync_s);
@@ -274,7 +274,7 @@ public class StartUp implements Runnable {
 
 				blink = System.currentTimeMillis();
 
-				if(model.sys.isStatus(Status.MSP_CONNECTED))
+				if(model.sys.isStatus(Status.MSP_ACTIVE))
 					UpLEDControl.flash("green", 10);
 				else
 					UpLEDControl.flash("red", 10);
