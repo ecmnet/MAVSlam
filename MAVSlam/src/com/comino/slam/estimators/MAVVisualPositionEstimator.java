@@ -95,13 +95,13 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private static final float  VISION_SPEED_GATE     	= 0.25f;
 
 	private static final float  INLIER_PIXEL_TOL    	= 1.5f;
-	private static final int    MAXTRACKS   			= 120;
+	private static final int    MAXTRACKS   			= 100;
 	private static final int    KLT_RADIUS          	= 3;
 	private static final float  KLT_THRESHOLD       	= 1f;
 	private static final int    RANSAC_ITERATIONS   	= 150;
 	private static final int    RETIRE_THRESHOLD    	= 2;
-	private static final int    ADD_THRESHOLD       	= 75;
-	private static final int    REFINE_ITERATIONS   	= 50;
+	private static final int    ADD_THRESHOLD       	= 70;
+	private static final int    REFINE_ITERATIONS   	= 80;
 
 	private StreamRealSenseVisDepth 				realsense			= null;
 	private MAVDepthVisualOdometry<GrayU8,GrayU16> 	visualOdometry		= null;
@@ -149,12 +149,16 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 	private float fps 				= 0;
 	private long  fps_tms         	= 0;
 
+	private long publish_tms_us     = 0;
+
+
 	private int initialized_count  	= 0;
 	private int error_count 		= 0;
 
 	private boolean do_odometry 	= true;
 
 	private boolean do_xy_position 	= false;
+
 	private boolean do_xy_speed 	= false;
 	private boolean do_attitude		= false;
 
@@ -294,6 +298,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			@Override
 			public void process(Planar<GrayU8> rgb, GrayU16 depth, long timeRgb, long timeDepth) {
 
+				publish_tms_us = System.currentTimeMillis()*1000;
+
 				if(!do_odometry || visualOdometry == null ) {
 					return;
 				}
@@ -314,8 +320,6 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 					ConvertImage.average(rgb, gray);
 
-					for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
-						stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
 
 					if( !visualOdometry.process(gray,depth,setModelToState(model, current))) {
 						init("Odometry");
@@ -329,8 +333,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 					return;
 				}
 
-				quality = (int)(visualOdometry.getQuality());
-				if(quality > 100) quality = 100;
+				quality = (int)((visualOdometry.getQuality())*100f/MAXTRACKS);
+				if(quality > 100) quality = 100; if(quality < 1) quality = 1;
 
 				// get Measurement from odometry
 				pos_raw = visualOdometry.getCameraToWorld().getT();
@@ -352,14 +356,18 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 							}
 							error_count = 0;
 						}
-					}  else
+					}  else {
 						initialized_count = 0;
-					//	return;
+						return;
+					}
+
 				}
 
 				rot_ned.setRotation(visualOdometry.getCameraToWorld().getR());
-				estTimeDepth_us =System.currentTimeMillis()*1000d;
+				estTimeDepth_us = timeDepth * 1000d;
+			//	estTimeDepth_us = publish_tms_us;
 				dt = (estTimeDepth_us - oldTimeDepth_us)/1000000d;
+
 				if(oldTimeDepth_us==0) {
 					oldTimeDepth_us = estTimeDepth_us;
 					return;
@@ -446,6 +454,9 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 				// Publish MSP data
 				publisMSPVision();
+
+				for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
+					stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
 			}
 		});
 	}
@@ -547,8 +558,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				fps=0; quality=0;
 				model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, false);
 			}
-
-			visualOdometry.reset(setModelToState(model,current));
+			current = setModelToState(model,current);
+			visualOdometry.reset(current);
 			pos_ned.set(current);
 
 			if(detectors.size()>0) {
@@ -567,7 +578,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 			last_pos_tms = System.currentTimeMillis();
 
 			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-			sms.usec = (long)estTimeDepth_us;
+
+			sms.usec = (long)publish_tms_us;
 			if(do_xy_position)  {
 				sms.x = (float) pos_ned.T.z;
 				sms.y = (float) pos_ned.T.x;
@@ -577,6 +589,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				sms.y = Float.NaN;
 				sms.z = Float.NaN;
 			}
+
 
 			if(do_attitude) {
 				sms.roll  = (float)visAttitude[0];
@@ -613,7 +626,8 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 			msg.quality = quality;
 			msg.fps = fps;
-			msg.tms = (long)estTimeDepth_us;
+		//	msg.tms = (long)estTimeDepth_us;
+			msg.tms = publish_tms_us;
 			msg.errors = error_count;
 			if(do_xy_position && do_odometry)
 				msg.flags = msg.flags | 1;
