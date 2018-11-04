@@ -52,7 +52,7 @@ import georegression.struct.se.Se3_F64;
 // TODO WARNING! active list has been modified by dropping and adding tracks
 // this is probably true of other SFM algorithms
 public class MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis extends ImageBase, Depth extends ImageGray>
-	implements MAVDepthVisualOdometry<Vis,Depth> , AccessPointTracks3D
+	implements MAVDepthVisualOdometryVIO<Vis,Depth> , AccessPointTracks3D
 {
 	// low level algorithm
 	DepthSparse3D<Depth> sparse3D;

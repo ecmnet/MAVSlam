@@ -66,7 +66,7 @@ public class FactoryMAVOdometryVIO {
 	 * @return StereoVisualOdometry
 	 */
 	public static <Vis extends ImageGray, Depth extends ImageGray>
-	MAVDepthVisualOdometry<Vis,Depth> depthPnP(double inlierPixelTol,
+	MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis, Depth> depthPnP(double inlierPixelTol,
 												 int thresholdAdd,
 												 int thresholdRetire ,
 												 int ransacIterations ,
@@ -100,7 +100,7 @@ public class FactoryMAVOdometryVIO {
 		MAVOdomPixelDepthPnP<Vis> alg = new MAVOdomPixelDepthPnP<Vis>
 						(thresholdAdd,thresholdRetire ,doublePass,motion,pixelTo3D,refine,tracker,null,null);
 
-		return new MAVOdomPixelDepthPnP_to_DepthVisualOdometry<Vis,Depth>
+		return new MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis,Depth>
 				(sparseDepth,alg,distance, ImageType.single(visualType),depthType);
 	}
 
