@@ -1,4 +1,4 @@
-package com.comino.slam.boofcv.vo;
+package com.comino.slam.boofcv;
 
 import boofcv.abst.sfm.d3.DepthVisualOdometry;
 import boofcv.struct.image.ImageBase;

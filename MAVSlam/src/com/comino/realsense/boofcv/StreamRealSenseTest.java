@@ -40,8 +40,8 @@ import java.awt.image.BufferedImage;
 import com.comino.mq.bus.MWMessageBus;
 import com.comino.mq.tests.OptPos;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
+import com.comino.slam.boofcv.MAVDepthVisualOdometry;
 import com.comino.slam.boofcv.vo.FactoryMAVOdometry;
-import com.comino.slam.boofcv.vo.MAVDepthVisualOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;

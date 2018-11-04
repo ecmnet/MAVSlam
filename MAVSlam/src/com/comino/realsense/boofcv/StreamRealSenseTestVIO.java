@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-package com.comino.slam.boofcv.vio;
+package com.comino.realsense.boofcv;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -39,12 +39,12 @@ import java.awt.image.BufferedImage;
 
 import com.comino.mq.bus.MWMessageBus;
 import com.comino.mq.tests.OptPos;
-import com.comino.realsense.boofcv.RealSenseInfo;
-import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
+import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
+import com.comino.slam.boofcv.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.vio.FactoryMAVOdometryVIO;
 import com.comino.slam.boofcv.vio.tracker.FactoryMAVPointTrackerTwoPassVIO;
 import com.comino.slam.boofcv.vo.FactoryMAVOdometry;
-import com.comino.slam.boofcv.vo.MAVDepthVisualOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -52,12 +52,15 @@ import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.alg.distort.DoNothingPixelTransform_F32;
 import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
+import boofcv.core.image.ConvertImage;
 import boofcv.factory.feature.tracker.FactoryPointTrackerTwoPass;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
+import georegression.geometry.ConvertRotation3D_F64;
+import georegression.struct.EulerType;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 import javafx.application.Application;
@@ -78,13 +81,16 @@ public class StreamRealSenseTestVIO extends Application  {
 
 	private StreamRealSenseVisDepth realsense;
 
+	private GrayU8 gray 			= null;
+	private Se3_F64 pose            = new Se3_F64();
+	private double[] visAttitude    = new double[3];
+
 	private long oldTimeDepth=0;
 	private long tms = 0;
 
 	private int mouse_x;
 	private int mouse_y;
 
-	private MWMessageBus bus1 = new MWMessageBus(1,"127.0.0.1");
 	private OptPos position = new OptPos();
 
 	@Override
@@ -95,6 +101,7 @@ public class StreamRealSenseTestVIO extends Application  {
 
 		root.getChildren().add(ivrgb);
 
+
 		ivrgb.setOnMouseMoved(event -> {
 			MouseEvent ev = event;
 			mouse_x = (int)ev.getX();
@@ -103,7 +110,9 @@ public class StreamRealSenseTestVIO extends Application  {
 
 
 		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+	//	RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+
+		gray = new GrayU8(info.width,info.height);
 
 		try {
 
@@ -126,22 +135,30 @@ public class StreamRealSenseTestVIO extends Application  {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryMAVPointTrackerTwoPassVIO.klt(configKlt, new ConfigGeneralDetector(900, 2, 1),
+				FactoryMAVPointTrackerTwoPassVIO.klt(configKlt, new ConfigGeneralDetector(600, 3, 1),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
 		// declares the algorithm
-		MAVDepthVisualOdometryVIO<GrayU8,GrayU16> visualOdometry =
-				FactoryMAVOdometryVIO.depthPnP(1.2, 120, 2, 200, 50, true,
+		MAVDepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
+				FactoryMAVOdometryVIO.depthPnP(1.5, 80, 3, 200, 50, true,
 						sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
 
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void run() {
+				realsense.stop();
+			}
+		});
 
-		output = new BufferedImage(info.width, info.height, BufferedImage.TYPE_3BYTE_BGR);
+
+		output = new BufferedImage(info.width, info.height, BufferedImage.TYPE_INT_RGB);
 		wirgb = new WritableImage(info.width, info.height);
 		ivrgb.setImage(wirgb);
+
+		visualOdometry.reset();
 
 
 		realsense.registerListener(new Listener() {
@@ -164,21 +181,22 @@ public class StreamRealSenseTestVIO extends Application  {
 				fpm += (int)(1f/((timeRgb - oldTimeDepth)/1000f)+0.5f);
 				oldTimeDepth = timeRgb;
 
-				if( !visualOdometry.process(rgb.getBand(0),depth) ) {
-					bus1.writeObject(position);
-					System.out.println("VO Failed!");
-					visualOdometry.reset();
+				ConvertImage.average(rgb, gray);
+
+				if( !visualOdometry.process(gray, depth, pose) ) {
+		    		 visualOdometry.reset();
 					return;
 				}
 
 
+				pose.set(visualOdometry.getCameraToWorld());
+				Vector3D_F64 T = pose.getT();
 
-				Se3_F64 leftToWorld = visualOdometry.getCameraToWorld();
-				Vector3D_F64 T = leftToWorld.getT();
+				ConvertRotation3D_F64.matrixToEuler(pose.getRotation(), EulerType.ZXY, visAttitude);
 
 
 				AccessPointTracks3D points = (AccessPointTracks3D)visualOdometry;
-				ConvertBufferedImage.convertTo(rgb, output, false);
+				ConvertBufferedImage.convertTo_U8(rgb, output, false);
 
 				Graphics c = output.getGraphics();
 
@@ -189,7 +207,7 @@ public class StreamRealSenseTestVIO extends Application  {
 					if(points.isInlier(i)) {
 
 
-					c.setColor(Color.BLUE);
+					c.setColor(Color.WHITE);
 
 					x = (int)points.getAllTracks().get(i).x;
 					y = (int)points.getAllTracks().get(i).y;
@@ -217,20 +235,24 @@ public class StreamRealSenseTestVIO extends Application  {
 				}
 
 				if(depth!=null) {
-					if(index > -1)
-					   System.out.println(visualOdometry.getTrackLocation(index));
+				//	if(index > -1)
+					//   System.out.println(visualOdometry.getTrackLocation(index));
 
 					mc++;
 					md = md + depth.get(dx,dy) / 1000f;
-					c.setColor(Color.GREEN);
+					c.setColor(Color.WHITE);
 					c.drawOval(dx-3,dy-3, 6, 6);
 				}
 
 
 				c.setColor(Color.CYAN);
 				c.drawString("Fps:"+fps, 10, 20);
+				c.drawString(String.format("Quality:  %3.0f",visualOdometry.getQuality()), info.width-85, 20);
 				c.drawString(String.format("Loc: %4.2f %4.2f %4.2f", T.x, T.y, T.z), 10, info.height-10);
 				c.drawString(String.format("Depth: %3.2f", mouse_depth), info.width-85, info.height-10);
+				c.drawString(String.format("ROLL:  %3.0f°", MSPMathUtils.fromRad(visAttitude[0])), info.width-85, info.height-55);
+				c.drawString(String.format("PITCH: %3.0f°", MSPMathUtils.fromRad(visAttitude[1])), info.width-85, info.height-40);
+				c.drawString(String.format("YAW:   %3.0f°", MSPMathUtils.fromRad(visAttitude[2])), info.width-85, info.height-25);
 
 				position.x = T.x;
 				position.y = T.y;
@@ -238,12 +260,10 @@ public class StreamRealSenseTestVIO extends Application  {
 
 				position.tms = timeRgb;
 
-				bus1.writeObject(position);
-
-				if((count / total)>0.6f) {
-					c.setColor(Color.RED);
-					c.drawString("WARNING!", info.width-70, 20);
-				}
+//				if((count / total)>0.6f) {
+//					c.setColor(Color.RED);
+//					c.drawString("WARNING!", info.width-70, 20);
+//				}
 				c.dispose();
 
 				Platform.runLater(() -> {
@@ -258,11 +278,12 @@ public class StreamRealSenseTestVIO extends Application  {
 	@Override
 	public void stop() throws Exception {
 		realsense.stop();
-		bus1.release();
 		super.stop();
 	}
 
 	public static void main(String[] args) {
+
+
 		launch(args);
 	}
 

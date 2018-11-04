@@ -23,7 +23,7 @@ import static boofcv.alg.distort.LensDistortionOps.transformPoint;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.comino.slam.boofcv.vo.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.MAVDepthVisualOdometry;
 import com.comino.slam.boofcv.vo.MAVOdomPixelDepthPnP;
 
 import boofcv.abst.feature.tracker.PointTrack;
@@ -52,11 +52,11 @@ import georegression.struct.se.Se3_F64;
 // TODO WARNING! active list has been modified by dropping and adding tracks
 // this is probably true of other SFM algorithms
 public class MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis extends ImageBase, Depth extends ImageGray>
-	implements MAVDepthVisualOdometryVIO<Vis,Depth> , AccessPointTracks3D
+	implements MAVDepthVisualOdometry<Vis,Depth> , AccessPointTracks3D
 {
 	// low level algorithm
 	DepthSparse3D<Depth> sparse3D;
-	MAVOdomPixelDepthPnP<Vis> alg;
+	MAVOdomPixelDepthPnPVIO<Vis> alg;
 	DistanceModelMonoPixels<Se3_F64,Point2D3D> distance;
 	ImageType<Vis> visualType;
 	Class<Depth> depthType;
@@ -67,7 +67,7 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis extends ImageBas
 
 	List<PointTrack> active = new ArrayList<PointTrack>();
 
-	public MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO(DepthSparse3D<Depth> sparse3D, MAVOdomPixelDepthPnP<Vis> alg,
+	public MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO(DepthSparse3D<Depth> sparse3D, MAVOdomPixelDepthPnPVIO<Vis> alg,
 													   DistanceModelMonoPixels<Se3_F64, Point2D3D> distance,
 													   ImageType<Vis> visualType, Class<Depth> depthType) {
 		this.sparse3D = sparse3D;
@@ -160,11 +160,6 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis extends ImageBas
 	}
 
 	@Override
-	public void reset(Se3_F64 initialState) {
-		alg.reset(initialState);
-	}
-
-	@Override
 	public boolean isFault() {
 		return !success;
 	}
@@ -187,6 +182,11 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis extends ImageBas
 	@Override
 	public int getInlierCount() {
 		return alg.getInlierTracks().size();
+	}
+
+	@Override
+	public void reset(Se3_F64 initialState) {
+		alg.reset(initialState);
 	}
 
 }

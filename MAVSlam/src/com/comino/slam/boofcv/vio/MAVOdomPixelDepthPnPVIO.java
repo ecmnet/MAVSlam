@@ -97,8 +97,6 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 	// transform from the current camera view to the world frame
 	private Se3_F64 currToWorld = new Se3_F64();
 
-	private Se3_F64 currentState = new Se3_F64();
-
 	// is this the first camera view being processed?
 	private boolean first = true;
 	// number of frames processed.
@@ -168,9 +166,6 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 
 	public boolean process(T image, Se3_F64 state) {
 
-		if(state!=null)
-		  currentState.set(state);
-
 		tracker.process(image);
 
 		tick++;
@@ -181,8 +176,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 			first = false;
 		} else {
 			if (!estimateMotion()) {
-				if(state!=null)
-                  keyToWorld.R.set(state.R); // TODO: Try out with pos set
+				System.out.println("No motion estimate...");
 				return false;
 			}
 
@@ -192,11 +186,13 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 			if (thresholdAdd <= 0 || N < thresholdAdd) {
 				changePoseToReference();
 				addNewTracks();
-			//	System.out.println("New KeyFrame...");
+				if(state!=null)
+					keyToWorld.set(state);
+				System.out.println("New KeyFrame..."+N);
 			}
 
-			// System.out.println(" num inliers = "+N+" num dropped
-			// "+numDropped+" total active "+tracker.getActivePairs().size());
+//			 System.out.println(" num inliers = "+N+" num dropped
+//			 "+numDropped+" total active "+tracker.getActivePairs().size());
 		}
 
 		return true;
@@ -384,8 +380,6 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 	private void concatMotion() {
 	    currToKey.concat(keyToWorld, temp);
 		keyToWorld.set(temp);
-		// if a new key is set, take currentState rotation into account
-		keyToWorld.R.set(currentState.R);
 		currToKey.reset();
 	}
 
@@ -401,20 +395,14 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 
 	public void reset() {
 		tracker.reset();
-		keyToWorld.reset();
 		currToKey.reset();
 		first = true;
 		tick = 0;
 	}
 
-
 	public void reset(Se3_F64 initialState) {
-		tracker.reset();
-		currentState.set(initialState);
-		keyToWorld.R.set(initialState.R);
-		currToKey.reset();
-		first = true;
-		tick = 0;
+		reset();
+		keyToWorld.set(initialState);
 	}
 
 

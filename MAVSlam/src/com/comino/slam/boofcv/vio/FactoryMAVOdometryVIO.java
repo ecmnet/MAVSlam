@@ -21,7 +21,7 @@ package com.comino.slam.boofcv.vio;
 import org.ddogleg.fitting.modelset.ModelMatcher;
 import org.ddogleg.fitting.modelset.ransac.Ransac;
 
-import com.comino.slam.boofcv.vo.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.MAVDepthVisualOdometry;
 import com.comino.slam.boofcv.vo.MAVOdomPixelDepthPnP;
 import com.comino.slam.boofcv.vo.MAVOdomPixelDepthPnP_to_DepthVisualOdometry;
 
@@ -97,7 +97,7 @@ public class FactoryMAVOdometryVIO {
 			refine = FactoryMultiView.refinePnP(1e-12,refineIterations);
 		}
 
-		MAVOdomPixelDepthPnP<Vis> alg = new MAVOdomPixelDepthPnP<Vis>
+		MAVOdomPixelDepthPnPVIO<Vis> alg = new MAVOdomPixelDepthPnPVIO<Vis>
 						(thresholdAdd,thresholdRetire ,doublePass,motion,pixelTo3D,refine,tracker,null,null);
 
 		return new MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis,Depth>

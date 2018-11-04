@@ -23,6 +23,8 @@ import static boofcv.alg.distort.LensDistortionOps.transformPoint;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.comino.slam.boofcv.MAVDepthVisualOdometry;
+
 import boofcv.abst.feature.tracker.PointTrack;
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.abst.sfm.d3.DepthVisualOdometry;

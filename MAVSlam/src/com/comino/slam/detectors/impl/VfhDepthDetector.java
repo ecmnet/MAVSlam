@@ -42,7 +42,7 @@ import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
-import com.comino.slam.boofcv.vo.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.struct.geo.Point2D3D;
