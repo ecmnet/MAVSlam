@@ -49,7 +49,7 @@ import com.comino.msp.model.DataModel;
 import com.comino.msp.slam.map2D.ILocalMap;
 import com.comino.msp.utils.MSP3DUtils;
 import com.comino.server.mjpeg.IVisualStreamHandler;
-import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.vo.MAVDepthVisualOdometry;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.sfm.AccessPointTracks3D;

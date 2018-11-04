@@ -33,7 +33,7 @@
 
 package com.comino.slam.detectors;
 
-import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.vo.MAVDepthVisualOdometry;
 
 import boofcv.struct.image.GrayU16;
 import boofcv.struct.image.GrayU8;

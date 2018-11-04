@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.comino.slam.boofcv.tracker;
+package com.comino.slam.boofcv.vio.tracker;
 
 import static boofcv.factory.feature.tracker.FactoryPointTracker.createShiTomasi;
 
@@ -44,7 +44,7 @@ import boofcv.struct.pyramid.PyramidDiscrete;
 /**
  * @author Peter Abeles
  */
-public class FactoryMAVPointTrackerTwoPass {
+public class FactoryMAVPointTrackerTwoPassVIO {
 
 	/**
 	 * Pyramid KLT feature tracker.

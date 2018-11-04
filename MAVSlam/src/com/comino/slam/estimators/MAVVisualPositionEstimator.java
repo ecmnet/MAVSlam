@@ -58,9 +58,9 @@ import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.server.mjpeg.IVisualStreamHandler;
-import com.comino.slam.boofcv.odometry.FactoryMAVOdometry;
-import com.comino.slam.boofcv.odometry.MAVDepthVisualOdometry;
-import com.comino.slam.boofcv.tracker.FactoryMAVPointTrackerTwoPass;
+import com.comino.slam.boofcv.vo.FactoryMAVOdometry;
+import com.comino.slam.boofcv.vo.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.vo.tracker.FactoryMAVPointTrackerTwoPass;
 import com.comino.slam.detectors.ISLAMDetector;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
@@ -300,10 +300,12 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 
 				publish_tms_us = System.currentTimeMillis()*1000;
 
+				for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
+					stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
+
 				if(!do_odometry || visualOdometry == null ) {
 					return;
 				}
-
 
 				if(dt >0) {
 					fpm += (int)(1f/dt+0.5f);
@@ -455,8 +457,7 @@ public class MAVVisualPositionEstimator implements IPositionEstimator {
 				// Publish MSP data
 				publisMSPVision();
 
-				for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
-					stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
+
 			}
 		});
 	}
