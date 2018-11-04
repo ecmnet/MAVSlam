@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.comino.slam.boofcv.vio;
+package com.comino.slam.boofcv.vio.odometry;
 
 import java.util.ArrayList;
 import java.util.List;

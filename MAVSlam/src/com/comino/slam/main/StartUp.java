@@ -38,10 +38,8 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
-import org.mavlink.messages.lquac.msg_debug;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
-import org.mavlink.messages.lquac.msg_play_tune;
 import org.mavlink.messages.lquac.msg_timesync;
 
 import com.comino.main.MSPConfig;
@@ -62,7 +60,7 @@ import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.VfhDirectDepthDetector;
 import com.comino.slam.estimators.IPositionEstimator;
-import com.comino.slam.estimators.MAVVisualPositionEstimator;
+import com.comino.slam.estimators.vo.MAVVisualPositionEstimatorVO;
 import com.sun.net.httpserver.HttpServer;
 
 public class StartUp implements Runnable {
@@ -149,7 +147,7 @@ public class StartUp implements Runnable {
 
 				// Start HTTP Service with MJPEG streamer
 
-				vision = new MAVVisualPositionEstimator(info, control, config, streamer);
+				vision = new MAVVisualPositionEstimatorVO(info, control, config, streamer);
 
 				vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
 

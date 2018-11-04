@@ -21,9 +21,9 @@ package com.comino.slam.boofcv.vio;
 import org.ddogleg.fitting.modelset.ModelMatcher;
 import org.ddogleg.fitting.modelset.ransac.Ransac;
 
-import com.comino.slam.boofcv.MAVDepthVisualOdometry;
-import com.comino.slam.boofcv.vo.MAVOdomPixelDepthPnP;
-import com.comino.slam.boofcv.vo.MAVOdomPixelDepthPnP_to_DepthVisualOdometry;
+import com.comino.slam.boofcv.vio.odometry.MAVOdomPixelDepthPnPVIO;
+import com.comino.slam.boofcv.vio.odometry.MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO;
+import com.comino.slam.boofcv.vo.odometry.MAVOdomPixelDepthPnP;
 
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
 import boofcv.abst.geo.Estimate1ofPnP;

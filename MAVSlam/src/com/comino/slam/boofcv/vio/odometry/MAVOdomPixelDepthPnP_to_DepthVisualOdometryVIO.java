@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.comino.slam.boofcv.vio;
+package com.comino.slam.boofcv.vio.odometry;
 
 import static boofcv.alg.distort.LensDistortionOps.transformPoint;
 
@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.comino.slam.boofcv.MAVDepthVisualOdometry;
-import com.comino.slam.boofcv.vo.MAVOdomPixelDepthPnP;
 
 import boofcv.abst.feature.tracker.PointTrack;
 import boofcv.abst.sfm.AccessPointTracks3D;

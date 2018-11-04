@@ -37,14 +37,12 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
-import com.comino.mq.bus.MWMessageBus;
 import com.comino.mq.tests.OptPos;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.slam.boofcv.MAVDepthVisualOdometry;
 import com.comino.slam.boofcv.vio.FactoryMAVOdometryVIO;
 import com.comino.slam.boofcv.vio.tracker.FactoryMAVPointTrackerTwoPassVIO;
-import com.comino.slam.boofcv.vo.FactoryMAVOdometry;
 
 import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
@@ -53,7 +51,6 @@ import boofcv.alg.distort.DoNothingPixelTransform_F32;
 import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
 import boofcv.core.image.ConvertImage;
-import boofcv.factory.feature.tracker.FactoryPointTrackerTwoPass;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.image.GrayS16;
 import boofcv.struct.image.GrayU16;
