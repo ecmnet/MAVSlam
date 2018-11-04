@@ -367,9 +367,9 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 						return;
 					}
 
-					// Todo: get Rid of visAttitude
 					ConvertRotation3D_F64.matrixToEuler(pose.R, EulerType.ZXY, visAttitude);
-					ConvertRotation3D_F64.eulerToQuaternion(EulerType.XYZ,visAttitude[0],visAttitude[1], visAttitude[2], att_q);
+
+					//ConvertRotation3D_F64.eulerToQuaternion(EulerType.XYZ,visAttitude[0],visAttitude[1], visAttitude[2], att_q);
 
 
 					if(Math.abs(visAttitude[2] - model.attitude.y) > 0.1 && model.sys.isStatus(Status.MSP_LANDED)
