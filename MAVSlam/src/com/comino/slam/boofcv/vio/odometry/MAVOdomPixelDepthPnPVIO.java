@@ -176,7 +176,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 			first = false;
 		} else {
 			if (!estimateMotion()) {
-				System.out.println("No motion estimate...");
+		//		System.out.println("No motion estimate...");
 				return false;
 			}
 
@@ -188,7 +188,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 				addNewTracks();
 				if(state!=null)
 					keyToWorld.set(state);
-				System.out.println("New KeyFrame..."+N);
+		//		System.out.println("New KeyFrame..."+N);
 			}
 
 //			 System.out.println(" num inliers = "+N+" num dropped

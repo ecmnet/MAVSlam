@@ -93,13 +93,13 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private static final float  VISION_SPEED_GATE     	= 0.25f;
 
 	private static final float  INLIER_PIXEL_TOL    	= 1.5f;
-	private static final int    MAXTRACKS   			= 100;
+	private static final int    MAXTRACKS   			= 180;
 	private static final int    KLT_RADIUS          	= 3;
 	private static final float  KLT_THRESHOLD       	= 1f;
 	private static final int    RANSAC_ITERATIONS   	= 150;
 	private static final int    RETIRE_THRESHOLD    	= 2;
 	private static final int    ADD_THRESHOLD       	= 70;
-	private static final int    REFINE_ITERATIONS   	= 80;
+	private static final int    REFINE_ITERATIONS   	= 50;
 
 	private StreamRealSenseVisDepth 				    realsense			= null;
 	private MAVDepthVisualOdometry<GrayU8,GrayU16>    	visualOdometry		= null;
@@ -112,7 +112,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 
 
-	private Quaternion_F64 att_q	= new Quaternion_F64();
+//	private Quaternion_F64 att_q	= new Quaternion_F64();
 	private double[] visAttitude     = new double[3];
 
 	private long last_pos_tms        = 0;
@@ -177,7 +177,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		System.out.println("Vision debugging: "+debug);
 		System.out.println("Initialize heading when landed: "+heading_init_enabled);
 		System.out.println("Vision setup: MaxTracks="+MAXTRACKS+" RanSac="+RANSAC_ITERATIONS+ " KLTRadius="+KLT_RADIUS+ " KLTThreshold="+KLT_THRESHOLD);
-		this.min_quality = config.getIntProperty("vision_min_quality", "50");
+		this.min_quality = config.getIntProperty("vision_min_quality", "20");
 		System.out.println("Vision minimum quality: "+min_quality);
 
 		this.vision_pos_gate = config.getFloatProperty("vision_pos_gate", String.valueOf(VISION_POS_GATE));
@@ -248,7 +248,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		} catch(Exception e) {
 			this.do_odometry = false;
 			this.detector_cycle_ms = 0;
-			System.out.println("Vision disabled due to: "+e.getMessage());
+			System.out.println("Odometry disabled ("+e.getMessage()+").");
 			return;
 		}
 
@@ -299,6 +299,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 					return;
 				}
 
+				// Averaging frames per second
 				if(dt >0) {
 					fpm += (int)(1f/dt+0.5f);
 					if((System.currentTimeMillis() - fps_tms) > 500) {
@@ -314,8 +315,9 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 					ConvertImage.average(rgb, gray);
 
+					setModelToState(model, pose);
 
-					if( !visualOdometry.process(gray,depth,setModelToState(model, pose))) {
+					if( !visualOdometry.process(gray,depth,pose)) {
 						init("Odometry");
 						return;
 					}
@@ -538,7 +540,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 			last_pos_tms = System.currentTimeMillis();
 
 			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-
+	//		sms.usec = (long)estTimeDepth_us;
 			sms.usec = (long)publish_tms_us;
 			if(do_xy_position)  {
 				sms.x = (float) pose.T.z;
@@ -598,10 +600,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
 		}
-	}
-
-	public static void main(String[] args) {
-		new MAVVisualPositionEstimatorVIO();
 	}
 
 }

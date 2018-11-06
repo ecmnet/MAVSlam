@@ -72,6 +72,15 @@ import javafx.stage.Stage;
 
 public class StreamRealSenseTestVIO extends Application  {
 
+	private static final float  INLIER_PIXEL_TOL    	= 1.5f;
+	private static final int    MAXTRACKS   			= 100;
+	private static final int    KLT_RADIUS          	= 3;
+	private static final float  KLT_THRESHOLD       	= 1f;
+	private static final int    RANSAC_ITERATIONS   	= 150;
+	private static final int    RETIRE_THRESHOLD    	= 2;
+	private static final int    ADD_THRESHOLD       	= 70;
+	private static final int    REFINE_ITERATIONS   	= 80;
+
 	private BufferedImage output;
 	private final ImageView ivrgb = new ImageView();
 	private WritableImage wirgb;
@@ -132,14 +141,14 @@ public class StreamRealSenseTestVIO extends Application  {
 		configKlt.templateRadius = 3;
 
 		PointTrackerTwoPass<GrayU8> tracker =
-				FactoryMAVPointTrackerTwoPassVIO.klt(configKlt, new ConfigGeneralDetector(600, 3, 1),
+				FactoryMAVPointTrackerTwoPassVIO.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, KLT_RADIUS, KLT_THRESHOLD),
 						GrayU8.class, GrayS16.class);
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
 		// declares the algorithm
 		MAVDepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
-				FactoryMAVOdometryVIO.depthPnP(1.5, 80, 3, 200, 50, true,
+				FactoryMAVOdometryVIO.depthPnP(INLIER_PIXEL_TOL, ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
 						sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
@@ -182,6 +191,7 @@ public class StreamRealSenseTestVIO extends Application  {
 
 				if( !visualOdometry.process(gray, depth, pose) ) {
 		    		 visualOdometry.reset();
+		    		 System.err.println("No motion estimate");
 					return;
 				}
 
