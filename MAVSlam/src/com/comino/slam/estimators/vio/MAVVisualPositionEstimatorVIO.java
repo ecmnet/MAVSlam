@@ -76,6 +76,7 @@ import boofcv.struct.image.Planar;
 import georegression.geometry.ConvertRotation3D_F64;
 import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
+import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.struct.so.Quaternion_F64;
 
@@ -128,6 +129,9 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private Se3_F64 pose                    = new Se3_F64();
 	private Se3_F64 pose_old                = new Se3_F64();
 	private Se3_F64 speed                   = new Se3_F64();
+
+	private Vector3D_F64 offset_body        = new Vector3D_F64();
+	private Vector3D_F64 offset_ned         = new Vector3D_F64();
 
 	private int quality				= 0;
 	private int min_quality 		= 0;
@@ -281,6 +285,8 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 		initialized_count = 0;
 
+		offset_body.set(0.1f,0,0);
+
 
 		realsense.registerListener(new Listener() {
 
@@ -317,6 +323,11 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 					setModelToState(model, pose);
 
+
+					// Rotate offset into NED add it to current pose
+					GeometryMath_F64.mult(pose.R, offset_body, offset_ned);
+					pose.T.plusIP(offset_ned);
+
 					if( !visualOdometry.process(gray,depth,pose)) {
 						init("Odometry");
 						return;
@@ -329,11 +340,14 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 					return;
 				}
 
-				quality = (int)((visualOdometry.getQuality())*100f/MAXTRACKS);
-				if(quality > 100) quality = 100; if(quality < 1) quality = 1;
-
 				// get Measurement from odometry
 				pose.set(visualOdometry.getCameraToWorld());
+
+				// rotate offset into current ned
+				GeometryMath_F64.mult(pose.R, offset_body, offset_ned);
+
+				// Correct position by the measured movement caused by the offset
+				offset_ned.scale(-1); pose.T.plusIP(offset_ned);
 
 
 				estTimeDepth_us = timeDepth * 1000d;
@@ -345,6 +359,9 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 					return;
 				}
 				oldTimeDepth_us = estTimeDepth_us;
+
+				quality = (int)((visualOdometry.getQuality())*100f/MAXTRACKS);
+				if(quality > 100) quality = 100; if(quality < 1) quality = 1;
 
 				if(dt > 0) {
 
