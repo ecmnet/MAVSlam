@@ -76,16 +76,16 @@ import boofcv.struct.image.Planar;
 import georegression.geometry.ConvertRotation3D_F64;
 import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
-import georegression.struct.point.Vector3D_F64;
+import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.struct.so.Quaternion_F64;
 
 public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 	private static final int   	PUBLISH_RATE_MSP	    = 50 - 5;
-	private static final int  	PUBLISH_RATE_PX4    	= 15 - 5;
+	private static final int  	PUBLISH_RATE_PX4    	= 10 - 5;
 
-	private static final int    INIT_COUNT           	= 1;
+	private static final int    INIT_COUNT           	= 5;
 	private static final int    MAX_ERRORS    	    	= 5;
 	private static final int    MAX_QUALITY_ERRORS   	= 10;
 
@@ -99,8 +99,8 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private static final float  KLT_THRESHOLD       	= 1f;
 	private static final int    RANSAC_ITERATIONS   	= 150;
 	private static final int    RETIRE_THRESHOLD    	= 2;
-	private static final int    ADD_THRESHOLD       	= 70;
-	private static final int    REFINE_ITERATIONS   	= 50;
+	private static final int    ADD_THRESHOLD       	= 50;
+	private static final int    REFINE_ITERATIONS   	= 60;
 
 	private StreamRealSenseVisDepth 				    realsense			= null;
 	private MAVDepthVisualOdometry<GrayU8,GrayU16>    	visualOdometry		= null;
@@ -113,7 +113,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 
 
-//	private Quaternion_F64 att_q	= new Quaternion_F64();
+	//	private Quaternion_F64 att_q	= new Quaternion_F64();
 	private double[] visAttitude     = new double[3];
 
 	private long last_pos_tms        = 0;
@@ -129,9 +129,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private Se3_F64 pose                    = new Se3_F64();
 	private Se3_F64 pose_old                = new Se3_F64();
 	private Se3_F64 speed                   = new Se3_F64();
-
-	private Vector3D_F64 offset_body        = new Vector3D_F64();
-	private Vector3D_F64 offset_ned         = new Vector3D_F64();
 
 	private int quality				= 0;
 	private int min_quality 		= 0;
@@ -181,7 +178,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		System.out.println("Vision debugging: "+debug);
 		System.out.println("Initialize heading when landed: "+heading_init_enabled);
 		System.out.println("Vision setup: MaxTracks="+MAXTRACKS+" RanSac="+RANSAC_ITERATIONS+ " KLTRadius="+KLT_RADIUS+ " KLTThreshold="+KLT_THRESHOLD);
-		this.min_quality = config.getIntProperty("vision_min_quality", "20");
+		this.min_quality = config.getIntProperty("vision_min_quality", "10");
 		System.out.println("Vision minimum quality: "+min_quality);
 
 		this.vision_pos_gate = config.getFloatProperty("vision_pos_gate", String.valueOf(VISION_POS_GATE));
@@ -268,7 +265,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 
 		visualOdometry = FactoryMAVOdometryVIO.depthPnP(INLIER_PIXEL_TOL,
-				ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
+				ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true, new Point3D_F64(-0.02,-0.05,0.075),
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
@@ -284,8 +281,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		}
 
 		initialized_count = 0;
-
-		offset_body.set(0.1f,0,0);
 
 
 		realsense.registerListener(new Listener() {
@@ -321,16 +316,18 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 					ConvertImage.average(rgb, gray);
 
-					setModelToState(model, pose);
 
-
-					// Rotate offset into NED add it to current pose
-					GeometryMath_F64.mult(pose.R, offset_body, offset_ned);
-					pose.T.plusIP(offset_ned);
-
-					if( !visualOdometry.process(gray,depth,pose)) {
-						init("Odometry");
-						return;
+					if(control.isSimulation()) {
+						if( !visualOdometry.process(gray,depth,null)) {
+							init("Odometry");
+							return;
+						}
+					} else {
+						setModelToState(model, pose);
+						if( !visualOdometry.process(gray,depth,pose)) {
+							init("Odometry");
+							return;
+						}
 					}
 
 				} catch( Exception e) {
@@ -340,18 +337,16 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 					return;
 				}
 
+				quality = (int)((visualOdometry.getQuality())*100f / (MAXTRACKS));
+				if(quality > 100) quality = 100; if(quality < 1) quality = 1;
+
+
 				// get Measurement from odometry
 				pose.set(visualOdometry.getCameraToWorld());
 
-				// rotate offset into current ned
-				GeometryMath_F64.mult(pose.R, offset_body, offset_ned);
-
-				// Correct position by the measured movement caused by the offset
-				offset_ned.scale(-1); pose.T.plusIP(offset_ned);
-
 
 				estTimeDepth_us = timeDepth * 1000d;
-			//	estTimeDepth_us = publish_tms_us;
+				//	estTimeDepth_us = publish_tms_us;
 				dt = (estTimeDepth_us - oldTimeDepth_us)/1000000d;
 
 				if(oldTimeDepth_us==0) {
@@ -360,12 +355,15 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 				}
 				oldTimeDepth_us = estTimeDepth_us;
 
-				quality = (int)((visualOdometry.getQuality())*100f/MAXTRACKS);
-				if(quality > 100) quality = 100; if(quality < 1) quality = 1;
+				// do some initializing measurements first
+				if(initialized_count++ < INIT_COUNT)
+					return;
 
 				if(dt > 0) {
 
 					if(quality > min_quality ) {
+
+						qual_error_count=0;
 
 						// speed.T = (pos_raw - pos_raw_old ) / dt
 						GeometryMath_F64.sub(pose.T, pose_old.T, speed.T);
@@ -379,8 +377,9 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 						}
 
 					} else {
+
 						if(++qual_error_count > MAX_QUALITY_ERRORS) {
-							qual_error_count=0;
+							publisMSPVision();
 							init("Quality");
 						}
 						return;
@@ -401,18 +400,18 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 
 				if(	( Math.abs(pose.T.z - model.state.l_x) > vision_pos_gate ||
-					  Math.abs(pose.T.x - model.state.l_y) > vision_pos_gate ) && !control.isSimulation())   {
+						Math.abs(pose.T.x - model.state.l_y) > vision_pos_gate ) && !control.isSimulation())   {
 					init("Vision pos. gate");
 					return;
 				}
 
 				// TODO: Replace with vision speed gate -> needs to be tested
 
-//				if(	( Math.abs(speed_ned.T.z - model.state.l_vx) > vision_speed_gate ||
-//					  Math.abs(speed_ned.T.x - model.state.l_vy) > vision_speed_gate ) )   {
-//						init("Vision speed gate");
-//						return;
-//					}
+				//				if(	( Math.abs(speed_ned.T.z - model.state.l_vx) > vision_speed_gate ||
+				//					  Math.abs(speed_ned.T.x - model.state.l_vy) > vision_speed_gate ) )   {
+				//						init("Vision speed gate");
+				//						return;
+				//					}
 
 				publishPX4Vision();
 				error_count=0;
@@ -530,16 +529,18 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		if(visualOdometry==null)
 			return;
 
+		this.initialized_count = 0;
+
 		this.last_pos_tms = 0;
 		this.last_reason = reason;
+		visualOdometry.reset();
 
 		if(do_odometry) {
-			initialized_count = 0;
+
 			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
 				model.sys.setSensor(Status.MSP_OPCV_AVAILABILITY, false);
 			}
-			visualOdometry.reset();
 
 			if(detectors.size()>0) {
 				detector_tms = System.currentTimeMillis();
@@ -557,7 +558,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 			last_pos_tms = System.currentTimeMillis();
 
 			msg_vision_position_estimate sms = new msg_vision_position_estimate(1,2);
-	//		sms.usec = (long)estTimeDepth_us;
+			//		sms.usec = (long)estTimeDepth_us;
 			sms.usec = (long)publish_tms_us;
 			if(do_xy_position)  {
 				sms.x = (float) pose.T.z;
@@ -605,7 +606,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 			msg.quality = quality;
 			msg.fps = fps;
-		//	msg.tms = (long)estTimeDepth_us;
+			//	msg.tms = (long)estTimeDepth_us;
 			msg.tms = publish_tms_us;
 			msg.errors = error_count;
 			if(do_xy_position && do_odometry)

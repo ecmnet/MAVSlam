@@ -58,6 +58,7 @@ import boofcv.struct.image.GrayU8;
 import boofcv.struct.image.Planar;
 import georegression.geometry.ConvertRotation3D_F64;
 import georegression.struct.EulerType;
+import georegression.struct.point.Point3D_F64;
 import georegression.struct.point.Vector3D_F64;
 import georegression.struct.se.Se3_F64;
 import javafx.application.Application;
@@ -149,6 +150,7 @@ public class StreamRealSenseTestVIO extends Application  {
 		// declares the algorithm
 		MAVDepthVisualOdometry<GrayU8,GrayU16> visualOdometry =
 				FactoryMAVOdometryVIO.depthPnP(INLIER_PIXEL_TOL, ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true,
+						new Point3D_F64(),
 						sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());

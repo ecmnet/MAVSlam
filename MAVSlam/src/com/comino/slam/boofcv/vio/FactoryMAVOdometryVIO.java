@@ -40,6 +40,7 @@ import boofcv.struct.geo.Point2D3D;
 import boofcv.struct.image.ImageGray;
 import boofcv.struct.image.ImageType;
 import georegression.fitting.se.ModelManagerSe3_F64;
+import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
 
 /**
@@ -72,9 +73,11 @@ public class FactoryMAVOdometryVIO {
 												 int ransacIterations ,
 												 int refineIterations ,
 												 boolean doublePass ,
+												 Point3D_F64 offset,
 												 DepthSparse3D<Depth> sparseDepth,
 												 PointTrackerTwoPass<Vis> tracker ,
-												 Class<Vis> visualType , Class<Depth> depthType ) {
+												 Class<Vis> visualType , Class<Depth> depthType
+												 ) {
 
 		// Range from sparse disparity
 		ImagePixelTo3D pixelTo3D = new DepthSparse3D_to_PixelTo3D<Depth>(sparseDepth);
@@ -98,7 +101,7 @@ public class FactoryMAVOdometryVIO {
 		}
 
 		MAVOdomPixelDepthPnPVIO<Vis> alg = new MAVOdomPixelDepthPnPVIO<Vis>
-						(thresholdAdd,thresholdRetire ,doublePass,motion,pixelTo3D,refine,tracker,null,null);
+						(thresholdAdd,thresholdRetire ,doublePass,offset, motion,pixelTo3D,refine,tracker,null,null);
 
 		return new MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis,Depth>
 				(sparseDepth,alg,distance, ImageType.single(visualType),depthType);

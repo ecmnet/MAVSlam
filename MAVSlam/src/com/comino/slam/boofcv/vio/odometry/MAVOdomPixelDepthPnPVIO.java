@@ -106,6 +106,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 	private Se3_F64 temp = new Se3_F64();
 
 	private Point3D_F64 lastTrackAdded = new Point3D_F64();
+	private Point3D_F64 offset = new Point3D_F64(-0.02,-0.05,0.075);
 
 	private double quality = 0;
 
@@ -138,7 +139,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 	 * @param normToPixel
 	 *            Converts from normalized image coordinates into raw pixels
 	 */
-	public MAVOdomPixelDepthPnPVIO(int thresholdAdd, int thresholdRetire, boolean doublePass,
+	public MAVOdomPixelDepthPnPVIO(int thresholdAdd, int thresholdRetire, boolean doublePass, Point3D_F64 offset,
 			ModelMatcher<Se3_F64, Point2D3D> motionEstimator, ImagePixelTo3D pixelTo3D, RefinePnP refine,
 			PointTrackerTwoPass<T> tracker, PointTransform_F64 pixelToNorm, PointTransform_F64 normToPixel) {
 		this.thresholdAdd = thresholdAdd;
@@ -150,6 +151,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 		this.tracker = tracker;
 		this.pixelToNorm = pixelToNorm;
 		this.normToPixel = normToPixel;
+		this.offset = offset;
 	}
 
 
@@ -285,12 +287,20 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 	 * @return true if successful.
 	 */
 	private boolean estimateMotion() {
+		Point2D3D p = null;
 		List<PointTrack> active = tracker.getActiveTracks(null);
 		List<Point2D3D> obs = new ArrayList<Point2D3D>();
 
+
 		for (PointTrack t : active) {
-			Point2D3D p = t.getCookie();
+			p = t.getCookie();
 			pixelToNorm.compute(t.x, t.y, p.observation);
+
+			// Add offset TODO: do this in modelMatcher
+			p.location.z += offset.z;
+			p.location.y += offset.y;
+			p.location.x += offset.x;
+
 			obs.add(p);
 		}
 
@@ -303,6 +313,16 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 				return false;
 		}
 		tracker.finishTracking();
+
+
+        // undo offset OBSOLETE if in ModelMatcher
+		for (PointTrack t : active) {
+			p = t.getCookie();
+			p.location.z -= offset.z;
+			p.location.y -= offset.y;
+			p.location.x -= offset.x;
+		}
+
 
 		Se3_F64 keyToCurr;
 
@@ -324,7 +344,10 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 			inlierTracks.add(t);
 		}
 
-		this.quality = (3 * quality + motionEstimator.getFitQuality())/4f;
+		if(active.size()> 0)
+		    this.quality = motionEstimator.getFitQuality();
+		else
+			this.quality = 0;
 
 		return true;
 	}
@@ -395,9 +418,11 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 
 	public void reset() {
 		tracker.reset();
+		keyToWorld.reset();
 		currToKey.reset();
 		first = true;
 		tick = 0;
+		quality = 0;
 	}
 
 	public void reset(Se3_F64 initialState) {
