@@ -101,7 +101,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private static final int    ADD_THRESHOLD       	= 50;
 	private static final int    REFINE_ITERATIONS   	= 60;
 
-	// TODO: get from config file
+	// TODO: get mounting offset of camera from config file
 	private final Point3D_F64 mounting_offset = new Point3D_F64(-0.02,-0.05,0.075);
 
 
@@ -113,7 +113,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 	private double oldTimeDepth_us	= 0;
 	private double estTimeDepth_us	= 0;
-
 
 
 	//	private Quaternion_F64 att_q	= new Quaternion_F64();

@@ -106,7 +106,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 	private Se3_F64 temp = new Se3_F64();
 
 	private Point3D_F64 lastTrackAdded = new Point3D_F64();
-	private Point3D_F64 offset = new Point3D_F64(-0.02,-0.05,0.075);
+	private Point3D_F64 offset = null;
 
 	private double quality = 0;
 
@@ -315,7 +315,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 		tracker.finishTracking();
 
 
-        // undo offset OBSOLETE if in ModelMatcher
+        // undo offset; this is obsolete if in ModelMatcher
 		for (PointTrack t : active) {
 			p = t.getCookie();
 			p.location.z -= offset.z;
