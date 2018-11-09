@@ -78,7 +78,6 @@ import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
-import georegression.struct.so.Quaternion_F64;
 
 public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
@@ -101,6 +100,10 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private static final int    RETIRE_THRESHOLD    	= 2;
 	private static final int    ADD_THRESHOLD       	= 50;
 	private static final int    REFINE_ITERATIONS   	= 60;
+
+	// TODO: get from config file
+	private final Point3D_F64 mounting_offset = new Point3D_F64(-0.02,-0.05,0.075);
+
 
 	private StreamRealSenseVisDepth 				    realsense			= null;
 	private MAVDepthVisualOdometry<GrayU8,GrayU16>    	visualOdometry		= null;
@@ -265,7 +268,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 
 		visualOdometry = FactoryMAVOdometryVIO.depthPnP(INLIER_PIXEL_TOL,
-				ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true, new Point3D_F64(-0.02,-0.05,0.075),
+				ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true, mounting_offset,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
 		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
