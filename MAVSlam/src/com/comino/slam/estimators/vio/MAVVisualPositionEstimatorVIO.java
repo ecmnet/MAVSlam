@@ -102,7 +102,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private static final int    REFINE_ITERATIONS   	= 60;
 
 	// TODO: get mounting offset of camera from config file
-	private final Point3D_F64 mounting_offset = new Point3D_F64(-0.02,-0.05,0.075);
+	private final Point3D_F64 mounting_offset = new Point3D_F64(0.015,-0.057,0.068);
 
 
 	private StreamRealSenseVisDepth 				    realsense			= null;
