@@ -49,6 +49,7 @@ import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
+import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.MSPMathUtils;
@@ -78,6 +79,7 @@ import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
+import javafx.scene.text.Font;
 
 public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
@@ -465,8 +467,8 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		if(!Float.isNaN(model.sys.t_armed_ms) && model.sys.isStatus(Status.MSP_ARMED))
 			ctx.drawString(String.format("%.1f sec",model.sys.t_armed_ms/1000), 20, 20);
 
-
-		//  ctx.drawString("Message:"+model.msg.msg, 10, 20);
+        if(model.msg.text != null && (model.sys.getSynchronizedPX4Time_us()-model.msg.tms) < 1000000)
+	       ctx.drawString(model.msg.text, 10, info.height-5);
 
 	}
 
