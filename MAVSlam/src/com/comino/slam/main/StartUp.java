@@ -129,12 +129,6 @@ public class StartUp implements Runnable {
 
 		// Start services if required
 
-		//		control.addMAVMessageListener((msg) -> {
-		//			if(msg.filter("vis"))
-		//				System.out.println("MSP Message: "+msg.text);
-		//
-		//		});
-
 		try {
 			if(config.getBoolProperty("vision_enabled", "true")) {
 
