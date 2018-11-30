@@ -122,7 +122,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 	private long last_pos_tms        = 0;
 	private long last_msp_tms        = 0;
-	private long last_msg            = 0;
 
 	private DataModel model;
 
@@ -153,12 +152,9 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private int error_count 		= 0;
 
 	private boolean do_odometry 	= true;
-
 	private boolean do_xy_position 	= false;
-
 	private boolean do_xy_speed 	= false;
 	private boolean do_attitude		= false;
-
 	private boolean do_covariances  = false;
 
 	private IMAVMSPController 							control		= null;
@@ -205,7 +201,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 		this.do_covariances = config.getBoolProperty("vision_pub_covariance", "true");
 		System.out.println("Vision publishes covariances: "+do_covariances);
-
 
 		this.detector_cycle_ms = config.getIntProperty("vision_detector_cycle", "100");
 		if(this.detector_cycle_ms > 0)
@@ -409,14 +404,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 					return;
 				}
 
-				// TODO: Replace with vision speed gate -> needs to be tested
-
-				//				if(	( Math.abs(speed_ned.T.z - model.state.l_vx) > vision_speed_gate ||
-				//					  Math.abs(speed_ned.T.x - model.state.l_vy) > vision_speed_gate ) )   {
-				//						init("Vision speed gate");
-				//						return;
-				//					}
-
 				publishPX4Vision();
 				error_count=0;
 
@@ -467,8 +454,8 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		if(!Float.isNaN(model.sys.t_armed_ms) && model.sys.isStatus(Status.MSP_ARMED))
 			ctx.drawString(String.format("%.1f sec",model.sys.t_armed_ms/1000), 20, 20);
 
-        if(model.msg.text != null && (model.sys.getSynchronizedPX4Time_us()-model.msg.tms) < 1000000)
-	       ctx.drawString(model.msg.text, 10, info.height-5);
+		if(model.msg.text != null && (model.sys.getSynchronizedPX4Time_us()-model.msg.tms) < 1000000)
+			ctx.drawString(model.msg.text, 10, info.height-5);
 
 	}
 
