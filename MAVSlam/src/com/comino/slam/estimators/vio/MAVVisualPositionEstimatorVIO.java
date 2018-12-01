@@ -39,6 +39,7 @@ import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
 import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_msp_command;
@@ -48,8 +49,8 @@ import org.mavlink.messages.lquac.msg_vision_position_estimate;
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
+import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
-import com.comino.msp.model.segment.LogMessage;
 import com.comino.msp.model.segment.Status;
 import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.MSPMathUtils;
@@ -79,18 +80,17 @@ import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
-import javafx.scene.text.Font;
 
 public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 	private static final int   	PUBLISH_RATE_MSP	    = 50 - 5;
 	private static final int  	PUBLISH_RATE_PX4    	= 10 - 5;
 
-	private static final int    INIT_COUNT           	= 5;
+	private static final int    INIT_COUNT           	= 2;
 	private static final int    MAX_ERRORS    	    	= 5;
 	private static final int    MAX_QUALITY_ERRORS   	= 10;
 
-	private static final int    MAX_SPEED    	    	= 50;
+	private static final int    MAX_SPEED    	    	= 20;
 	private static final float  VISION_POS_GATE     	= 0.25f;
 	private static final float  VISION_SPEED_GATE     	= 0.25f;
 
@@ -102,6 +102,8 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private static final int    RETIRE_THRESHOLD    	= 2;
 	private static final int    ADD_THRESHOLD       	= 50;
 	private static final int    REFINE_ITERATIONS   	= 60;
+
+	private static final int    MIN_MESSAGE_INTERVAL_MS = 500;
 
 	// TODO: get mounting offset of camera from config file
 	private final Point3D_F64 mounting_offset = new Point3D_F64(0.015,-0.057,0.068);
@@ -150,6 +152,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 	private int initialized_count  	= 0;
 	private int error_count 		= 0;
+	private long last_msg_tms       = 0;
 
 	private boolean do_odometry 	= true;
 	private boolean do_xy_position 	= false;
@@ -160,7 +163,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private IMAVMSPController 							control		= null;
 	private List<ISLAMDetector> 						detectors 	= null;
 	private List<IVisualStreamHandler<Planar<GrayU8>>>	streams 	= null;
-	private String 										last_reason	= null;
+
 
 	private final Color	bgColor = new Color(128,128,128,130);
 
@@ -318,13 +321,13 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 					if(control.isSimulation()) {
 						if( !visualOdometry.process(gray,depth,null)) {
-							init("Odometry");
+							init("Tracking");
 							return;
 						}
 					} else {
 						setModelToState(model, pose);
 						if( !visualOdometry.process(gray,depth,pose)) {
-							init("Odometry");
+							init("Tracking");
 							return;
 						}
 					}
@@ -355,8 +358,10 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 				oldTimeDepth_us = estTimeDepth_us;
 
 				// do some initializing measurements first
-				if(initialized_count++ < INIT_COUNT)
+				if(initialized_count++ < INIT_COUNT) {
+					pose_old.set(pose);
 					return;
+				}
 
 				if(dt > 0) {
 
@@ -371,6 +376,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 						// Check XY speed
 						if(Math.sqrt(speed.getX()*speed.getX()+speed.getZ()*speed.getZ())>MAX_SPEED) {
+							publisMSPVision();
 							init("Speed");
 							return;
 						}
@@ -523,10 +529,15 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		this.initialized_count = 0;
 
 		this.last_pos_tms = 0;
-		this.last_reason = reason;
 		visualOdometry.reset();
 
 		if(do_odometry) {
+
+			if((System.currentTimeMillis()-last_msg_tms)>MIN_MESSAGE_INTERVAL_MS && error_count < MAX_ERRORS) {
+				  MSPLogger.getInstance().writeLocalMsg("[vio] Init ("+reason+")",
+						MAV_SEVERITY.MAV_SEVERITY_WARNING);
+				  last_msg_tms = System.currentTimeMillis();
+				}
 
 			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
