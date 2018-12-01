@@ -227,7 +227,7 @@ public class StartUp implements Runnable {
 
 				Thread.sleep(50);
 
-				if((System.currentTimeMillis()-tms) < 500)
+				if((System.currentTimeMillis()-tms) < 333)
 					continue;
 
 				tms = System.currentTimeMillis();
@@ -249,7 +249,7 @@ public class StartUp implements Runnable {
 					temp.getTemperature();
 				}
 
-				msg.load = msg.load = LinuxUtils.getProcessCpuLoad();
+				msg.load = LinuxUtils.getProcessCpuLoad();
 				msg.memory = (int)(mxBean.getHeapMemoryUsage().getUsed() * 100 /mxBean.getHeapMemoryUsage().getMax());
 				msg.wifi_quality = (byte)wifi.get();
 				msg.threads = Thread.activeCount();
