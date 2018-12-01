@@ -335,6 +335,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 				} catch( Exception e) {
 					if(debug)
 						System.out.println("[vis] Odometry failure: "+e.getMessage());
+					pose_old.set(pose);
 					init("Exception");
 					return;
 				}
@@ -406,6 +407,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 				if(	( Math.abs(pose.T.z - model.state.l_x) > vision_pos_gate ||
 						Math.abs(pose.T.x - model.state.l_y) > vision_pos_gate ) && !control.isSimulation())   {
+					pose_old.set(pose);
 					init("Vision pos. gate");
 					return;
 				}
