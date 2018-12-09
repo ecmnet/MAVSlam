@@ -130,6 +130,8 @@ public class StartUp implements Runnable {
 		// Start services if required
 
 		try {
+			Thread.sleep(200);
+
 			if(config.getBoolProperty("vision_enabled", "true")) {
 
 				if(config.getBoolProperty("vision_highres", "false"))
@@ -164,6 +166,7 @@ public class StartUp implements Runnable {
 
 		this.publish_microslam = config.getBoolProperty("slam_publish_microslam", "true");
 		System.out.println("[vis] Publishing microSlam enabled: "+publish_microslam);
+
 
 
 		if(vision!=null && !vision.isRunning()) {
