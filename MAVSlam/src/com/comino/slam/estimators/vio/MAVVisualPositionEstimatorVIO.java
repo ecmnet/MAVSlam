@@ -270,6 +270,8 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 				ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true, mounting_offset,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
 
+		visualOdometry.setCalibration(realsense.getIntrinsics(),new DoNothingPixelTransform_F32());
+
 		if(stream!=null) {
 			registerStreams(stream);
 
@@ -331,7 +333,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 					}
 
 				} catch( Exception e) {
-					e.printStackTrace();
 					if(debug)
 						System.out.println("[vis] Odometry failure: "+e.getMessage());
 					pose_old.set(pose);

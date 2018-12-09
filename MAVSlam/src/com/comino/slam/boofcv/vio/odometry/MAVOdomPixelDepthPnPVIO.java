@@ -277,7 +277,8 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 				}
 			}
 		} catch(Exception e) {
-			System.err.println("Add new tracks: "+e.getMessage());
+			e.printStackTrace();
+		//	System.err.println("Add new tracks: "+e.getMessage());
 		}
 	}
 
