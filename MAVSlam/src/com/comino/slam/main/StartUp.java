@@ -51,6 +51,7 @@ import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.Status;
+import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.linux.LinuxUtils;
 import com.comino.msp.utils.px4.DefaultTunes;
 import com.comino.msp.utils.upboard.CPUTemperature;
@@ -82,6 +83,8 @@ public class StartUp implements Runnable {
 	private boolean is_simulation;
 
 	public StartUp(String[] args) {
+
+		ExecutorService.create();
 
 		if(args.length != 0) {
 			is_simulation = true;
