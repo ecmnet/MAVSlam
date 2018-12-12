@@ -244,6 +244,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 	 */
 	private void addNewTracks() {
 		// System.out.println("----------- Adding new tracks ---------------");
+		Point2D3DTrack p;
 
 		tracker.spawnTracks();
 		try {
@@ -251,7 +252,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 
 			// estimate 3D coordinate using stereo vision
 			for (PointTrack t : spawned) {
-				Point2D3DTrack p = t.getCookie();
+				p = t.getCookie();
 				if (p == null) {
 					t.cookie = p = new Point2D3DTrack();
 				}
