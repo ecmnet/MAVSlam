@@ -86,7 +86,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private static final int   	PUBLISH_RATE_MSP	    = 50 - 5;
 	private static final int  	PUBLISH_RATE_PX4    	= 10 - 5;
 
-	private static final int    INIT_COUNT           	= 2;
+	private static final int    INIT_COUNT           	= 3;
 	private static final int    MAX_ERRORS    	    	= 5;
 	private static final int    MAX_QUALITY_ERRORS   	= 10;
 
@@ -393,6 +393,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 					ConvertRotation3D_F64.matrixToEuler(pose.R, EulerType.ZXY, visAttitude);
 
+
 					//ConvertRotation3D_F64.eulerToQuaternion(EulerType.XYZ,visAttitude[0],visAttitude[1], visAttitude[2], att_q);
 
 
@@ -508,7 +509,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 
 	private Se3_F64 setModelToState(DataModel m, Se3_F64 state) {
-		if(!Float.isNaN(m.attitude.r) && !Float.isNaN(m.attitude.p))
+		if(!Float.isNaN(m.attitude.r) && !Float.isNaN(m.attitude.p) && !Float.isNaN(m.attitude.y))
 			ConvertRotation3D_F64.eulerToMatrix(EulerType.ZXY,
 					m.attitude.r,
 					m.attitude.p,
@@ -531,7 +532,9 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		this.initialized_count = 0;
 
 		this.last_pos_tms = 0;
-		visualOdometry.reset();
+
+		setModelToState(model,pose);
+		visualOdometry.reset(pose);
 
 		if(do_odometry) {
 

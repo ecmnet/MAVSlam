@@ -190,7 +190,7 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 				addNewTracks();
 				if(state!=null)
 					keyToWorld.set(state);
-		//		System.out.println("New KeyFrame..."+N);
+			//	System.out.println("New KeyFrame..."+keyToWorld.getRotation());
 			}
 
 //			 System.out.println(" num inliers = "+N+" num dropped
