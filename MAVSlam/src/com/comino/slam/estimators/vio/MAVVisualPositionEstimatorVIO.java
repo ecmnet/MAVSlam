@@ -419,7 +419,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
 						model.sys.setSensor(Status.MSP_SLAM_AVAILABILITY, true);
-						ExecutorService.get().execute(() -> {
+						ExecutorService.submit(() -> {
 							for(ISLAMDetector d : detectors) {
 								try {
 									d.process(visualOdometry, depth, gray);
@@ -428,7 +428,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 									//System.out.println(timeDepth+"[vis] SLAM exception: "+e.getMessage());
 								}
 							}
-						});
+						}, ExecutorService.LOW);
 					}
 				}
 

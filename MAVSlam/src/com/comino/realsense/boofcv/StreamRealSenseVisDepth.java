@@ -145,7 +145,8 @@ public class StreamRealSenseVisDepth {
 
 		thread = new CombineThread();
 		thread.start();
-		// make sure the thread is running before moving on
+		thread.setName("VIO");
+		thread.setPriority(Thread.NORM_PRIORITY+4);
 		while(!thread.running)
 			Thread.yield();
 	}
