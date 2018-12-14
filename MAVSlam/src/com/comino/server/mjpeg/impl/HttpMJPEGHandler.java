@@ -36,6 +36,7 @@ package com.comino.server.mjpeg.impl;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -61,6 +62,7 @@ public class HttpMJPEGHandler<T> implements HttpHandler, IVisualStreamHandler<T>
 	private List<IMJPEGOverlayListener> listeners = null;
 	private BufferedImage image = null;
 	private DataModel model = null;
+	private Graphics2D ctx;
 
 	private T input_image;
 
@@ -70,35 +72,40 @@ public class HttpMJPEGHandler<T> implements HttpHandler, IVisualStreamHandler<T>
 		this.model = model;
 		this.listeners = new ArrayList<IMJPEGOverlayListener>();
 		this.image = new BufferedImage(info.width, info.height, BufferedImage.TYPE_3BYTE_BGR);
+		this.ctx = image.createGraphics();
+
+		ImageIO.setUseCache(false);
+
 	}
 
 	@Override @SuppressWarnings("unchecked")
 	public void handle(HttpExchange he) throws IOException {
-		Graphics2D ctx;
+
 		he.getResponseHeaders().add("content-type","multipart/x-mixed-replace; boundary=--BoundaryString");
 		he.sendResponseHeaders(200, 0);
-		OutputStream os = he.getResponseBody();
+		OutputStream os = new BufferedOutputStream(he.getResponseBody());
 		while(true) {
 			os.write(("--BoundaryString\r\nContent-type:image/jpeg content-length:1\r\n\r\n").getBytes());
 
 			try {
+
 				synchronized(this) {
 
 					if(input_image==null)
 						wait();
-
-					if(input_image instanceof Planar) {
-						ConvertBufferedImage.convertTo_U8((Planar<GrayU8>)input_image, image, true);
-					}
-					else if(input_image instanceof GrayU8)
-						ConvertBufferedImage.convertTo((GrayU8)input_image, image, true);
-
-					if(listeners.size()>0) {
-						ctx = image.createGraphics();
-						for(IMJPEGOverlayListener listener : listeners)
-							listener.processOverlay(ctx);
-					}
 				}
+
+				if(input_image instanceof Planar) {
+					ConvertBufferedImage.convertTo_U8((Planar<GrayU8>)input_image, image, true);
+				}
+				else if(input_image instanceof GrayU8)
+					ConvertBufferedImage.convertTo((GrayU8)input_image, image, true);
+
+				if(listeners.size()>0) {
+					for(IMJPEGOverlayListener listener : listeners)
+						listener.processOverlay(ctx);
+				}
+
 				ImageIO.write(image, "jpg", os );
 				os.write("\r\n\r\n".getBytes());
 
@@ -114,14 +121,17 @@ public class HttpMJPEGHandler<T> implements HttpHandler, IVisualStreamHandler<T>
 	}
 
 	@Override
-	public synchronized void addToStream(T input, DataModel model, long tms_us) {
+	public  void addToStream(T input, DataModel model, long tms_us) {
 
 		if((System.currentTimeMillis()-last_image_tms)<MAX_VIDEO_RATE_MS)
 			return;
+
 		last_image_tms = System.currentTimeMillis();
 
-		input_image = input;
-		notify();
+		synchronized(this) {
+			input_image = input;
+			notify();
+		}
 
 	}
 }

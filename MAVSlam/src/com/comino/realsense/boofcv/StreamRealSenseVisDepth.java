@@ -54,6 +54,8 @@ import boofcv.struct.image.Planar;
 
 public class StreamRealSenseVisDepth {
 
+	private static final long MAX_RATE = 20;
+
 	// time out used in some places
 	private long timeout=10000;
 
@@ -146,7 +148,8 @@ public class StreamRealSenseVisDepth {
 		thread = new CombineThread();
 		thread.start();
 		thread.setName("VIO");
-		thread.setPriority(Thread.NORM_PRIORITY+4);
+		thread.setPriority(Thread.NORM_PRIORITY-4);
+
 		while(!thread.running)
 			Thread.yield();
 	}
@@ -182,12 +185,13 @@ public class StreamRealSenseVisDepth {
 
 		@Override
 		public void run() {
-			running = true;
+			running = true; long tms; long wait;
 
 			while( !requestStop ) {
 
 				try {
 
+					tms = System.currentTimeMillis();
 
 					LibRealSenseWrapper.INSTANCE.rs_wait_for_frames(dev, error);
 
@@ -232,7 +236,11 @@ public class StreamRealSenseVisDepth {
 						for(Listener listener : listeners)
 							listener.process(rgb, depth, timeRgb+tms_offset_rgb, timeDepth+tms_offset_depth);
 					}
-					//		}
+
+					// Limit maximum frame rate to MAX_RATE
+					wait = MAX_RATE - ( System.currentTimeMillis() - tms + 1 );
+					if(wait>0)
+					   Thread.sleep(wait);
 
 				} catch(Exception e) {
 					e.printStackTrace();
