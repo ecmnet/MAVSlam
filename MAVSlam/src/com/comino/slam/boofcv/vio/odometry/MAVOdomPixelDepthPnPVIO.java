@@ -192,9 +192,6 @@ public class MAVOdomPixelDepthPnPVIO<T extends ImageBase>  {
 					keyToWorld.set(state);
 			//	System.out.println("New KeyFrame..."+keyToWorld.getRotation());
 			}
-
-//			 System.out.println(" num inliers = "+N+" num dropped
-//			 "+numDropped+" total active "+tracker.getActivePairs().size());
 		}
 
 		return true;

@@ -109,6 +109,8 @@ public class HttpMJPEGHandler<T> implements HttpHandler, IVisualStreamHandler<T>
 				ImageIO.write(image, "jpg", os );
 				os.write("\r\n\r\n".getBytes());
 
+
+
 				input_image = null;
 
 			} catch (Exception e) { }

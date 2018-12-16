@@ -90,7 +90,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private static final int    MAX_ERRORS    	    	= 5;
 	private static final int    MAX_QUALITY_ERRORS   	= 10;
 
-	private static final int    MAX_SPEED    	    	= 20;
+	private static final float  MAX_SPEED    	    	= 0.4f;
 	private static final float  VISION_POS_GATE     	= 0.25f;
 	private static final float  VISION_SPEED_GATE     	= 0.25f;
 
@@ -377,8 +377,8 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 						// Check XY speed
 						if(Math.sqrt(speed.getX()*speed.getX()+speed.getZ()*speed.getZ())>MAX_SPEED) {
-							publisMSPVision();
-							init("Speed");
+							pose_old.set(pose);
+						//	init("Speed");
 							return;
 						}
 
