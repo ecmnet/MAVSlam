@@ -38,6 +38,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
+import org.mavlink.messages.lquac.msg_hil_gps;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 import org.mavlink.messages.lquac.msg_timesync;
@@ -64,6 +65,8 @@ import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.vio.MAVVisualPositionEstimatorVIO;
 import com.comino.slam.estimators.vo.MAVVisualPositionEstimatorVO;
 import com.sun.net.httpserver.HttpServer;
+
+import javafx.application.Platform;
 
 public class StartUp implements Runnable {
 
@@ -147,7 +150,7 @@ public class StartUp implements Runnable {
 
 				// Start HTTP Service with MJPEG streamer
 
-		//		vision = new MAVVisualPositionEstimatorVO(info, control, config, streamer);
+				//		vision = new MAVVisualPositionEstimatorVO(info, control, config, streamer);
 				vision = new MAVVisualPositionEstimatorVIO(info, control, config, streamer);
 
 				vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
@@ -170,12 +173,13 @@ public class StartUp implements Runnable {
 		this.publish_microslam = config.getBoolProperty("slam_publish_microslam", "true");
 		System.out.println("[vis] Publishing microSlam enabled: "+publish_microslam);
 
-
-
 		if(vision!=null && !vision.isRunning()) {
 			vision.start();
 
 		}
+
+		commander.setGlobalOrigin(Double.parseDouble(config.getProperty("ORIGIN_LAT", "48.072484")),
+				                  Double.parseDouble(config.getProperty("ORIGIN_LON", "11.513797")));
 
 		// register MSP commands here
 
