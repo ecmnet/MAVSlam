@@ -432,6 +432,8 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 						}, ExecutorService.LOW);
 					}
 				}
+				
+				updateInternalModel();
 
 				// Publish MSP data
 				publisMSPVision();
@@ -602,8 +604,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 			last_msp_tms = System.currentTimeMillis();
 
 			msg_msp_vision msg = new msg_msp_vision(2,1);
-			// TODO: update of internal model missing
-
 			msg.x =  (float) pose.T.z;
 			msg.y =  (float) pose.T.x;
 			msg.z =  (float) pose.T.y;
@@ -627,8 +627,25 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 				msg.flags = msg.flags | 4;
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
-			model.vision.tms = model.sys.getSynchronizedPX4Time_us();
+			
 		}
+	}
+	
+	private void updateInternalModel() {
+		
+		model.vision.tms = model.sys.getSynchronizedPX4Time_us();
+		model.vision.x  = (float) pose.T.z;
+		model.vision.y  = (float) pose.T.x;
+		model.vision.z  = (float) pose.T.y;
+		model.vision.vx = (float) speed.T.z;
+		model.vision.vy = (float) speed.T.x;
+		model.vision.vz = (float) speed.T.y;
+		model.vision.h = MSPMathUtils.fromRad((float)visAttitude[2]); 
+		model.vision.p = (float)visAttitude[1];
+		model.vision.r = (float)visAttitude[0];
+		model.vision.qual = quality;
+		model.vision.fps  = fps;
+		
 	}
 
 }
