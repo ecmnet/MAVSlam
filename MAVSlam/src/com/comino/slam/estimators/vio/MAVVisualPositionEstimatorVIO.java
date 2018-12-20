@@ -600,7 +600,10 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private void publisMSPVision() {
 		if((System.currentTimeMillis()-last_msp_tms) > PUBLISH_RATE_MSP) {
 			last_msp_tms = System.currentTimeMillis();
+
 			msg_msp_vision msg = new msg_msp_vision(2,1);
+			// TODO: update of internal model missing
+
 			msg.x =  (float) pose.T.z;
 			msg.y =  (float) pose.T.x;
 			msg.z =  (float) pose.T.y;

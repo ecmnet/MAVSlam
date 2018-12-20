@@ -455,6 +455,8 @@ public class MAVVisualPositionEstimatorVO implements IPositionEstimator {
 					}
 				}
 
+				updateInternalModel();
+
 				// Publish MSP data
 				publisMSPVision();
 
@@ -640,6 +642,23 @@ public class MAVVisualPositionEstimatorVO implements IPositionEstimator {
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
 		}
+	}
+
+	private void updateInternalModel() {
+
+		model.vision.tms = model.sys.getSynchronizedPX4Time_us();
+		model.vision.x  = (float) pos_ned.T.z;
+		model.vision.y  = (float) pos_ned.T.x;
+		model.vision.z  = (float) pos_ned.T.y;
+		model.vision.vx = (float) speed_ned.T.z;
+		model.vision.vy = (float) speed_ned.T.x;
+		model.vision.vz = (float) speed_ned.T.y;
+		model.vision.h = MSPMathUtils.fromRad((float)visAttitude[2]);
+		model.vision.p = (float)visAttitude[1];
+		model.vision.r = (float)visAttitude[0];
+		model.vision.qual = quality;
+		model.vision.fps  = fps;
+
 	}
 
 	public static void main(String[] args) {
