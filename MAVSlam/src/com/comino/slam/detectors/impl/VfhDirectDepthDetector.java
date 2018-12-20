@@ -101,6 +101,8 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 		getModelToState(model,current);
 
+		model.grid.tms = model.sys.getSynchronizedPX4Time_us();
+
 		for(int x = 0;x < gray.getWidth();x++) {
 
 			point_min.set(0,0,99);

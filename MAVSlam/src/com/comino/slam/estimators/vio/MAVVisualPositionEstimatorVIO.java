@@ -624,6 +624,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 				msg.flags = msg.flags | 4;
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
+			model.vision.tms = model.sys.getSynchronizedPX4Time_us();
 		}
 	}
 

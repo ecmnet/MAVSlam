@@ -38,6 +38,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
+import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.lquac.msg_hil_gps;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
@@ -49,6 +50,7 @@ import com.comino.mav.control.impl.MAVController;
 import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.execution.autopilot.Autopilot2D;
 import com.comino.msp.execution.commander.MSPCommander;
+import com.comino.msp.execution.control.StatusManager;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.Status;
@@ -85,6 +87,8 @@ public class StartUp implements Runnable {
 	private boolean publish_microslam;
 	private boolean is_simulation;
 
+	private MSPLogger logger;
+
 	public StartUp(String[] args) {
 
 		ExecutorService.create();
@@ -109,11 +113,16 @@ public class StartUp implements Runnable {
 		osBean =  java.lang.management.ManagementFactory.getOperatingSystemMXBean();
 		mxBean = java.lang.management.ManagementFactory.getMemoryMXBean();
 
-		MSPLogger.getInstance(control);
+		logger = MSPLogger.getInstance(control);
 
 		commander = new MSPCommander(control,config);
 
 		control.start();
+
+		control.getStatusManager().addListener(StatusManager.TYPE_MSP_SERVICES,
+				Status.MSP_SLAM_AVAILABILITY, StatusManager.EDGE_FALLING, (o,n) -> {
+					logger.writeLocalMsg("[msp] SLAM disabled", MAV_SEVERITY.MAV_SEVERITY_INFO);
+				});
 
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -125,7 +134,7 @@ public class StartUp implements Runnable {
 
 
 
-		MSPLogger.getInstance().writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
+		logger.writeLocalMsg("MAVProxy "+config.getVersion()+" loaded");
 		//if(!is_simulation) {
 		Thread worker = new Thread(this);
 		worker.setPriority(Thread.MIN_PRIORITY);
@@ -179,7 +188,7 @@ public class StartUp implements Runnable {
 		}
 
 		commander.setGlobalOrigin(Double.parseDouble(config.getProperty("ORIGIN_LAT", "48.072484")),
-				                  Double.parseDouble(config.getProperty("ORIGIN_LON", "11.513797")));
+				Double.parseDouble(config.getProperty("ORIGIN_LON", "11.513797")));
 
 		// register MSP commands here
 
@@ -227,7 +236,7 @@ public class StartUp implements Runnable {
 					grid.cx  = model.grid.getIndicatorX();
 					grid.cy  = model.grid.getIndicatorY();
 					grid.cz  = model.grid.getIndicatorZ();
-					grid.tms = model.sys.getSynchronizedPX4Time_us();
+					grid.tms = model.grid.tms;
 					grid.count = model.grid.count;
 					if(model.grid.toArray(grid.data))
 						control.sendMAVLinkMessage(grid);
