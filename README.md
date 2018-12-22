@@ -14,8 +14,11 @@ Integrate  Intel® RealSense™ R200 depth camera as an oboard visual input sour
 Prerequisites:
 
 - UP-Board running Ubilinux 3.0 with Java 8 (minimum) stack connected via serial link to PX4 controller
-
 - Intel® RealSense™ R200 (connected with external power supply)
+
+Video:
+
+<https://youtu.be/jOWNSIwIA9k>
 
 
 Heading estimation:
