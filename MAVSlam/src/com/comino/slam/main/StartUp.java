@@ -184,11 +184,7 @@ public class StartUp implements Runnable {
 
 		if(vision!=null && !vision.isRunning()) {
 			vision.start();
-
 		}
-
-		commander.setGlobalOrigin(Double.parseDouble(config.getProperty("ORIGIN_LAT", "48.072484")),
-				Double.parseDouble(config.getProperty("ORIGIN_LON", "11.513797")));
 
 		// register MSP commands here
 
