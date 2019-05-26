@@ -39,7 +39,7 @@ import org.mavlink.messages.lquac.msg_msp_command;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
-import com.comino.msp.execution.autopilot.Autopilot2D;
+import com.comino.msp.execution.autopilot.AutoPilotBase;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.slam.map2D.ILocalMap;
@@ -77,7 +77,7 @@ public class VfhDynamicDirectDepthDetector implements ISLAMDetector {
 	public <T> VfhDynamicDirectDepthDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> streamer) {
 
 		this.model	= control.getCurrentModel();
-		this.map 	= Autopilot2D.getInstance().getMap2D();
+		this.map 	= AutoPilotBase.getInstance().getMap2D();
 
 		this.max_distance = config.getFloatProperty("feature_max_distance", "3.00f");
 		System.out.println("[col] Max planning distance set to "+max_distance);

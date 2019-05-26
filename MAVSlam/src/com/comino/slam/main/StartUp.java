@@ -39,7 +39,6 @@ import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
 import org.mavlink.messages.MAV_SEVERITY;
-import org.mavlink.messages.lquac.msg_hil_gps;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 import org.mavlink.messages.lquac.msg_timesync;
@@ -48,7 +47,6 @@ import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
 import com.comino.mav.control.impl.MAVController;
 import com.comino.mav.control.impl.MAVProxyController;
-import com.comino.msp.execution.autopilot.Autopilot2D;
 import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.execution.control.StatusManager;
 import com.comino.msp.log.MSPLogger;
@@ -65,10 +63,7 @@ import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
 import com.comino.slam.detectors.impl.VfhDirectDepthDetector;
 import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.vio.MAVVisualPositionEstimatorVIO;
-import com.comino.slam.estimators.vo.MAVVisualPositionEstimatorVO;
 import com.sun.net.httpserver.HttpServer;
-
-import javafx.application.Platform;
 
 public class StartUp implements Runnable {
 
@@ -185,10 +180,6 @@ public class StartUp implements Runnable {
 		if(vision!=null && !vision.isRunning()) {
 			vision.start();
 		}
-
-		// register MSP commands here
-
-		Autopilot2D.getInstance().reset(false);
 
 	}
 
