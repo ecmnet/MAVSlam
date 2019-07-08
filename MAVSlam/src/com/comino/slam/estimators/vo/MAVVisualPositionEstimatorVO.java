@@ -531,6 +531,10 @@ public class MAVVisualPositionEstimatorVO implements IPositionEstimator {
 		init("msp reset");
 	}
 
+	public void enableDetectors( boolean enable) {
+		// TODO: Implement
+	}
+
 
 	private Se3_F64 setModelToState(DataModel m, Se3_F64 state) {
 		if(!Float.isNaN(m.attitude.r) && !Float.isNaN(m.attitude.p))

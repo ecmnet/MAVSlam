@@ -64,13 +64,13 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 	private float     	min_altitude     	= 0.35f;
 
 	private DataModel   model        		= null;
-	private ILocalMap 	map 					= null;
+	private ILocalMap 	map 				= null;
 
 	private Point3D_F64	point				= null;
 	private Point3D_F64 point_min      		= new Point3D_F64();
 	private Point3D_F64 point_ned       	= new Point3D_F64();
 
-	private Se3_F64 		current 		 		= new Se3_F64();
+	private Se3_F64 		current 		= new Se3_F64();
 
 
 	public <T> VfhDirectDepthDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> streamer) {

@@ -48,6 +48,7 @@ import org.mavlink.messages.lquac.msg_vision_position_estimate;
 
 import com.comino.main.MSPConfig;
 import com.comino.mav.control.IMAVMSPController;
+import com.comino.msp.execution.control.StatusManager;
 import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
@@ -80,6 +81,7 @@ import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
+import javafx.application.Platform;
 
 public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
@@ -130,6 +132,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private boolean debug 					= false;
 	private boolean heading_init_enabled 	= false;
 	private boolean isRunning    			= false;
+	private boolean isDetectorEnabled       = true;
 
 	private Se3_F64 pose                    = new Se3_F64();
 	private Se3_F64 pose_old                = new Se3_F64();
@@ -245,6 +248,25 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 			if((n.isStatus(Status.MSP_GPOS_VALID)))
 				reset();
 		});
+
+		if(!control.isSimulation()) {
+			System.out.println("Auto-enable SLAM detectors switched on");
+			// disable detectors while landing
+			control.getStatusManager().addListener(StatusManager.TYPE_PX4_NAVSTATE,Status.NAVIGATION_STATE_AUTO_LAND,  (o,n) -> {
+				if(n.nav_state == Status.NAVIGATION_STATE_AUTO_LAND && !n.isStatus(Status.MSP_LANDED))
+					isDetectorEnabled = false;
+			});
+
+			// enable detectors when switched to POSCTL
+			control.getStatusManager().addListener(StatusManager.TYPE_PX4_NAVSTATE,Status.NAVIGATION_STATE_POSCTL,  (o,n) -> {
+				isDetectorEnabled = true;
+			});
+
+			// enable detectors when switched to Offboard
+			control.getStatusManager().addListener(StatusManager.TYPE_PX4_NAVSTATE,Status.NAVIGATION_STATE_OFFBOARD, (o,n) -> {
+				isDetectorEnabled = true;
+			});
+		}
 
 		try {
 			realsense = new StreamRealSenseVisDepth(0,info);
@@ -378,7 +400,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 						// Check XY speed
 						if(Math.sqrt(speed.getX()*speed.getX()+speed.getZ()*speed.getZ())>MAX_SPEED) {
 							pose_old.set(pose);
-						//	init("Speed");
+							//	init("Speed");
 							return;
 						}
 
@@ -416,10 +438,11 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 				publishPX4Vision();
 				error_count=0;
 
-				if(detectors.size()>0 && detector_cycle_ms>0 && do_odometry) {
+				if(detectors.size()>0 && detector_cycle_ms>0 && do_odometry && isDetectorEnabled) {
 					if((System.currentTimeMillis() - detector_tms) > detector_cycle_ms) {
 						detector_tms = System.currentTimeMillis();
 						model.sys.setSensor(Status.MSP_SLAM_AVAILABILITY, true);
+
 						ExecutorService.submit(() -> {
 							for(ISLAMDetector d : detectors) {
 								try {
@@ -432,7 +455,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 						}, ExecutorService.LOW);
 					}
 				}
-				
+
 				updateInternalModel();
 
 				// Publish MSP data
@@ -479,6 +502,10 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 			System.out.println("[vis] Vision detector registered: "+detector.getClass().getSimpleName());
 			detectors.add(detector);
 		}
+	}
+
+	public void enableDetectors( boolean enable) {
+		this.isDetectorEnabled = enable;
 	}
 
 	public void registerStreams(IVisualStreamHandler stream) {
@@ -541,10 +568,10 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		if(do_odometry) {
 
 			if((System.currentTimeMillis()-last_msg_tms)>MIN_MESSAGE_INTERVAL_MS && error_count < MAX_ERRORS) {
-				  MSPLogger.getInstance().writeLocalMsg("[vio] Init ("+reason+")",
+				MSPLogger.getInstance().writeLocalMsg("[vio] Init ("+reason+")",
 						MAV_SEVERITY.MAV_SEVERITY_WARNING);
-				  last_msg_tms = System.currentTimeMillis();
-				}
+				last_msg_tms = System.currentTimeMillis();
+			}
 
 			if(++error_count > MAX_ERRORS) {
 				fps=0; quality=0;
@@ -627,12 +654,12 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 				msg.flags = msg.flags | 4;
 			msg.tms = (long)estTimeDepth_us;
 			control.sendMAVLinkMessage(msg);
-			
+
 		}
 	}
-	
+
 	private void updateInternalModel() {
-		
+
 		model.vision.tms = model.sys.getSynchronizedPX4Time_us();
 		model.vision.x  = (float) pose.T.z;
 		model.vision.y  = (float) pose.T.x;
@@ -640,12 +667,12 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		model.vision.vx = (float) speed.T.z;
 		model.vision.vy = (float) speed.T.x;
 		model.vision.vz = (float) speed.T.y;
-		model.vision.h = MSPMathUtils.fromRad((float)visAttitude[2]); 
+		model.vision.h = MSPMathUtils.fromRad((float)visAttitude[2]);
 		model.vision.p = (float)visAttitude[1];
 		model.vision.r = (float)visAttitude[0];
 		model.vision.qual = quality;
 		model.vision.fps  = fps;
-		
+
 	}
 
 }

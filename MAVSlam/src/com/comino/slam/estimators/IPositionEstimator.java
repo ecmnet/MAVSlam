@@ -17,4 +17,6 @@ public interface IPositionEstimator {
 
 	void reset();
 
+	void enableDetectors( boolean enable);
+
 }

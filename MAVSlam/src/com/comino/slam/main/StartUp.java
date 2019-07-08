@@ -65,6 +65,8 @@ import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.vio.MAVVisualPositionEstimatorVIO;
 import com.sun.net.httpserver.HttpServer;
 
+import javafx.application.Platform;
+
 public class StartUp implements Runnable {
 
 	IMAVMSPController    control = null;
@@ -113,6 +115,7 @@ public class StartUp implements Runnable {
 		commander = new MSPCommander(control,config);
 
 		control.start();
+
 
 		control.getStatusManager().addListener(StatusManager.TYPE_MSP_SERVICES,
 				Status.MSP_SLAM_AVAILABILITY, StatusManager.EDGE_FALLING, (o,n) -> {
@@ -215,7 +218,6 @@ public class StartUp implements Runnable {
 					control.connect();
 					continue;
 				}
-
 
 				while(publish_microslam && model.grid.hasTransfers()) {
 					grid.resolution = 0.05f;
