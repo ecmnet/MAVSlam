@@ -271,7 +271,7 @@ public class StartUp implements Runnable {
 				msg.unix_time_us = System.currentTimeMillis() * 1000;
 				control.sendMAVLinkMessage(msg);
 
-				if((System.currentTimeMillis()-blink) < 5000 || is_simulation)
+				if((System.currentTimeMillis()-blink) < 3000 || is_simulation)
 					continue;
 
 				blink = System.currentTimeMillis();
@@ -279,7 +279,7 @@ public class StartUp implements Runnable {
 				if(model.sys.isStatus(Status.MSP_ACTIVE))
 					UpLEDControl.flash("green", 10);
 				else
-					UpLEDControl.flash("red", 10);
+					UpLEDControl.flash("red", 200);
 
 			} catch (Exception e) {
 				e.printStackTrace();
