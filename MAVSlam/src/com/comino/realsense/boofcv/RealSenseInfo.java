@@ -35,7 +35,7 @@ package com.comino.realsense.boofcv;
 
 public class RealSenseInfo {
 
-	public static final int MODE_RGB 	  = 0;
+	public static final int MODE_RGB 	   = 0;
 	public static final int MODE_INFRARED  =   1;
 
 	public int width  = 320;

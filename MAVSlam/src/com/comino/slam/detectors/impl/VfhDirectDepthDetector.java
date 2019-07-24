@@ -124,7 +124,8 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 
 			SePointOps_F64.transform(current,point_min,point_ned);
 			MSP3DUtils.toNED(point_ned);
-			map.update(model.state.l_x, model.state.l_y,point_ned);
+			if(point_ned.z > -0.3 && point_min.z < 5)
+			  map.update(model.state.l_x, model.state.l_y,point_ned);
 		}
 	}
 
