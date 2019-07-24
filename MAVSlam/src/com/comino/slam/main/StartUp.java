@@ -201,6 +201,7 @@ public class StartUp implements Runnable {
 		long tms = System.currentTimeMillis();
 		long blink = tms;
 		boolean tune_played = false;
+		int pack_count;
 
 		DataModel model = control.getCurrentModel();
 
@@ -219,16 +220,19 @@ public class StartUp implements Runnable {
 					continue;
 				}
 
-				while(publish_microslam && model.grid.hasTransfers()) {
-					grid.resolution = 0.05f;
-					grid.extension  = 0;
-					grid.cx  = model.grid.getIndicatorX();
-					grid.cy  = model.grid.getIndicatorY();
-					grid.cz  = model.grid.getIndicatorZ();
-					grid.tms = model.grid.tms;
-					grid.count = model.grid.count;
-					if(model.grid.toArray(grid.data))
+				pack_count = 0; publish_microslam = true;
+				while(publish_microslam && model.grid.hasTransfers() && pack_count++ < 10) {
+					if(model.grid.toArray(grid.data)) {
+						grid.resolution = 0.05f;
+						grid.extension  = 0;
+						grid.cx  = model.grid.getIndicatorX();
+						grid.cy  = model.grid.getIndicatorY();
+						grid.cz  = model.grid.getIndicatorZ();
+						grid.tms = model.grid.tms;
+						grid.count = model.grid.count;
 						control.sendMAVLinkMessage(grid);
+						Thread.sleep(5);
+					}
 				}
 
 				//     streamer.addToStream(Autopilot2D.getInstance().getMap2D().getMap().subimage(400-160, 400-120, 400+160, 400+120), model, System.currentTimeMillis()*1000);
