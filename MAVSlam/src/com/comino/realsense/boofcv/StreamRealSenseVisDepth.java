@@ -284,9 +284,9 @@ public class StreamRealSenseVisDepth {
 		for( y = 0; y < output.height; y++ ) {
 			indexOut = output.startIndex + y*output.stride;
 			for( x = 0; x < output.width; x++ , indexOut++ ) {
-				output.getBand(2).data[indexOut] = input[indexIn--];
-				output.getBand(1).data[indexOut] = input[indexIn--];
 				output.getBand(0).data[indexOut] = input[indexIn--];
+				output.getBand(1).data[indexOut] = input[indexIn--];
+				output.getBand(2).data[indexOut] = input[indexIn--];
 			}
 		}
 	}
