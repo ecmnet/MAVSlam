@@ -56,12 +56,16 @@ import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.transform.se.SePointOps_F64;
 
-public class VfhDirectDepthDetector implements ISLAMDetector {
+public class DirectDepthDetector implements ISLAMDetector {
 
-	private static final float MIN_ALTITUDE  = 0.5f;
+	private static final float MIN_ALTITUDE  = 0.3f;
 
-	private float     	max_distance     	= 3.0f;
-	private float     	min_altitude     	= 0;
+	private static final int   YBAND_LOW     = 60;
+	private static final int   YBAND_HIGH    = 180;
+
+	private double     	max_distance     	= 5.0f;
+	private double     	current_min_distance= 0.0f;
+	private double     	min_altitude     	= 0;
 
 	private DataModel   model        		= null;
 	private ILocalMap 	map 				= null;
@@ -70,10 +74,10 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 	private Point3D_F64 point_min      		= new Point3D_F64();
 	private Point3D_F64 point_ned       	= new Point3D_F64();
 
-	private Se3_F64 		current 		= new Se3_F64();
+	private Se3_F64 	  current 			= new Se3_F64();
 
 
-	public <T> VfhDirectDepthDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> streamer) {
+	public <T> DirectDepthDetector(IMAVMSPController control, MSPConfig config, IVisualStreamHandler<T> streamer) {
 
 		this.model	= control.getCurrentModel();
 		this.map 	= AutoPilotBase.getInstance().getMap2D();
@@ -94,6 +98,12 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 				}
 			}
 		});
+
+		if(streamer !=null)
+			streamer.registerOverlayListener(ctx -> {
+				if(current_min_distance<Double.MAX_VALUE)
+					ctx.drawString(String.format("Min.distance %.1fm",current_min_distance), 10, 50);
+			});
 	}
 
 	@Override
@@ -102,17 +112,18 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 		getModelToState(model,current);
 
 		// Do not update map if loaded from storage or vehicle is lower than MIN_ALTITUDE
-		if(model.hud.ar < min_altitude || map.isLoaded())
-			return;
+		//		if((model.hud.ar < min_altitude || map.isLoaded()))
+		//			return;
 
 		model.grid.tms = model.sys.getSynchronizedPX4Time_us();
 
-		for(int x = 0;x < gray.getWidth();x++) {
+		current_min_distance = Double.MAX_VALUE;
+		for(int x = 0;x < gray.getWidth();x = x + 2) {
 
-			point_min.set(0,0,99);
-			for(int dy = -15; dy <= 15;dy=dy+5) {
+			point_min.set(0,0,Double.MAX_VALUE);
+			for(int y = YBAND_LOW;y <= YBAND_HIGH;y = y + 5) {
 				try {
-					point = odometry.getPoint3DFromPixel(x,180+dy);
+					point = odometry.getPoint3DFromPixel(x,y);
 					if(point != null && point.z < point_min.z)
 						point_min.set(point);
 				} catch(Exception e) {
@@ -120,13 +131,24 @@ public class VfhDirectDepthDetector implements ISLAMDetector {
 				}
 			}
 
-			// TODO: check max distance
-
-			SePointOps_F64.transform(current,point_min,point_ned);
-			MSP3DUtils.toNED(point_ned);
-			if(point_ned.z > -0.3 && point_min.z < 5)
-			  map.update(model.state.l_x, model.state.l_y,point_ned);
+			if(point_min.z<Double.MAX_VALUE) {
+				SePointOps_F64.transform(current,point_min,point_ned);
+				MSP3DUtils.toNED(point_ned);
+				if(model.state.l_z < (- min_altitude ) && point_min.z < max_distance ) {
+					map.update(model.state.l_x, model.state.l_y,point_ned);
+					if(point_min.z<current_min_distance)
+						current_min_distance = point_min.z;
+				}
+			}
 		}
+
+
+		if(current_min_distance<Double.MAX_VALUE)
+			model.slam.dm = (float)current_min_distance;
+		else
+			model.slam.dm = Float.NaN;
+		model.slam.tms = model.sys.getSynchronizedPX4Time_us();
+
 	}
 
 

@@ -60,7 +60,8 @@ import com.comino.msp.utils.upboard.UpLEDControl;
 import com.comino.msp.utils.upboard.WifiQuality;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
-import com.comino.slam.detectors.impl.VfhDirectDepthDetector;
+
+import com.comino.slam.detectors.impl.DirectDepthDetector;
 import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.vio.MAVVisualPositionEstimatorVIO;
 import com.sun.net.httpserver.HttpServer;
@@ -155,12 +156,12 @@ public class StartUp implements Runnable {
 
 				streamer = new HttpMJPEGHandler(info, control.getCurrentModel());
 
-				// Start HTTP Service with MJPEG streamer
 
 				//		vision = new MAVVisualPositionEstimatorVO(info, control, config, streamer);
 				vision = new MAVVisualPositionEstimatorVIO(info, control, config, streamer);
 
-				vision.registerDetector(new VfhDirectDepthDetector(control,config,streamer));
+		    	vision.registerDetector(new DirectDepthDetector(control,config,streamer));
+
 
 
 				HttpServer server;
