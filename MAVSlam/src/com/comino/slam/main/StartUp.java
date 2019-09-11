@@ -60,13 +60,10 @@ import com.comino.msp.utils.upboard.UpLEDControl;
 import com.comino.msp.utils.upboard.WifiQuality;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.server.mjpeg.impl.HttpMJPEGHandler;
-
-import com.comino.slam.detectors.impl.DirectDepthDetector;
+import com.comino.slam.detectors.impl.FwDirectDepthDetector;
 import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.vio.MAVVisualPositionEstimatorVIO;
 import com.sun.net.httpserver.HttpServer;
-
-import javafx.application.Platform;
 
 public class StartUp implements Runnable {
 
@@ -119,7 +116,7 @@ public class StartUp implements Runnable {
 
 
 		control.getStatusManager().addListener(StatusManager.TYPE_MSP_SERVICES,
-				Status.MSP_SLAM_AVAILABILITY, StatusManager.EDGE_FALLING, (o,n) -> {
+				Status.MSP_SLAM_AVAILABILITY, StatusManager.EDGE_FALLING, (n) -> {
 					logger.writeLocalMsg("[msp] SLAM disabled", MAV_SEVERITY.MAV_SEVERITY_INFO);
 				});
 
@@ -160,7 +157,7 @@ public class StartUp implements Runnable {
 				//		vision = new MAVVisualPositionEstimatorVO(info, control, config, streamer);
 				vision = new MAVVisualPositionEstimatorVIO(info, control, config, streamer);
 
-		    	vision.registerDetector(new DirectDepthDetector(control,config,streamer));
+		    	vision.registerDetector(new FwDirectDepthDetector(control,config,streamer));
 
 
 
@@ -175,7 +172,7 @@ public class StartUp implements Runnable {
 				}
 
 			}
-		} catch(Exception e) { System.out.println("No vision available"); }
+		} catch(Exception e) { System.out.println("No vision available: "+e.getMessage()); }
 
 
 		this.publish_microslam = config.getBoolProperty("slam_publish_microslam", "true");

@@ -237,14 +237,14 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		});
 
 		// reset vision when armed
-		control.getStatusManager().addListener( Status.MSP_ARMED, (o,n) -> {
+		control.getStatusManager().addListener( Status.MSP_ARMED, (n) -> {
 			if(n.isStatus(Status.MSP_ARMED)) {
 				reset();
 			}
 		});
 
 		//reset vision when GPOS gets valid
-		control.getStatusManager().addListener(Status.MSP_GPOS_VALID, (o,n) -> {
+		control.getStatusManager().addListener(Status.MSP_GPOS_VALID, (n) -> {
 			if((n.isStatus(Status.MSP_GPOS_VALID)))
 				reset();
 		});
@@ -252,18 +252,18 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		if(!control.isSimulation()) {
 			System.out.println("Auto-enable SLAM detectors switched on");
 			// disable detectors while landing
-			control.getStatusManager().addListener(StatusManager.TYPE_PX4_NAVSTATE,Status.NAVIGATION_STATE_AUTO_LAND,  (o,n) -> {
+			control.getStatusManager().addListener(StatusManager.TYPE_PX4_NAVSTATE,Status.NAVIGATION_STATE_AUTO_LAND,  (n) -> {
 				if(n.nav_state == Status.NAVIGATION_STATE_AUTO_LAND && !n.isStatus(Status.MSP_LANDED))
 					isDetectorEnabled = false;
 			});
 
 			// enable detectors when switched to POSCTL
-			control.getStatusManager().addListener(StatusManager.TYPE_PX4_NAVSTATE,Status.NAVIGATION_STATE_POSCTL,  (o,n) -> {
+			control.getStatusManager().addListener(StatusManager.TYPE_PX4_NAVSTATE,Status.NAVIGATION_STATE_POSCTL,  (n) -> {
 				isDetectorEnabled = true;
 			});
 
 			// enable detectors when switched to Offboard
-			control.getStatusManager().addListener(StatusManager.TYPE_PX4_NAVSTATE,Status.NAVIGATION_STATE_OFFBOARD, (o,n) -> {
+			control.getStatusManager().addListener(StatusManager.TYPE_PX4_NAVSTATE,Status.NAVIGATION_STATE_OFFBOARD, (n) -> {
 				isDetectorEnabled = true;
 			});
 		}
