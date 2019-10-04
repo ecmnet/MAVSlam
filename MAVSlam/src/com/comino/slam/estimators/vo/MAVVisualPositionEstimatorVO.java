@@ -503,6 +503,11 @@ public class MAVVisualPositionEstimatorVO implements IPositionEstimator {
 		}
 	}
 
+	@Override
+	public MAVDepthVisualOdometry<GrayU8, GrayU16> getOdometry() {
+		return visualOdometry;
+	}
+
 	public void registerStreams(IVisualStreamHandler stream) {
 		System.out.println("[vis] Vision stream registered: "+stream.getClass().getSimpleName());
 		streams.add(stream);

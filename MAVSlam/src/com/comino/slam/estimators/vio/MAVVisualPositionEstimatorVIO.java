@@ -232,6 +232,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 					case MSP_COMPONENT_CTRL.RESET:
 						reset(); break;
 					}
+					break;
 				}
 			}
 		});
@@ -284,6 +285,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		PointTrackerTwoPass<GrayU8> tracker =
 				FactoryMAVPointTrackerTwoPassVIO.klt(configKlt, new ConfigGeneralDetector(MAXTRACKS, KLT_RADIUS, KLT_THRESHOLD),
 						GrayU8.class, GrayS16.class);
+
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
@@ -504,6 +506,11 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		}
 	}
 
+	@Override
+	public MAVDepthVisualOdometry<GrayU8, GrayU16> getOdometry() {
+		return visualOdometry;
+	}
+
 	public void enableDetectors( boolean enable) {
 		this.isDetectorEnabled = enable;
 	}
@@ -674,5 +681,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 		model.vision.fps  = fps;
 
 	}
+
 
 }

@@ -150,7 +150,7 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis extends ImageBas
 		if(sparse3D.process(pixelx, pixely)) {
 			return sparse3D.getWorldPt();
 		}
-		return null;
+		return new Point3D_F64();
 	}
 
 	@Override
