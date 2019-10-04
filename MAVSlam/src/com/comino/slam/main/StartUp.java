@@ -39,6 +39,9 @@ import java.lang.management.OperatingSystemMXBean;
 import java.net.InetSocketAddress;
 
 import org.mavlink.messages.MAV_SEVERITY;
+import org.mavlink.messages.MSP_CMD;
+import org.mavlink.messages.MSP_COMPONENT_CTRL;
+import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
 import org.mavlink.messages.lquac.msg_timesync;
@@ -49,6 +52,7 @@ import com.comino.mav.control.impl.MAVController;
 import com.comino.mav.control.impl.MAVProxyController;
 import com.comino.msp.execution.commander.MSPCommander;
 import com.comino.msp.execution.control.StatusManager;
+import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.Status;
@@ -64,6 +68,8 @@ import com.comino.slam.detectors.impl.FwDirectDepthDetector;
 import com.comino.slam.estimators.IPositionEstimator;
 import com.comino.slam.estimators.vio.MAVVisualPositionEstimatorVIO;
 import com.sun.net.httpserver.HttpServer;
+
+import georegression.struct.point.Point3D_F64;
 
 public class StartUp implements Runnable {
 
@@ -157,7 +163,7 @@ public class StartUp implements Runnable {
 				//		vision = new MAVVisualPositionEstimatorVO(info, control, config, streamer);
 				vision = new MAVVisualPositionEstimatorVIO(info, control, config, streamer);
 
-		    	vision.registerDetector(new FwDirectDepthDetector(control,config,streamer));
+				vision.registerDetector(new FwDirectDepthDetector(control,config,streamer));
 
 
 
@@ -181,6 +187,33 @@ public class StartUp implements Runnable {
 		if(vision!=null && !vision.isRunning()) {
 			vision.start();
 		}
+
+		control.registerListener(msg_msp_command.class, new IMAVLinkListener() {
+			@Override
+			public void received(Object o) {
+				Point3D_F64 target = null;
+				msg_msp_command cmd = (msg_msp_command)o;
+				switch(cmd.command) {
+				case MSP_CMD.SET_OPTICAL_TARGET:
+					if(vision.getOdometry() == null || !vision.isRunning()) {
+						return;
+					}
+					try {
+						if(Float.isNaN(cmd.param1) || Float.isNaN(cmd.param2))
+							target = vision.getOdometry().getPoint3DFromPixel(160, 120);
+						else
+							target = vision.getOdometry().getPoint3DFromPixel((int)cmd.param1, (int)cmd.param2);
+
+						logger.writeLocalMsg(String.format("OpticalTarget: [%.2f,%.2f,%.2f]", target.x,target.z,target.y));
+						System.out.println(target);
+					} catch(Exception e) {
+						e.printStackTrace();
+					}
+					//  commander.getAutopilot().moveto((float)target.x, (float)target.y, (float)target.z - 0.25f, Float.NaN);
+					break;
+				}
+			}
+		});
 
 	}
 
