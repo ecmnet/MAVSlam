@@ -40,7 +40,6 @@ import java.net.InetSocketAddress;
 
 import org.mavlink.messages.MAV_SEVERITY;
 import org.mavlink.messages.MSP_CMD;
-import org.mavlink.messages.MSP_COMPONENT_CTRL;
 import org.mavlink.messages.lquac.msg_msp_command;
 import org.mavlink.messages.lquac.msg_msp_micro_grid;
 import org.mavlink.messages.lquac.msg_msp_status;
@@ -204,11 +203,15 @@ public class StartUp implements Runnable {
 						else
 							target = vision.getOdometry().getPoint3DFromPixel((int)cmd.param1, (int)cmd.param2);
 
-						logger.writeLocalMsg(String.format("OpticalTarget: [%.2f,%.2f,%.2f]", target.x,target.z,target.y));
-						System.out.println(target);
+                        if(target!=null && target.z < 15.0f)
+						   logger.writeLocalMsg(String.format("OpticalTarget: [%.2f %.2f %.2f]", target.x,target.z,target.y));
+                        else
+                        	logger.writeLocalMsg("OpticalTarget could not be set)");
+
 					} catch(Exception e) {
 						e.printStackTrace();
 					}
+					// TODO: Rotate into body_ned and transform to world (add LPOS)
 					//  commander.getAutopilot().moveto((float)target.x, (float)target.y, (float)target.z - 0.25f, Float.NaN);
 					break;
 				}

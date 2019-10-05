@@ -21,6 +21,8 @@ package com.comino.slam.boofcv.vio;
 import org.ddogleg.fitting.modelset.ModelMatcher;
 import org.ddogleg.fitting.modelset.ransac.Ransac;
 
+import com.comino.slam.boofcv.sfm.DepthSparse3D;
+import com.comino.slam.boofcv.sfm.DepthSparse3D_to_PixelTo3D;
 import com.comino.slam.boofcv.vio.odometry.MAVOdomPixelDepthPnPVIO;
 import com.comino.slam.boofcv.vio.odometry.MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO;
 import com.comino.slam.boofcv.vo.odometry.MAVOdomPixelDepthPnP;
@@ -28,11 +30,10 @@ import com.comino.slam.boofcv.vo.odometry.MAVOdomPixelDepthPnP;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
 import boofcv.abst.geo.Estimate1ofPnP;
 import boofcv.abst.geo.RefinePnP;
-import boofcv.abst.sfm.DepthSparse3D_to_PixelTo3D;
+
 import boofcv.abst.sfm.ImagePixelTo3D;
 import boofcv.alg.geo.DistanceModelMonoPixels;
 import boofcv.alg.geo.pose.PnPDistanceReprojectionSq;
-import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.factory.geo.EnumPNP;
 import boofcv.factory.geo.EstimatorToGenerator;
 import boofcv.factory.geo.FactoryMultiView;

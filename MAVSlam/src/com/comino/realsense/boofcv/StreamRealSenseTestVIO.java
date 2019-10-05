@@ -41,6 +41,7 @@ import com.comino.mq.tests.OptPos;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.slam.boofcv.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.sfm.DepthSparse3D;
 import com.comino.slam.boofcv.vio.FactoryMAVOdometryVIO;
 import com.comino.slam.boofcv.vio.tracker.FactoryMAVPointTrackerTwoPassVIO;
 
@@ -48,7 +49,6 @@ import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.alg.distort.DoNothingPixelTransform_F32;
-import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
 import boofcv.core.image.ConvertImage;
 import boofcv.io.image.ConvertBufferedImage;

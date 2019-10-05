@@ -24,12 +24,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.comino.slam.boofcv.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.sfm.DepthSparse3D;
 
 import boofcv.abst.feature.tracker.PointTrack;
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.abst.sfm.d3.DepthVisualOdometry;
 import boofcv.alg.geo.DistanceModelMonoPixels;
-import boofcv.alg.sfm.DepthSparse3D;
+
 import boofcv.alg.sfm.d3.VisOdomPixelDepthPnP;
 import boofcv.struct.calib.IntrinsicParameters;
 import boofcv.struct.distort.PixelTransform_F32;
@@ -51,7 +52,7 @@ import georegression.struct.se.Se3_F64;
 // TODO WARNING! active list has been modified by dropping and adding tracks
 // this is probably true of other SFM algorithms
 public class MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis extends ImageBase, Depth extends ImageGray>
-	implements MAVDepthVisualOdometry<Vis,Depth> , AccessPointTracks3D
+implements MAVDepthVisualOdometry<Vis,Depth> , AccessPointTracks3D
 {
 	// low level algorithm
 	DepthSparse3D<Depth> sparse3D;
@@ -67,8 +68,8 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis extends ImageBas
 	List<PointTrack> active = new ArrayList<PointTrack>();
 
 	public MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO(DepthSparse3D<Depth> sparse3D, MAVOdomPixelDepthPnPVIO<Vis> alg,
-													   DistanceModelMonoPixels<Se3_F64, Point2D3D> distance,
-													   ImageType<Vis> visualType, Class<Depth> depthType) {
+			DistanceModelMonoPixels<Se3_F64, Point2D3D> distance,
+			ImageType<Vis> visualType, Class<Depth> depthType) {
 		this.sparse3D = sparse3D;
 		this.alg = alg;
 		this.distance = distance;
@@ -146,11 +147,26 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometryVIO<Vis extends ImageBas
 		return success;
 	}
 
+	private int dpx = 15;
 	public Point3D_F64 getPoint3DFromPixel(int pixelx, int pixely) {
-		if(sparse3D.process(pixelx, pixely)) {
+
+		if(sparse3D.process(pixelx, pixely))
 			return sparse3D.getWorldPt();
-		}
-		return new Point3D_F64();
+
+		if(sparse3D.process(pixelx+dpx, pixely+dpx))
+			return sparse3D.getWorldPt();
+
+		if(sparse3D.process(pixelx-dpx, pixely-dpx))
+			return sparse3D.getWorldPt();
+
+		if(sparse3D.process(pixelx+dpx, pixely-dpx))
+			return sparse3D.getWorldPt();
+
+		if(sparse3D.process(pixelx-dpx, pixely+dpx))
+			return sparse3D.getWorldPt();
+
+
+	return null;
 	}
 
 	@Override

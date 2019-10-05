@@ -146,11 +146,26 @@ public class MAVOdomPixelDepthPnP_to_DepthVisualOdometry<Vis extends ImageBase, 
 		return success;
 	}
 
+	private int dpx = 15;
 	public Point3D_F64 getPoint3DFromPixel(int pixelx, int pixely) {
-		if(sparse3D.process(pixelx, pixely)) {
+
+		if(sparse3D.process(pixelx, pixely))
 			return sparse3D.getWorldPt();
-		}
-		return null;
+
+		if(sparse3D.process(pixelx+dpx, pixely+dpx))
+			return sparse3D.getWorldPt();
+
+		if(sparse3D.process(pixelx-dpx, pixely-dpx))
+			return sparse3D.getWorldPt();
+
+		if(sparse3D.process(pixelx+dpx, pixely-dpx))
+			return sparse3D.getWorldPt();
+
+		if(sparse3D.process(pixelx-dpx, pixely+dpx))
+			return sparse3D.getWorldPt();
+
+
+	return null;
 	}
 
 	@Override

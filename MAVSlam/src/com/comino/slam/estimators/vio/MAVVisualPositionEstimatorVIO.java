@@ -53,13 +53,13 @@ import com.comino.msp.execution.control.listener.IMAVLinkListener;
 import com.comino.msp.log.MSPLogger;
 import com.comino.msp.model.DataModel;
 import com.comino.msp.model.segment.Status;
-import com.comino.msp.utils.ExecutorService;
 import com.comino.msp.utils.MSPMathUtils;
 import com.comino.realsense.boofcv.RealSenseInfo;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth;
 import com.comino.realsense.boofcv.StreamRealSenseVisDepth.Listener;
 import com.comino.server.mjpeg.IVisualStreamHandler;
 import com.comino.slam.boofcv.MAVDepthVisualOdometry;
+import com.comino.slam.boofcv.sfm.DepthSparse3D;
 import com.comino.slam.boofcv.vio.FactoryMAVOdometryVIO;
 import com.comino.slam.boofcv.vio.tracker.FactoryMAVPointTrackerTwoPassVIO;
 import com.comino.slam.detectors.ISLAMDetector;
@@ -69,7 +69,6 @@ import boofcv.abst.feature.detect.interest.ConfigGeneralDetector;
 import boofcv.abst.feature.tracker.PointTrackerTwoPass;
 import boofcv.abst.sfm.AccessPointTracks3D;
 import boofcv.alg.distort.DoNothingPixelTransform_F32;
-import boofcv.alg.sfm.DepthSparse3D;
 import boofcv.alg.tracker.klt.PkltConfig;
 import boofcv.core.image.ConvertImage;
 import boofcv.struct.image.GrayS16;
@@ -81,7 +80,6 @@ import georegression.geometry.GeometryMath_F64;
 import georegression.struct.EulerType;
 import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
-import javafx.application.Platform;
 
 public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
@@ -116,6 +114,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 	private RealSenseInfo 						    	info				= null;
 
 	private GrayU8 gray 			= null;
+	private GrayU8 test 			= null;
 
 	private double oldTimeDepth_us	= 0;
 	private double estTimeDepth_us	= 0;
@@ -289,7 +288,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 		DepthSparse3D<GrayU16> sparseDepth = new DepthSparse3D.I<GrayU16>(1e-3);
 
-
 		visualOdometry = FactoryMAVOdometryVIO.depthPnP(INLIER_PIXEL_TOL,
 				ADD_THRESHOLD, RETIRE_THRESHOLD, RANSAC_ITERATIONS, REFINE_ITERATIONS, true, mounting_offset,
 				sparseDepth, tracker, GrayU8.class, GrayU16.class);
@@ -319,8 +317,6 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 
 				publish_tms_us = System.currentTimeMillis()*1000;
 
-				for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
-					stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
 
 				if(!do_odometry || visualOdometry == null ) {
 					return;
@@ -341,6 +337,9 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 				try {
 
 					ConvertImage.average(rgb, gray);
+
+					for(IVisualStreamHandler<Planar<GrayU8>> stream : streams)
+						stream.addToStream(rgb, model, System.currentTimeMillis()*1000);
 
 
 					if(control.isSimulation()) {
@@ -445,7 +444,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 						detector_tms = System.currentTimeMillis();
 						model.sys.setSensor(Status.MSP_SLAM_AVAILABILITY, true);
 
-						ExecutorService.submit(() -> {
+					//	ExecutorService.submit(() -> {
 							for(ISLAMDetector d : detectors) {
 								try {
 									d.process(visualOdometry, depth, gray);
@@ -454,7 +453,7 @@ public class MAVVisualPositionEstimatorVIO implements IPositionEstimator {
 									//System.out.println(timeDepth+"[vis] SLAM exception: "+e.getMessage());
 								}
 							}
-						}, ExecutorService.LOW);
+				//		}, ExecutorService.LOW);
 					}
 				}
 

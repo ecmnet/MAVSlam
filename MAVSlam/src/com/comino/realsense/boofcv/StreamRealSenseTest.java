@@ -99,8 +99,8 @@ public class StreamRealSenseTest extends Application  {
 		});
 
 
-		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
-//		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
+//		RealSenseInfo info = new RealSenseInfo(320,240, RealSenseInfo.MODE_RGB);
+		RealSenseInfo info = new RealSenseInfo(640,480, RealSenseInfo.MODE_RGB);
 
 		try {
 
@@ -214,8 +214,10 @@ public class StreamRealSenseTest extends Application  {
 				}
 
 				if(depth!=null) {
-					if(index > -1)
-					   System.out.println(visualOdometry.getTrackLocation(index));
+
+					System.out.println(visualOdometry.getPoint3DFromPixel(160, 120));
+//					if(index > -1)
+//					   System.out.println(visualOdometry.getTrackLocation(index));
 
 					mc++;
 					md = md + depth.get(dx,dy) / 1000f;
