@@ -4,6 +4,8 @@
 
 #### Onboard visual odometry for PX4 
 
+(Deprecated)
+
 Integrate  Intel® RealSense™ R200 depth camera as an oboard visual input source for PX4 using the [UP-Board]( http://www.up-board.org) as companion:
 
 - Estimate position and speed based on stereo depth images up to 60 fps for LPE /EKF2
